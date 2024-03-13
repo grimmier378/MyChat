@@ -243,10 +243,10 @@ function ChatWin.EventChat(channel, line)
     local settings = ChatWin.Channels[channel]
     if settings.enabled and string.find(line, settings.echoFilterString) then
         pref = parseColor(settings.echoColor)
-        printf("Channel: %s Filter: %s", channel, settings.echoFilterString)
+        --printf("Channel: %s Filter: %s", channel, settings.echoFilterString)
     elseif settings.enabled and string.find(line, settings.filterString) then
         pref = parseColor(settings.color)
-        printf("Channel: %s Filter: %s", channel, settings.filterString)
+        --printf("Channel: %s Filter: %s", channel, settings.filterString)
     end
     if pref == 'NULL' then return end
     -- Construct the formatted output line only if a matching channel is enabled
