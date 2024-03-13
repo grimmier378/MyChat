@@ -182,6 +182,12 @@ function File_Exists(name)
     if f~=nil then io.close(f) return true else return false end
 end
 
+local function SetUpConsoles(channel)
+    if ChatWin.Channels[channel].console == nil then
+        ChatWin.Channels[channel].console = ImGui.ConsoleWidget.new(channel.."##Console")
+    end
+end
+
 local function loadSettings()
     if not File_Exists(ChatWin.SettingsFile) then
         -- Write default settings to the file
@@ -213,8 +219,15 @@ local function loadSettings()
             echoEventString = data.echoEventString or 'NULL',
             echoFilterString = data.echoFilterString or 'NULL',
             echoColor = data.echoColor or 'NULL',
-            enabled = data.enabled
+            enabled = data.enabled or true,
+            ---@type ConsoleWidget
+            console = nil,
+            resetPosition = false,
+            setFocus = false,
+            commandBuffer = ''
         }
+    -- Enable the consoles for each channel.
+    SetUpConsoles(option)
     end
 end
 local function BuildEvents()
@@ -233,7 +246,12 @@ local function BuildEvents()
 end
 
 function ChatWin.EventChat(channel, line)
-    local function output(line)
+    local function output(line, channel)
+        if channel then
+            if ChatWin.Channels[channel].console ~= nil then
+                ChatWin.Channels[channel].console:AppendText(line)
+            end
+        end
         if console ~= nil then
             console:AppendText(line)
         end
@@ -241,114 +259,134 @@ function ChatWin.EventChat(channel, line)
     local time = mq.TLO.Time()
     local pref = 'NULL'  -- Default prefix
     local settings = ChatWin.Channels[channel]
-    if settings.enabled and string.find(line, settings.echoFilterString) then
+    if string.find(line, settings.echoFilterString) then
         pref = parseColor(settings.echoColor)
         --printf("Channel: %s Filter: %s", channel, settings.echoFilterString)
-    elseif settings.enabled and string.find(line, settings.filterString) then
+    elseif string.find(line, settings.filterString) then
         pref = parseColor(settings.color)
         --printf("Channel: %s Filter: %s", channel, settings.filterString)
     end
     if pref == 'NULL' then return end
     -- Construct the formatted output line only if a matching channel is enabled
     line = string.format("%s[%s] %s", pref, time, line)
-    output(line)
+    output(line, channel)
 end
 
 function ChatWin.GUI()
     if not ChatWin.openGUI then return end
-    local shouldDrawGUI = false
+
     local windowName = 'My Chat##'..mq.TLO.Me.DisplayName()
-    ImGui.SetNextWindowSize(ImVec2(640, 240), resetPosition and ImGuiCond.FirstUseEver or ImGuiCond.Once)
+    ImGui.SetNextWindowSize(ImVec2(640, 480), ImGuiCond.FirstUseEver)
     ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, ImVec2(1, 0));
-    ChatWin.openGUI, shouldDrawGUI = ImGui.Begin(windowName, ChatWin.openGUI, ChatWin.winFlags)
-    ImGui.PopStyleVar()
 
-    -- Check if GUI should be drawn
-    if not shouldDrawGUI then
-        ImGui.End()
-        return
-    end
-
-    -- Main menu bar
-    if ImGui.BeginMenuBar() then
-        if ImGui.BeginMenu('Channels') then
-            for channel, settings in pairs(ChatWin.Channels) do
-                local enabled = ChatWin.Channels[channel].enabled
-                if ImGui.MenuItem(channel, '', enabled) then
-                    ChatWin.Channels[channel].enabled = not enabled
-                end
-            end
-            ImGui.Separator()
-            if ImGui.BeginMenu('Options') then
-                _, console.autoScroll = ImGui.MenuItem('Auto-scroll', nil, console.autoScroll)
-                _, LocalEcho = ImGui.MenuItem('Local echo', nil, LocalEcho)
-                ImGui.Separator()
-                if ImGui.MenuItem('Reset Position') then
-                    resetPosition = true
+    if ImGui.Begin(windowName, ChatWin.openGUI, ChatWin.winFlags) then
+        -- Main menu bar
+        if ImGui.BeginMenuBar() then
+            if ImGui.BeginMenu('Channels') then
+                for channel, settings in pairs(ChatWin.Channels) do
+                    local enabled = ChatWin.Channels[channel].enabled
+                    if ImGui.MenuItem(channel, '', enabled) then
+                        ChatWin.Channels[channel].enabled = not enabled
+                    end
                 end
                 ImGui.Separator()
-                if ImGui.MenuItem('Clear Console') then
-                    console:Clear()
+                if ImGui.BeginMenu('Options') then
+                    _, console.autoScroll = ImGui.MenuItem('Auto-scroll', nil, console.autoScroll)
+                    _, LocalEcho = ImGui.MenuItem('Local echo', nil, LocalEcho)
+                    ImGui.Separator()
+                    if ImGui.MenuItem('Reset Position') then
+                        resetPosition = true
+                    end
+                    ImGui.Separator()
+                    if ImGui.MenuItem('Clear Console') then
+                        console:Clear()
+                    end
+                    if ImGui.MenuItem('Exit') then
+                        ChatWin.SHOW = false
+                    end
+                    ImGui.Spacing()
+                    ImGui.EndMenu()
                 end
-                if ImGui.MenuItem('Exit') then
-                    ChatWin.SHOW = false
-                end
-                ImGui.Spacing()
                 ImGui.EndMenu()
             end
-            ImGui.EndMenu()
+            ImGui.EndMenuBar()
         end
-        ImGui.EndMenuBar()
-    end
-    -- End of menu bar
+        -- End of menu bar
 
-    local footerHeight = ImGui.GetStyle().ItemSpacing.y + ImGui.GetFrameHeightWithSpacing()
-    if ImGui.BeginPopupContextWindow() then
-        if ImGui.Selectable('Clear') then
-            console:Clear()
+        -- Begin Tabs Bars
+        if ImGui.BeginTabBar('Channels') then
+            -- Begin Main tab
+            if ImGui.BeginTabItem('Main') then
+                local footerHeight = 30
+                local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
+                contentSizeY = contentSizeY - footerHeight
+                if ImGui.BeginPopupContextWindow() then
+                    if ImGui.Selectable('Clear') then
+                        console:Clear()
+                    end
+                    ImGui.EndPopup()
+                end
+                console:Render(ImVec2(contentSizeX,contentSizeY))
+                ImGui.EndTabItem()
+            end
+            -- End Main tab
+
+            -- Begin other tabs
+            for channel, data in pairs(ChatWin.Channels) do
+                if ChatWin.Channels[channel].enabled then
+                    if ImGui.BeginTabItem(channel) then
+                        local footerHeight = 50
+                        local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
+                        contentSizeY = contentSizeY - footerHeight
+                        if ImGui.BeginPopupContextWindow() then
+                            if ImGui.Selectable('Clear') then
+                                ChatWin.Channels[channel].console:Clear()
+                            end
+                            ImGui.EndPopup()
+                        end
+                        ChatWin.Channels[channel].console:Render(ImVec2(contentSizeX,contentSizeY))
+                        ImGui.EndTabItem()
+                    end
+                end
+            end
+            -- End other tabs
+            ImGui.EndTabBar()
         end
-        ImGui.EndPopup()
-    end
-
-    -- Reduce spacing so everything fits snugly together
-    ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, ImVec2(0, 0))
-    local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
-    contentSizeY = contentSizeY - footerHeight
-    console:Render(ImVec2(contentSizeX,contentSizeY))
-
-    -- Command line
-    ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, ImVec2(2, 4))
-    ImGui.Separator()
-    local textFlags = bit32.bor(0,
-        ImGuiInputTextFlags.EnterReturnsTrue
-        -- not implemented yet
-        -- ImGuiInputTextFlags.CallbackCompletion,
-        -- ImGuiInputTextFlags.CallbackHistory
-    )
-    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6)
-    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4)
-    ImGui.PushItemWidth(ImGui.GetContentRegionAvailVec().x)
-    ImGui.PushStyleColor(ImGuiCol.FrameBg, ImVec4(0, 0, 0, 0))
-    ImGui.PushFont(ImGui.ConsoleFont)
-    local accept = false
-    commandBuffer, accept = ImGui.InputText('##Input', commandBuffer, textFlags)
-    ImGui.PopFont()
-    ImGui.PopStyleColor()
-    ImGui.PopStyleVar(2)
-    if accept then
-        ChatWin.ExecCommand(commandBuffer)
-        commandBuffer = ''
-        setFocus = true
-    end
-    ImGui.SetItemDefaultFocus()
-    if setFocus then
-        setFocus = false
-        ImGui.SetKeyboardFocusHere(-1)
+        -- End Tab Bar
+        --Command Line
+        ImGui.Separator()
+        local textFlags = bit32.bor(0,
+            ImGuiInputTextFlags.EnterReturnsTrue
+            -- not implemented yet
+            -- ImGuiInputTextFlags.CallbackCompletion,
+            -- ImGuiInputTextFlags.CallbackHistory
+        )
+        local contentSizeX, _ = ImGui.GetContentRegionAvail()
+        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6)
+        ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2)
+        ImGui.PushItemWidth(contentSizeX)
+        ImGui.PushStyleColor(ImGuiCol.FrameBg, ImVec4(0, 0, 0, 0))
+        ImGui.PushFont(ImGui.ConsoleFont)
+        local accept = false
+        commandBuffer, accept = ImGui.InputText('##Input', commandBuffer, textFlags)
+        ImGui.PopFont()
+        ImGui.PopStyleColor()
+        ImGui.PopStyleVar()
+        if accept then
+            ChatWin.ExecCommand(commandBuffer)
+            commandBuffer = ''
+            setFocus = true
+        end
+        ImGui.SetItemDefaultFocus()
+        if setFocus then
+            setFocus = false
+            ImGui.SetKeyboardFocusHere(-1)
+        end
     end
 
     ImGui.End()
-end
 
+end
 
 function ChatWin.StringTrim(s)
     return s:gsub("^%s*(.-)%s*$", "%1")
@@ -366,6 +404,22 @@ function ChatWin.ExecCommand(text)
             mq.cmdf("%s", text)
             else
             console:AppendText(IM_COL32(255, 0, 0), "Unknown command: '%s'", text)
+        end
+    end
+end
+function ChatWin.ChannelExecCommand(text,channel)
+    if LocalEcho then
+        ChatWin.Channels[channel].console:AppendText(IM_COL32(128, 128, 128), "> %s", text)
+    end
+    -- todo: implement history
+    if string.len(text) > 0 then
+        text = ChatWin.StringTrim(text)
+        if text == 'clear' then
+            ChatWin.Channels[channel].console:Clear()
+            elseif string.sub(text, 1, 1) == '/' then
+            mq.cmdf("%s", text)
+            else
+            ChatWin.Channels[channel].console:AppendText(IM_COL32(255, 0, 0), "Unknown command: '%s'", text)
         end
     end
 end
