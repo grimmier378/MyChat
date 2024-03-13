@@ -199,6 +199,10 @@ local function writeStringArray(file, key, array)
     file:write("},\n")
 end
 
+local function writeSettings(file, settings)
+    mq.pickle(file, settings)
+end
+
 local function loadSettings()
     -- if not File_Exists(ChatWin.SettingsFile) then
     --     local file = io.open(ChatWin.SettingsFile, "w")
