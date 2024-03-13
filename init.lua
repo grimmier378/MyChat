@@ -338,7 +338,7 @@ function ChatWin.GUI()
             for channel, data in pairs(ChatWin.Channels) do
                 if ChatWin.Channels[channel].enabled then
                     if ImGui.BeginTabItem(channel) then
-                        local footerHeight = 50
+                        local footerHeight = 30
                         local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
                         contentSizeY = contentSizeY - footerHeight
                         if ImGui.BeginPopupContextWindow() then
