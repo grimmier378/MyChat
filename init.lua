@@ -7,24 +7,22 @@
 
         example MyChat_Settings.lua
         return {
-            Channels = {
-                Auction = {
-                    eventString = "#*#auctions,#*#",
-                    filterString = "auctions,",
-                    echoEventString = "#*#You auction,#*#",
-                    echoFilterString = "You auction,",
-                    color = "dkgreen",
-                    echoColor = "grey",
-                    enabled = true
-                },
-                Tells = {
-                    eventString = "#*#tells you,#*#",
-                    filterString = "tells you,",
-                    color = "magenta",
-                    echoEventString = "#*#You told #1#,#*#",
-                    echoFilterString = "^You", -- the ^You searches for You at the start of the line.
-                    echoColor = "grey",
-                    enabled = true
+            ['Channels'] = {
+                ['Say'] = {
+                    ['echoFilterString'] = '^You',
+                    ['color'] = 'white',
+                    ['echoColor'] = 'grey',
+                    ['enabled'] = true,
+                    ['resetPosition'] = false,
+                    ['setFocus'] = false,
+                    ['commandBuffer'] = '',
+                    ['eventString'] = {
+                        [1] = '#*#says,#*#',
+                    },
+                    ['filterString'] = 'says,',
+                    ['echoEventString'] = {
+                        [1] = '#*#You say, \'#*#',
+                    },
                 },
             },
         }
@@ -67,7 +65,7 @@ local ChatWin = {
     SettingsFile = string.format('%s/MyChat_Settings.lua', mq.configDir),
     -- Channels
     Channels = {},
-
+    tabFlags = bit32.bor(ImGuiTabBarFlags.Reorderable, ImGuiTabBarFlags.TabListPopupButton),
     winFlags = bit32.bor(ImGuiWindowFlags.MenuBar)
 }
 local DefaultChannels = {
@@ -145,7 +143,6 @@ local DefaultChannels = {
     },
 }
 
-local myName = mq.TLO.Me.DisplayName() or ''
 --Helper Functioons
 local function parseColor(color)
     if color then
@@ -188,17 +185,6 @@ local function SetUpConsoles(channel)
     end
 end
 
-local function writeStringArray(file, key, array)
-    file:write(string.format("\t\t\t%s = {", key))
-    for i, value in ipairs(array) do
-        file:write(string.format("\"%s\"", value))
-        if i ~= #array then
-            file:write(", ")
-        end
-    end
-    file:write("},\n")
-end
-
 local function writeSettings(file, settings)
     mq.pickle(file, settings)
 end
@@ -239,7 +225,7 @@ local function loadSettings()
             echoEventString = data.echoEventString or 'NULL',
             echoFilterString = data.echoFilterString or 'NULL',
             echoColor = data.echoColor or 'NULL',
-            enabled = data.enabled or true,
+            enabled = data.enabled,
             ---@type ConsoleWidget
             console = nil,
             resetPosition = false,
@@ -298,8 +284,8 @@ end
 
 function ChatWin.GUI()
     if not ChatWin.openGUI then return end
-
-    local windowName = 'My Chat##'..mq.TLO.Me.DisplayName()
+    local myName = mq.TLO.Me.DisplayName() or ''
+    local windowName = 'My Chat##'..myName
     ImGui.SetNextWindowSize(ImVec2(640, 480), ImGuiCond.FirstUseEver)
     ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, ImVec2(1, 0));
 
@@ -315,6 +301,7 @@ function ChatWin.GUI()
                         local enabled = ChatWin.Channels[channel].enabled
                         if ImGui.MenuItem(channel, '', enabled) then
                             ChatWin.Channels[channel].enabled = not enabled
+                            writeSettings(ChatWin.SettingsFile, {Channels = ChatWin.Channels})
                         end
                     end
 
@@ -339,7 +326,7 @@ function ChatWin.GUI()
         -- End of menu bar
 
         -- Begin Tabs Bars
-        if ImGui.BeginTabBar('Channels') then
+        if ImGui.BeginTabBar('Channels', ChatWin.tabFlags) then
             -- Begin Main tab
             if ImGui.BeginTabItem('Main') then
                 local footerHeight = 30
