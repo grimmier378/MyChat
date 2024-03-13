@@ -71,74 +71,74 @@ local ChatWin = {
     winFlags = bit32.bor(ImGuiWindowFlags.MenuBar)
 }
 local DefaultChannels = {
-    Auction = {
-        eventString = "#*#auctions,#*#",
+    ['Auction'] = {
+        eventString = {"#*#auctions,#*#"},
         filterString = "auctions,",
-        echoEventString = "#*#You auction,#*#",
+        echoEventString = {"#*#You auction,#*#"},
         echoFilterString = "^You,",
         color = "dkgreen",
         echoColor = "grey",
         enabled = true
     },
-    Tells = {
-        eventString = "#*#tells you,#*#",
+    ['Tells'] = {
+        eventString = {"#*#tells you,#*#"},
         filterString = "tells you,",
         color = "magenta",
-        echoEventString = "#*#You told #1#,#*#",
+        echoEventString = {"#*#You told #1#,#*#"},
         echoFilterString = "^You",
         echoColor = "grey",
         enabled = true
     },
-    OOC = {
-        eventString = "#*#say#*# out of character,#*#",
+    ['OOC'] = {
+        eventString = {"#*#say#*# out of character,#*#"},
         filterString = "out of character,",
         color = "dkgreen",
-        echoEventString = "#*#You say out of character,#*#",
+        echoEventString = {"#*#You say out of character,#*#"},
         echoFilterString = "^You",
         echoColor = "grey",
         enabled = true
     },
-    Raid = {
-        eventString = "#*#tells the raid#*#",
-        filterString = "tells the raid,",
+    ['Raid'] = {
+        eventString = {"#*#tells the raid#*#"},
+        filterString = {"tells the raid,"},
         color = "dkteal",
-        echoEventString = "#You tell your raid,#*#",
+        echoEventString = {"#You tell your raid,#*#"},
         echoFilterString = "^You",
         echoColor = "grey",
         enabled = true
     },
-    Guild = {
-        eventString = "#*#tells the guild#*#",
+    ['Guild'] = {
+        eventString = {"#*#tells the guild#*#"},
         filterString = "tells the guild,",
         color = "green",
-        echoEventString = "#*#You say to your guild, '#*#",
+        echoEventString = {"#*#You say to your guild, '#*#"},
         echoFilterString = "^You",
         echoColor = "grey",
         enabled = true
     },
-    Group = {
-        eventString = "#*#tells the group#*#",
+    ['Group'] = {
+        eventString = {"#*#tells the group#*#"},
         filterString = "tells the group,",
         color = "teal",
-        echoEventString = "#*#You tell your party, '#*#",
+        echoEventString = {"#*#You tell your party, '#*#"},
         echoFilterString = "^You",
         echoColor = "grey",
         enabled = true
     },
-    Say = {
-        eventString = "#*#says,#*#",
+    ['Say'] = {
+        eventString = {"#*#says,#*#"},
         filterString = "says,",
         color = "white",
-        echoEventString = "#*#You say, '#*#",
+        echoEventString = {"#*#You say, '#*#"},
         echoFilterString = "^You",
         echoColor = "grey",
         enabled = true
     },
-    Shout = {
-        eventString = "#*#shouts,#*#",
+    ['Shout'] = {
+        eventString = {"#*#shouts,#*#"},
         filterString = "shouts,",
         color = "red",
-        echoEventString = "#*#You shout, '#*#",
+        echoEventString = {"#*#You shout, '#*#"},
         echoFilterString = "^You",
         echoColor = "grey",
         enabled = true
@@ -188,28 +188,41 @@ local function SetUpConsoles(channel)
     end
 end
 
-local function loadSettings()
-    if not File_Exists(ChatWin.SettingsFile) then
-        -- Write default settings to the file
-        local file = io.open(ChatWin.SettingsFile, "w")
-        if file then
-            file:write("return {\n")
-            file:write("\tChannels = {\n")
-            for option, data in pairs(DefaultChannels) do
-                file:write(string.format("\t\t%s = {\n", option))
-                file:write(string.format("\t\t\teventString = \"%s\",\n", data.eventString))
-                file:write(string.format("\t\t\tfilterString = \"%s\",\n", data.filterString))
-                file:write(string.format("\t\t\tcolor = \"%s\",\n", data.color))
-                file:write(string.format("\t\t\techoEventString = \"%s\",\n", data.echoEventString))
-                file:write(string.format("\t\t\techoFilterString = \"%s\",\n", data.echoFilterString))
-                file:write(string.format("\t\t\techoColor = \"%s\",\n", data.echoColor))
-                file:write("\t\t\tenabled = true\n")
-                file:write("\t\t},\n")
-            end
-            file:write("\t}\n")
-            file:write("}\n")
-            file:close()
+local function writeStringArray(file, key, array)
+    file:write(string.format("\t\t\t%s = {", key))
+    for i, value in ipairs(array) do
+        file:write(string.format("\"%s\"", value))
+        if i ~= #array then
+            file:write(", ")
         end
+    end
+    file:write("},\n")
+end
+
+local function loadSettings()
+    -- if not File_Exists(ChatWin.SettingsFile) then
+    --     local file = io.open(ChatWin.SettingsFile, "w")
+    --     if file then
+    --         file:write("return {\n")
+    --         file:write("\tChannels = {\n")
+    --         for option, data in pairs(DefaultChannels) do
+    --             file:write(string.format("\t\t['%s'] = {\n", option))
+    --             writeStringArray(file, "eventString", data.eventString)
+    --             file:write(string.format("\t\t\tfilterString = \"%s\",\n", data.filterString))
+    --             file:write(string.format("\t\t\tcolor = \"%s\",\n", data.color))
+    --             writeStringArray(file, "echoEventString", data.echoEventString)
+    --             file:write(string.format("\t\t\techoFilterString = \"%s\",\n", data.echoFilterString))
+    --             file:write(string.format("\t\t\techoColor = \"%s\",\n", data.echoColor))
+    --             file:write("\t\t\tenabled = true\n")
+    --             file:write("\t\t},\n")
+    --         end
+    --         file:write("\t}\n")
+    --         file:write("}\n")
+    --         file:close()
+    --     end
+    -- end
+    if not File_Exists(ChatWin.SettingsFile) then
+        mq.pickle(ChatWin.SettingsFile, {Channels = DefaultChannels})
     end
 
     -- Load settings from the Lua config file
@@ -235,15 +248,19 @@ local function loadSettings()
 end
 local function BuildEvents()
     for channel, eventData in pairs(ChatWin.Channels) do
-        local eventString = eventData.eventString
-        local echoEventString = eventData.echoEventString
-        if eventString and eventString ~= 'NULL' then
-            local eventName = string.format("%s_chat", channel)
-            mq.event(eventName, eventString, function(line) ChatWin.EventChat(channel, line) end)
+        local Strings = eventData.eventString
+        local echoStrings = eventData.echoEventString
+        for i, string in pairs(Strings) do
+            if string ~= 'NULL' then
+                local eventName = string.format("%s_chat%s", channel,i)
+                mq.event(eventName, string, function(line) ChatWin.EventChat(channel, line) end)
+            end
         end
-        if echoEventString and echoEventString ~= 'NULL' then
-            local echoEventName = string.format("echo_%s_chat", channel)
-            mq.event(echoEventName, echoEventString, function(line) ChatWin.EventChat(channel, line) end)
+        for i, eString in pairs(echoStrings) do
+            if eString ~= 'NULL' then
+                local eventName = string.format("%s_chat%s", channel,i)
+                mq.event(eventName, eString, function(line) ChatWin.EventChat(channel, line) end)
+            end
         end
     end
 end
