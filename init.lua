@@ -285,31 +285,32 @@ function ChatWin.GUI()
     if ImGui.Begin(windowName, ChatWin.openGUI, ChatWin.winFlags) then
         -- Main menu bar
         if ImGui.BeginMenuBar() then
-            if ImGui.BeginMenu('Channels') then
-                for channel, settings in pairs(ChatWin.Channels) do
-                    local enabled = ChatWin.Channels[channel].enabled
-                    if ImGui.MenuItem(channel, '', enabled) then
-                        ChatWin.Channels[channel].enabled = not enabled
-                    end
-                end
+            if ImGui.BeginMenu('Options') then
+                _, console.autoScroll = ImGui.MenuItem('Auto-scroll', nil, console.autoScroll)
+                _, LocalEcho = ImGui.MenuItem('Local echo', nil, LocalEcho)
                 ImGui.Separator()
-                if ImGui.BeginMenu('Options') then
-                    _, console.autoScroll = ImGui.MenuItem('Auto-scroll', nil, console.autoScroll)
-                    _, LocalEcho = ImGui.MenuItem('Local echo', nil, LocalEcho)
-                    ImGui.Separator()
-                    if ImGui.MenuItem('Reset Position') then
-                        resetPosition = true
+                if ImGui.BeginMenu('Channels') then
+                    for channel, settings in pairs(ChatWin.Channels) do
+                        local enabled = ChatWin.Channels[channel].enabled
+                        if ImGui.MenuItem(channel, '', enabled) then
+                            ChatWin.Channels[channel].enabled = not enabled
+                        end
                     end
-                    ImGui.Separator()
-                    if ImGui.MenuItem('Clear Console') then
-                        console:Clear()
-                    end
-                    if ImGui.MenuItem('Exit') then
-                        ChatWin.SHOW = false
-                    end
-                    ImGui.Spacing()
+
                     ImGui.EndMenu()
                 end
+                ImGui.Separator()
+                if ImGui.MenuItem('Reset Position') then
+                    resetPosition = true
+                end
+                ImGui.Separator()
+                if ImGui.MenuItem('Clear Main Console') then
+                    console:Clear()
+                end
+                if ImGui.MenuItem('Exit') then
+                    ChatWin.SHOW = false
+                end
+                ImGui.Spacing()
                 ImGui.EndMenu()
             end
             ImGui.EndMenuBar()
@@ -374,7 +375,7 @@ function ChatWin.GUI()
         commandBuffer, accept = ImGui.InputText('##Input', commandBuffer, textFlags)
         ImGui.PopFont()
         ImGui.PopStyleColor()
-        ImGui.PopStyleVar()
+        ImGui.PopItemWidth()
         if accept then
             ChatWin.ExecCommand(commandBuffer)
             commandBuffer = ''
@@ -386,9 +387,8 @@ function ChatWin.GUI()
             ImGui.SetKeyboardFocusHere(-1)
         end
     end
-
     ImGui.End()
-
+    ImGui.PopStyleVar()
 end
 
 function ChatWin.StringTrim(s)
