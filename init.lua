@@ -67,7 +67,7 @@ local ChatWin = {
     SettingsFile = string.format('%s/MyChat_Settings.lua', mq.configDir),
     -- Channels
     Channels = {},
-
+    tabFlags = bit32.bor(ImGuiTabBarFlags.Reorderable, ImGuiTabBarFlags.TabListPopupButton),
     winFlags = bit32.bor(ImGuiWindowFlags.MenuBar)
 }
 local DefaultChannels = {
@@ -145,7 +145,6 @@ local DefaultChannels = {
     },
 }
 
-local myName = mq.TLO.Me.DisplayName() or ''
 --Helper Functioons
 local function parseColor(color)
     if color then
@@ -222,7 +221,7 @@ local function loadSettings()
             echoEventString = data.echoEventString or 'NULL',
             echoFilterString = data.echoFilterString or 'NULL',
             echoColor = data.echoColor or 'NULL',
-            enabled = data.enabled or true,
+            enabled = data.enabled,
             ---@type ConsoleWidget
             console = nil,
             resetPosition = false,
@@ -277,8 +276,8 @@ end
 
 function ChatWin.GUI()
     if not ChatWin.openGUI then return end
-
-    local windowName = 'My Chat##'..mq.TLO.Me.DisplayName()
+    local myName = mq.TLO.Me.DisplayName() or ''
+    local windowName = 'My Chat##'..myName
     ImGui.SetNextWindowSize(ImVec2(640, 480), ImGuiCond.FirstUseEver)
     ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, ImVec2(1, 0));
 
@@ -318,7 +317,7 @@ function ChatWin.GUI()
         -- End of menu bar
 
         -- Begin Tabs Bars
-        if ImGui.BeginTabBar('Channels') then
+        if ImGui.BeginTabBar('Channels', ChatWin.tabFlags) then
             -- Begin Main tab
             if ImGui.BeginTabItem('Main') then
                 local footerHeight = 30
