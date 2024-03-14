@@ -1,42 +1,37 @@
 --[[
         Basic Chat Window. 
         Customizable channels and colors.
-        reads settings from MyChat_Settings.ini in the MQ\Config dir. 
+        reads settings from MyChat_ServerName_CharName.ini in the MQ\Config dir. 
         if the file is missing we use some defaults. 
         you can customize any event string you would like and create a channel for it that you can turn on of off at any time. 
 
         example MyChat_Settings.lua
-        return {
+            return {
             ['Channels'] = {
-                ['Say'] = {
-                    ['echoFilterString'] = '^You',
-                    ['color'] = 'white',
-                    ['echoColor'] = 'grey',
+                ['Group'] = {
+                    ['Events'] = {
+                        [1] = {
+                            ['color'] = 'grey',
+                            ['eventString'] = '#*#You tell your party, \'#*#',
+                        },
+                        [2] = {
+                            ['color'] = 'teal',
+                            ['eventString'] = '#*#tells the group#*#',
+                        },
+                    },
                     ['enabled'] = true,
-                    ['resetPosition'] = false,
-                    ['setFocus'] = false,
-                    ['commandBuffer'] = '',
-                    ['eventString'] = {
-                        [1] = '#*#says,#*#',
-                    },
-                    ['filterString'] = 'says,',
-                    ['echoEventString'] = {
-                        [1] = '#*#You say, \'#*#',
-                    },
                 },
-            },
-        }
+            }
 
             Layout:
-            
-            ChannelName is what shows in your menu to toggle on or off. anything you want to name it.
-            EventString is the search pattern that will trigger the event to write to console.
-            EchoEventString is the search patern for you talking in this channel
-                alternativly you can use the Echo settings as 2ndary Events for the same channel
-            FilterString further filter the chat line after channel is decided.
-                This can be useful for auction channels where you only want to see the spam for certain items. set the item name you want to find in the filter.
-            EchoFilterString is the same as above but for you talking.
-            EchoColor is the color for echos on that channel.
+            ['Channels'] the list of all custom channels
+                ['ChannelName'] is what shows in your menu to toggle on or off. anything you want to name it.
+                    ['Events'] list of the evnts for the channel
+                        [1] first event for the channel
+                            ['eventString'] = the search string for the event. 
+                            ['color'] = the color you want the output text to be.
+                ['enabled'] if the tab is visable or not
+
             Color what color do you want that channels lines to be?
                 valid colors 
                     green           dkgreen
@@ -53,94 +48,27 @@
 
 local mq = require('mq')
 local ImGui = require('ImGui')
+
 ---@type ConsoleWidget
 local console = nil
 local resetPosition = false
 local setFocus = false
 local commandBuffer = ''
-
+local serverName = string.gsub(mq.TLO.EverQuest.Server(), ' ', '_') or ''
+local myName = mq.TLO.Me.DisplayName() or ''
 local ChatWin = {
     SHOW = true,
     openGUI = true,
-    SettingsFile = string.format('%s/MyChat_Settings.lua', mq.configDir),
+    SettingsFile = string.format('%s/MyChat_%s_%s.lua', mq.configDir, serverName, myName),
+    Settings = {
     -- Channels
     Channels = {},
+    },
+    -- Consoles
+    Consoles = {},
+    -- Flags
     tabFlags = bit32.bor(ImGuiTabBarFlags.Reorderable, ImGuiTabBarFlags.TabListPopupButton),
     winFlags = bit32.bor(ImGuiWindowFlags.MenuBar)
-}
-local DefaultChannels = {
-    ['Auction'] = {
-        eventString = {"#*#auctions,#*#"},
-        filterString = "auctions,",
-        echoEventString = {"#*#You auction,#*#"},
-        echoFilterString = "^You,",
-        color = "dkgreen",
-        echoColor = "grey",
-        enabled = true
-    },
-    ['Tells'] = {
-        eventString = {"#*#tells you,#*#"},
-        filterString = "tells you,",
-        color = "magenta",
-        echoEventString = {"#*#You told #1#,#*#"},
-        echoFilterString = "^You",
-        echoColor = "grey",
-        enabled = true
-    },
-    ['OOC'] = {
-        eventString = {"#*#say#*# out of character,#*#"},
-        filterString = "out of character,",
-        color = "dkgreen",
-        echoEventString = {"#*#You say out of character,#*#"},
-        echoFilterString = "^You",
-        echoColor = "grey",
-        enabled = true
-    },
-    ['Raid'] = {
-        eventString = {"#*#tells the raid#*#"},
-        filterString = {"tells the raid,"},
-        color = "dkteal",
-        echoEventString = {"#You tell your raid,#*#"},
-        echoFilterString = "^You",
-        echoColor = "grey",
-        enabled = true
-    },
-    ['Guild'] = {
-        eventString = {"#*#tells the guild#*#"},
-        filterString = "tells the guild,",
-        color = "green",
-        echoEventString = {"#*#You say to your guild, '#*#"},
-        echoFilterString = "^You",
-        echoColor = "grey",
-        enabled = true
-    },
-    ['Group'] = {
-        eventString = {"#*#tells the group#*#"},
-        filterString = "tells the group,",
-        color = "teal",
-        echoEventString = {"#*#You tell your party, '#*#"},
-        echoFilterString = "^You",
-        echoColor = "grey",
-        enabled = true
-    },
-    ['Say'] = {
-        eventString = {"#*#says,#*#"},
-        filterString = "says,",
-        color = "white",
-        echoEventString = {"#*#You say, '#*#"},
-        echoFilterString = "^You",
-        echoColor = "grey",
-        enabled = true
-    },
-    ['Shout'] = {
-        eventString = {"#*#shouts,#*#"},
-        filterString = "shouts,",
-        color = "red",
-        echoEventString = {"#*#You shout, '#*#"},
-        echoFilterString = "^You",
-        echoColor = "grey",
-        enabled = true
-    },
 }
 
 --Helper Functioons
@@ -174,117 +102,71 @@ local function parseColor(color)
     end
     return color
 end
+
 function File_Exists(name)
     local f=io.open(name,"r")
     if f~=nil then io.close(f) return true else return false end
 end
 
 local function SetUpConsoles(channel)
-    if ChatWin.Channels[channel].console == nil then
-        ChatWin.Channels[channel].console = ImGui.ConsoleWidget.new(channel.."##Console")
+    if ChatWin.Consoles[channel].console == nil then
+        ChatWin.Consoles[channel].console = ImGui.ConsoleWidget.new(channel.."##Console")
     end
 end
 
 local function writeSettings(file, settings)
     mq.pickle(file, settings)
 end
-
 local function loadSettings()
-    -- if not File_Exists(ChatWin.SettingsFile) then
-    --     local file = io.open(ChatWin.SettingsFile, "w")
-    --     if file then
-    --         file:write("return {\n")
-    --         file:write("\tChannels = {\n")
-    --         for option, data in pairs(DefaultChannels) do
-    --             file:write(string.format("\t\t['%s'] = {\n", option))
-    --             writeStringArray(file, "eventString", data.eventString)
-    --             file:write(string.format("\t\t\tfilterString = \"%s\",\n", data.filterString))
-    --             file:write(string.format("\t\t\tcolor = \"%s\",\n", data.color))
-    --             writeStringArray(file, "echoEventString", data.echoEventString)
-    --             file:write(string.format("\t\t\techoFilterString = \"%s\",\n", data.echoFilterString))
-    --             file:write(string.format("\t\t\techoColor = \"%s\",\n", data.echoColor))
-    --             file:write("\t\t\tenabled = true\n")
-    --             file:write("\t\t},\n")
-    --         end
-    --         file:write("\t}\n")
-    --         file:write("}\n")
-    --         file:close()
-    --     end
-    -- end
     if not File_Exists(ChatWin.SettingsFile) then
-        mq.pickle(ChatWin.SettingsFile, {Channels = DefaultChannels})
+        local defaults = require('default_settings')
+        ChatWin.Settings = defaults
+        mq.pickle(ChatWin.SettingsFile, defaults)
+    else
+        -- Load settings from the Lua config file
+        ChatWin.Settings = dofile(ChatWin.SettingsFile)
     end
 
-    -- Load settings from the Lua config file
-    local settings = dofile(ChatWin.SettingsFile)
-    for option, data in pairs(settings.Channels) do
-        ChatWin.Channels[option] = {
-            eventString = data.eventString or 'NULL',
-            filterString = data.filterString or 'NULL',
-            color = data.color,
-            echoEventString = data.echoEventString or 'NULL',
-            echoFilterString = data.echoFilterString or 'NULL',
-            echoColor = data.echoColor or 'NULL',
-            enabled = data.enabled,
-            ---@type ConsoleWidget
-            console = nil,
-            resetPosition = false,
-            setFocus = false,
-            commandBuffer = ''
-        }
-    -- Enable the consoles for each channel.
-    SetUpConsoles(option)
+    -- Ensure each channel's console widget is initialized
+    for channel, channelData in pairs(ChatWin.Settings.Channels) do
+        if not ChatWin.Consoles[channel] then
+            ChatWin.Consoles[channel] = {}
+        end
+        SetUpConsoles(channel)
     end
 end
+local eventNames = {}
 local function BuildEvents()
-    for channel, eventData in pairs(ChatWin.Channels) do
-        local Strings = eventData.eventString
-        local echoStrings = eventData.echoEventString
-        for i, string in pairs(Strings) do
-            if string ~= 'NULL' then
-                local eventName = string.format("event_%s_%s", channel, i)
-                mq.event(eventName, string, function(line) ChatWin.EventChat(channel, line) end)
-            end
-        end
-        for i, eString in pairs(echoStrings) do
-            if eString ~= 'NULL' then
-                local eventName = string.format("event_%s_echo%s", channel, i)
-                mq.event(eventName, eString, function(line) ChatWin.EventChat(channel, line) end)
+    eventNames = {}
+    for channel, channelData in pairs(ChatWin.Settings.Channels) do
+        for eventId, eventDetails in pairs(channelData.Events) do
+            if eventDetails.eventString then
+                local eventName = string.format("event_%s_%d", channel, eventId)
+                mq.event(eventName, eventDetails.eventString, function(line) ChatWin.EventChat(channel, eventName, line) end)
+                -- Store event details for direct access, assuming we need it elsewhere
+                eventNames[eventName] = eventDetails
             end
         end
     end
 end
+function ChatWin.EventChat(channel, eventName, line)
+    local eventDetails = eventNames[eventName]
+    if not eventDetails then return end  -- Exit if event details are not found
 
-function ChatWin.EventChat(channel, line)
-    local function output(line, channel)
-        if channel then
-            if ChatWin.Channels[channel].console ~= nil then
-                ChatWin.Channels[channel].console:AppendText(line)
-            end
-        end
-        if console ~= nil then
-            console:AppendText(line)
-        end
-    end
+    local color = eventDetails.color  -- Retrieve color directly from event details
     local time = mq.TLO.Time()
-    local pref = 'NULL'  -- Default prefix
-    local settings = ChatWin.Channels[channel]
-    if string.find(line, settings.echoFilterString) then
-        pref = parseColor(settings.echoColor)
-        --printf("Channel: %s Filter: %s", channel, settings.echoFilterString)
-    elseif string.find(line, settings.filterString) then
-        pref = parseColor(settings.color)
-        --printf("Channel: %s Filter: %s", channel, settings.filterString)
+
+    -- Format and output the line
+    local formattedLine = string.format("%s[%s] %s", parseColor(color), time, line)
+    if ChatWin.Consoles[channel] and ChatWin.Consoles[channel].console then
+        ChatWin.Consoles[channel].console:AppendText(formattedLine)
     end
-    if pref == 'NULL' then return end
-    -- Construct the formatted output line only if a matching channel is enabled
-    line = string.format("%s[%s] %s", pref, time, line)
-    output(line, channel)
+    if console ~= nil then console:AppendText(formattedLine) end
 end
 
 function ChatWin.GUI()
     if not ChatWin.openGUI then return end
-    local myName = mq.TLO.Me.DisplayName() or ''
+    
     local windowName = 'My Chat##'..myName
     ImGui.SetNextWindowSize(ImVec2(640, 480), ImGuiCond.FirstUseEver)
     ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, ImVec2(1, 0));
@@ -297,14 +179,13 @@ function ChatWin.GUI()
                 _, LocalEcho = ImGui.MenuItem('Local echo', nil, LocalEcho)
                 ImGui.Separator()
                 if ImGui.BeginMenu('Channels') then
-                    for channel, settings in pairs(ChatWin.Channels) do
-                        local enabled = ChatWin.Channels[channel].enabled
+                    for channel, settings in pairs(ChatWin.Settings.Channels) do
+                        local enabled = ChatWin.Settings.Channels[channel].enabled
                         if ImGui.MenuItem(channel, '', enabled) then
-                            ChatWin.Channels[channel].enabled = not enabled
-                            writeSettings(ChatWin.SettingsFile, {Channels = ChatWin.Channels})
+                            ChatWin.Settings.Channels[channel].enabled = not enabled
+                            writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
                         end
                     end
-
                     ImGui.EndMenu()
                 end
                 ImGui.Separator()
@@ -344,19 +225,19 @@ function ChatWin.GUI()
             -- End Main tab
 
             -- Begin other tabs
-            for channel, data in pairs(ChatWin.Channels) do
-                if ChatWin.Channels[channel].enabled then
+            for channel, data in pairs(ChatWin.Settings.Channels) do
+                if ChatWin.Settings.Channels[channel].enabled then
                     if ImGui.BeginTabItem(channel) then
                         local footerHeight = 30
                         local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
                         contentSizeY = contentSizeY - footerHeight
                         if ImGui.BeginPopupContextWindow() then
                             if ImGui.Selectable('Clear') then
-                                ChatWin.Channels[channel].console:Clear()
+                                ChatWin.Consoles[channel].console:Clear()
                             end
                             ImGui.EndPopup()
                         end
-                        ChatWin.Channels[channel].console:Render(ImVec2(contentSizeX,contentSizeY))
+                        ChatWin.Consoles[channel].console:Render(ImVec2(contentSizeX,contentSizeY))
                         ImGui.EndTabItem()
                     end
                 end
@@ -420,17 +301,17 @@ function ChatWin.ExecCommand(text)
 end
 function ChatWin.ChannelExecCommand(text,channel)
     if LocalEcho then
-        ChatWin.Channels[channel].console:AppendText(IM_COL32(128, 128, 128), "> %s", text)
+        ChatWin.Consoles[channel].console:AppendText(IM_COL32(128, 128, 128), "> %s", text)
     end
     -- todo: implement history
     if string.len(text) > 0 then
         text = ChatWin.StringTrim(text)
         if text == 'clear' then
-            ChatWin.Channels[channel].console:Clear()
+            ChatWin.Consoles[channel].console:Clear()
             elseif string.sub(text, 1, 1) == '/' then
             mq.cmdf("%s", text)
             else
-            ChatWin.Channels[channel].console:AppendText(IM_COL32(255, 0, 0), "Unknown command: '%s'", text)
+            ChatWin.Consoles[channel].console:AppendText(IM_COL32(255, 0, 0), "Unknown command: '%s'", text)
         end
     end
 end
