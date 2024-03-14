@@ -1,7 +1,7 @@
 --[[
         Basic Chat Window. 
         Customizable channels and colors.
-        reads settings from MyChat_Settings.ini in the MQ\Config dir. 
+        reads settings from MyChat_ServerName_CharName.ini in the MQ\Config dir. 
         if the file is missing we use some defaults. 
         you can customize any event string you would like and create a channel for it that you can turn on of off at any time. 
 
@@ -59,11 +59,12 @@ local console = nil
 local resetPosition = false
 local setFocus = false
 local commandBuffer = ''
-
+local serverName = string.gsub(mq.TLO.EverQuest.Server(), ' ', '_') or ''
+local myName = mq.TLO.Me.DisplayName() or ''
 local ChatWin = {
     SHOW = true,
     openGUI = true,
-    SettingsFile = string.format('%s/MyChat_Settings.lua', mq.configDir),
+    SettingsFile = string.format('%s/MyChat_%s_%s.lua', mq.configDir, serverName, myName),
     Settings = {
     -- Channels
     Channels = {},
@@ -170,7 +171,7 @@ end
 
 function ChatWin.GUI()
     if not ChatWin.openGUI then return end
-    local myName = mq.TLO.Me.DisplayName() or ''
+    
     local windowName = 'My Chat##'..myName
     ImGui.SetNextWindowSize(ImVec2(640, 480), ImGuiCond.FirstUseEver)
     ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, ImVec2(1, 0));
