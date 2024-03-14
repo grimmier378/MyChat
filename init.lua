@@ -6,37 +6,32 @@
         you can customize any event string you would like and create a channel for it that you can turn on of off at any time. 
 
         example MyChat_Settings.lua
-        return {
+            return {
             ['Channels'] = {
-                ['Say'] = {
-                    ['echoFilterString'] = '^You',
-                    ['color'] = 'white',
-                    ['echoColor'] = 'grey',
+                ['Group'] = {
+                    ['Events'] = {
+                        [1] = {
+                            ['color'] = 'grey',
+                            ['eventString'] = '#*#You tell your party, \'#*#',
+                        },
+                        [2] = {
+                            ['color'] = 'teal',
+                            ['eventString'] = '#*#tells the group#*#',
+                        },
+                    },
                     ['enabled'] = true,
-                    ['resetPosition'] = false,
-                    ['setFocus'] = false,
-                    ['commandBuffer'] = '',
-                    ['eventString'] = {
-                        [1] = '#*#says,#*#',
-                    },
-                    ['filterString'] = 'says,',
-                    ['echoEventString'] = {
-                        [1] = '#*#You say, \'#*#',
-                    },
                 },
-            },
-        }
+            }
 
             Layout:
-            
-            ChannelName is what shows in your menu to toggle on or off. anything you want to name it.
-            EventString is the search pattern that will trigger the event to write to console.
-            EchoEventString is the search patern for you talking in this channel
-                alternativly you can use the Echo settings as 2ndary Events for the same channel
-            FilterString further filter the chat line after channel is decided.
-                This can be useful for auction channels where you only want to see the spam for certain items. set the item name you want to find in the filter.
-            EchoFilterString is the same as above but for you talking.
-            EchoColor is the color for echos on that channel.
+            ['Channels'] the list of all custom channels
+                ['ChannelName'] is what shows in your menu to toggle on or off. anything you want to name it.
+                    ['Events'] list of the evnts for the channel
+                        [1] first event for the channel
+                            ['eventString'] = the search string for the event. 
+                            ['color'] = the color you want the output text to be.
+                ['enabled'] if the tab is visable or not
+
             Color what color do you want that channels lines to be?
                 valid colors 
                     green           dkgreen
