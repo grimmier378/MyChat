@@ -1,54 +1,5 @@
---[[
-        Basic Chat Window. 
-        Customizable channels and colors.
-        reads settings from MyChat_ServerName_CharName.ini in the MQ\Config dir. 
-        if the file is missing we use some defaults. 
-        you can customize any event string you would like and create a channel for it that you can turn on of off at any time. 
-
-        example MyChat_Settings.lua
-            return {
-            ['Channels'] = {
-                ['Group'] = {
-                    ['Events'] = {
-                        [1] = {
-                            ['color'] = 'grey',
-                            ['eventString'] = '#*#You tell your party, \'#*#',
-                        },
-                        [2] = {
-                            ['color'] = 'teal',
-                            ['eventString'] = '#*#tells the group#*#',
-                        },
-                    },
-                    ['enabled'] = true,
-                },
-            }
-
-            Layout:
-            ['Channels'] the list of all custom channels
-                ['ChannelName'] is what shows in your menu to toggle on or off. anything you want to name it.
-                    ['Events'] list of the evnts for the channel
-                        [1] first event for the channel
-                            ['eventString'] = the search string for the event. 
-                            ['color'] = the color you want the output text to be.
-                ['enabled'] if the tab is visable or not
-
-            Color what color do you want that channels lines to be?
-                valid colors 
-                    green           dkgreen
-                    red             dkred
-                    teal            dkteal
-                    orange          dkorange
-                    magenta         dkmagenta
-                    purple          dkpurple
-                    yellow          dkyellow
-                    blue            dkblue
-                    white           grey
-                                    black
-]]
-
 local mq = require('mq')
 local ImGui = require('ImGui')
-
 ---@type ConsoleWidget
 local console = nil
 local resetPosition = false
@@ -59,10 +10,11 @@ local myName = mq.TLO.Me.DisplayName() or ''
 local ChatWin = {
     SHOW = true,
     openGUI = true,
+    openConfigGUI = false,
     SettingsFile = string.format('%s/MyChat_%s_%s.lua', mq.configDir, serverName, myName),
     Settings = {
-    -- Channels
-    Channels = {},
+        -- Channels
+        Channels = {},
     },
     -- Consoles
     Consoles = {},
@@ -70,50 +22,16 @@ local ChatWin = {
     tabFlags = bit32.bor(ImGuiTabBarFlags.Reorderable, ImGuiTabBarFlags.TabListPopupButton),
     winFlags = bit32.bor(ImGuiWindowFlags.MenuBar)
 }
-
 --Helper Functioons
-local function parseColor(color)
-    if color then
-        color = string.lower(color)
-        if color == 'green' then color = '\ag'
-            elseif color == 'red' then color = '\ar'
-            elseif color == 'teal' then color = '\at'
-            elseif color == 'orange' then color = '\ao'
-            elseif color == 'magenta' then color = '\am'
-            elseif color == 'purple' then color = '\ap'
-            elseif color == 'yellow' then color = '\ay'
-            elseif color == 'blue' then color = '\au'
-            elseif color == 'white' then color = '\aw'
-            elseif color == 'black' then color = '\ab'
-            elseif color == 'dkgreen' then color = '\a-g'
-            elseif color == 'dkred' then color = '\a-r'
-            elseif color == 'dkteal' then color = '\a-t'
-            elseif color == 'dkorange' then color = '\a-o'
-            elseif color == 'dkmagenta' then color = '\a-m'
-            elseif color == 'dkpurple' then color = '\a-p'
-            elseif color == 'dkyellow' then color = '\a-y'
-            elseif color == 'dkblue' then color = '\a-u'
-            elseif color == 'grey' then color = '\a-w'
-        else
-            color = '\aw'
-        end
-    else
-        color = '\aw'
-    end
-    return color
-end
-
 function File_Exists(name)
     local f=io.open(name,"r")
     if f~=nil then io.close(f) return true else return false end
 end
-
 local function SetUpConsoles(channel)
     if ChatWin.Consoles[channel].console == nil then
         ChatWin.Consoles[channel].console = ImGui.ConsoleWidget.new(channel.."##Console")
     end
 end
-
 local function writeSettings(file, settings)
     mq.pickle(file, settings)
 end
@@ -122,11 +40,10 @@ local function loadSettings()
         local defaults = require('default_settings')
         ChatWin.Settings = defaults
         mq.pickle(ChatWin.SettingsFile, defaults)
-    else
+        else
         -- Load settings from the Lua config file
         ChatWin.Settings = dofile(ChatWin.SettingsFile)
     end
-
     -- Ensure each channel's console widget is initialized
     for channel, channelData in pairs(ChatWin.Settings.Channels) do
         if not ChatWin.Consoles[channel] then
@@ -151,26 +68,20 @@ local function BuildEvents()
 end
 function ChatWin.EventChat(channel, eventName, line)
     local eventDetails = eventNames[eventName]
-    if not eventDetails then return end  -- Exit if event details are not found
-
-    local color = eventDetails.color  -- Retrieve color directly from event details
-    local time = mq.TLO.Time()
-
-    -- Format and output the line
-    local formattedLine = string.format("%s[%s] %s", parseColor(color), time, line)
+    if not eventDetails then return end
+    local colorVec = eventDetails.color
+    -- Convert RGB vector to ImGui color code
+    local colorCode = IM_COL32(colorVec[1] * 255, colorVec[2] * 255, colorVec[3] * 255, 255)
     if ChatWin.Consoles[channel] and ChatWin.Consoles[channel].console then
-        ChatWin.Consoles[channel].console:AppendText(formattedLine)
+        ChatWin.Consoles[channel].console:AppendText(colorCode, line)
     end
-    if console ~= nil then console:AppendText(formattedLine) end
+    console:AppendText(colorCode, line)
 end
-
 function ChatWin.GUI()
     if not ChatWin.openGUI then return end
-    
     local windowName = 'My Chat##'..myName
     ImGui.SetNextWindowSize(ImVec2(640, 480), ImGuiCond.FirstUseEver)
     ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, ImVec2(1, 0));
-
     if ImGui.Begin(windowName, ChatWin.openGUI, ChatWin.winFlags) then
         -- Main menu bar
         if ImGui.BeginMenuBar() then
@@ -187,6 +98,10 @@ function ChatWin.GUI()
                         end
                     end
                     ImGui.EndMenu()
+                end
+                if ImGui.MenuItem('Configure Events') then
+                    ChatWin.openConfigGUI = true
+                    ChatWin.Config_GUI(ChatWin.openConfigGUI)
                 end
                 ImGui.Separator()
                 if ImGui.MenuItem('Reset Position') then
@@ -205,7 +120,6 @@ function ChatWin.GUI()
             ImGui.EndMenuBar()
         end
         -- End of menu bar
-
         -- Begin Tabs Bars
         if ImGui.BeginTabBar('Channels', ChatWin.tabFlags) then
             -- Begin Main tab
@@ -223,7 +137,6 @@ function ChatWin.GUI()
                 ImGui.EndTabItem()
             end
             -- End Main tab
-
             -- Begin other tabs
             for channel, data in pairs(ChatWin.Settings.Channels) do
                 if ChatWin.Settings.Channels[channel].enabled then
@@ -279,7 +192,83 @@ function ChatWin.GUI()
     ImGui.End()
     ImGui.PopStyleVar()
 end
-
+--- Configure Windows and Events GUI
+local tempEventStrings = {}
+local tempColors = {}
+local tempSettings = ChatWin.Settings
+-- Use deepcopy when initializing tempSettings
+tempSettings = ChatWin.Settings
+local function buildConfig()
+    if ImGui.BeginTable("Channel Events", 3, bit32.bor(ImGuiTableFlags.SizingFixedFit, ImGuiTableFlags.Borders)) then
+        ImGui.TableSetupColumn("Channel", ImGuiTableColumnFlags.WidthFixed, 100)
+        ImGui.TableSetupColumn("EventString", ImGuiTableColumnFlags.WidthFixed, 300)
+        ImGui.TableSetupColumn("Color", ImGuiTableColumnFlags.WidthFixed, 150)
+        ImGui.TableHeadersRow()
+        for channel, channelData in pairs(ChatWin.Settings.Channels) do
+            if not tempEventStrings[channel] then tempEventStrings[channel] = {} end
+            if not tempColors[channel] then tempColors[channel] = {} end
+            for eventId, eventDetails in pairs(channelData.Events) do
+                ImGui.TableNextRow()
+                ImGui.TableSetColumnIndex(0)
+                ImGui.Text(channel)
+                ImGui.TableSetColumnIndex(1)
+                local bufferKey = channel .. "_" .. tostring(eventId)
+                tempEventStrings[channel][eventId] = ImGui.InputText("##EventString" .. bufferKey, eventDetails.eventString, 256)
+                ImGui.TableSetColumnIndex(2)
+                if not tempColors[channel][eventId] then
+                    tempColors[channel][eventId] = eventDetails.color or {1.0, 1.0, 1.0, 1.0} -- Default to white with full opacity
+                end
+                tempColors[channel][eventId] = ImGui.ColorEdit4("##Color" .. bufferKey, tempColors[channel][eventId])
+            end
+        end
+        ImGui.EndTable()
+    end
+    if ImGui.Button("Save") then
+        for channel, channelData in pairs(ChatWin.Settings.Channels) do
+            if not tempSettings.Channels[channel] then
+                tempSettings.Channels[channel] = {Events = {}}
+            end
+            tempSettings.Channels[channel].enabled = ChatWin.Settings.Channels[channel].enabled
+            for eventId, eventString in pairs(tempEventStrings[channel] or {}) do
+                if not tempSettings.Channels[channel].Events[eventId] then
+                    tempSettings.Channels[channel].Events[eventId] = {}
+                end
+                tempSettings.Channels[channel].Events[eventId].eventString = eventString
+            end
+            for eventId, color in pairs(tempColors[channel] or {}) do
+                if not tempSettings.Channels[channel].Events[eventId] then
+                    tempSettings.Channels[channel].Events[eventId] = {}
+                end
+                tempSettings.Channels[channel].Events[eventId].color = color
+            end
+        end
+        writeSettings(ChatWin.SettingsFile, tempSettings)
+        ChatWin.Settings = tempSettings
+        -- Unregister and reregister events to apply changes
+        for eventName, _ in pairs(eventNames) do
+            mq.unevent(eventName)
+        end
+        eventNames = {}
+        BuildEvents()
+        ChatWin.openConfigGUI = false
+    end
+end
+function ChatWin.Config_GUI(open)
+    if not ChatWin.openConfigGUI then return end
+    open, ChatWin.openConfigGUI= ImGui.Begin("Event Configuration", open, bit32.bor(ImGuiWindowFlags.AlwaysAutoResize))
+    if not ChatWin.openConfigGUI then
+        ChatWin.openConfigGUI = false
+        open = false
+        ImGui.End()
+        return open
+    end
+    buildConfig()
+    -- Close Button
+    if ImGui.Button('close') then
+        ChatWin.openConfigGUI = false
+    end
+    ImGui.End()
+end
 function ChatWin.StringTrim(s)
     return s:gsub("^%s*(.-)%s*$", "%1")
 end
@@ -321,7 +310,8 @@ function ChatWin.EventFunc(text)
     end
 end
 local function init()
-    mq.imgui.init('lootItemsGUI', ChatWin.GUI)
+    mq.imgui.init('MyChatGUI', ChatWin.GUI)
+    mq.imgui.init('ChatConfigGUI', ChatWin.Config_GUI)
     -- initialize the console
     if console == nil then
         console = ImGui.ConsoleWidget.new("Chat##Console")

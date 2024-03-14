@@ -2,12 +2,12 @@ return {
 	['Channels'] = {
 		['Exp AA pts'] = {
 			['Events'] = {
-				[2] = {
-					['color'] = 'orange',
+				['2'] = {
+					['color'] = {0.78, 0.20, 0.05, 0.8,1},
 					['eventString'] = '#*#gained an ability point#*#',
 				},
-				[1] = {
-					['color'] = 'yellow',
+				['1'] = {
+					['color'] = {1.0, 1.0, 0.0,1},
 					['eventString'] = '#*#You have gained#*#experience!#*#',
 				},
 			},
@@ -15,12 +15,12 @@ return {
 		},
 		['Group'] = {
 			['Events'] = {
-				[2] = {
-					['color'] = 'grey',
+				['2'] = {
+					['color'] = {0.5, 0.5, 0.5,1},
 					['eventString'] = '#*#You tell your party, \'#*#',
 				},
-				[1] = {
-					['color'] = 'teal',
+				['1'] = {
+					['color'] = {0.0, 0.5, 0.5,1},
 					['eventString'] = '#*#tells the group#*#',
 				},
 			},
@@ -28,12 +28,12 @@ return {
 		},
 		['Say'] = {
 			['Events'] = {
-				[2] = {
-					['color'] = 'grey',
+				['2'] = {
+					['color'] = {0.5, 0.5, 0.5,1},
 					['eventString'] = '#*#You say, \'#*#',
 				},
-				[1] = {
-					['color'] = 'white',
+				['1'] = {
+					['color'] = {1.0, 1.0, 1.0,1},
 					['eventString'] = '#*#says,#*#',
 				},
 			},
@@ -41,12 +41,12 @@ return {
 		},
 		['Tells'] = {
 			['Events'] = {
-				[2] = {
-					['color'] = 'grey',
+				['2'] = {
+					['color'] = {0.5, 0.5, 0.5,1},
 					['eventString'] = '#*#You told #1#,#*#',
 				},
-				[1] = {
-					['color'] = 'magenta',
+				['1'] = {
+					['color'] = {1.0, 0.5, 0.1,1},
 					['eventString'] = '#*#tells you,#*#',
 				},
 			},
@@ -54,12 +54,12 @@ return {
 		},
 		['OOC'] = {
 			['Events'] = {
-				[2] = {
-					['color'] = 'grey',
+				['2'] = {
+					['color'] = {0.5, 0.5, 0.5,1},
 					['eventString'] = '#*#You say out of character,#*#',
 				},
-				[1] = {
-					['color'] = 'dkgreen',
+				['1'] = {
+					['color'] = {0.0, 0.8, 0.3,1},
 					['eventString'] = '#*#say#*# out of character,#*#',
 				},
 			},
@@ -67,12 +67,12 @@ return {
 		},
 		['Shout'] = {
 			['Events'] = {
-				[2] = {
-					['color'] = 'grey',
+				['2'] = {
+					['color'] = {0.5, 0.5, 0.5,1},
 					['eventString'] = '#*#You shout, \'#*#',
 				},
-				[1] = {
-					['color'] = 'red',
+				['1'] = {
+					['color'] = {1.0, 0.0, 0.0,1},
 					['eventString'] = '#*#shouts,#*#',
 				},
 			},
@@ -80,12 +80,12 @@ return {
 		},
 		['Raid'] = {
 			['Events'] = {
-				[2] = {
-					['color'] = 'grey',
+				['2'] = {
+					['color'] = {0.5, 0.5, 0.5,1},
 					['eventString'] = '#You tell your raid,#*#',
 				},
-				[1] = {
-					['color'] = 'dkteal',
+				['1'] = {
+					['color'] = {0.5, 0.7, 1.0,1},
 					['eventString'] = '#*#tells the raid#*#',
 				},
 			},
@@ -93,12 +93,12 @@ return {
 		},
 		['Guild'] = {
 			['Events'] = {
-				[2] = {
-					['color'] = 'grey',
+				['2'] = {
+					['color'] = {0.5, 0.5, 0.5,1},
 					['eventString'] = '#*#You say to your guild, \'#*#',
 				},
-				[1] = {
-					['color'] = 'green',
+				['1'] = {
+					['color'] = {0.0, 1.0, 0.0,1},
 					['eventString'] = '#*#tells the guild#*#',
 				},
 			},
@@ -106,12 +106,12 @@ return {
 		},
 		['Auction'] = {
 			['Events'] = {
-				[2] = {
-					['color'] = 'grey',
+				['2'] = {
+					['color'] = {0.5, 0.5, 0.5,1},
 					['eventString'] = '#*#You auction,#*#',
 				},
-				[1] = {
-					['color'] = 'dkgreen',
+				['1'] = {
+					['color'] = {0.0, 0.8, 0.3,1},
 					['eventString'] = '#*#auctions,#*#',
 				},
 			},
