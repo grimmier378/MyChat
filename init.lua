@@ -256,13 +256,13 @@ local function BuildEvents()
         local echoStrings = eventData.echoEventString
         for i, string in pairs(Strings) do
             if string ~= 'NULL' then
-                local eventName = string.format("%s_chat%s", channel,i)
+                local eventName = string.format("event_%s_%s", channel, i)
                 mq.event(eventName, string, function(line) ChatWin.EventChat(channel, line) end)
             end
         end
         for i, eString in pairs(echoStrings) do
             if eString ~= 'NULL' then
-                local eventName = string.format("%s_chat%s", channel,i)
+                local eventName = string.format("event_%s_echo%s", channel, i)
                 mq.event(eventName, eString, function(line) ChatWin.EventChat(channel, line) end)
             end
         end
