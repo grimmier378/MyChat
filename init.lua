@@ -45,9 +45,10 @@ local function SetUpConsoles(channelID)
         ChatWin.Consoles[channelID].txtBuffer = {
             [1] = {
                 color ={[1]=1,[2]=1,[3]=1,[4]=1},
-                text = ''
+                text = '',
             }
         }
+        ChatWin.Consoles[channelID].txtAutoScroll = true
         ChatWin.Consoles[channelID].console = ImGui.ConsoleWidget.new(channelID.."##Console")
     end
 end
@@ -111,6 +112,7 @@ function ChatWin.EventChat(channelID, eventName, line)
         print("Error: ChatWin.Consoles[channelID] is nil for channelID " .. channelID)
     end
 end
+ -- Variable to track last scroll position
 function ChatWin.GUI()
     if not ChatWin.openGUI then return end
     local windowName = 'My Chat##'..myName
@@ -209,10 +211,25 @@ function ChatWin.GUI()
                                 ImGui.PopStyleColor()
                             end
                             ImGui.SetWindowFontScale(1)
-                            ImGui.SetScrollHereY()
+                            --Scroll to the bottom if autoScroll is enabled
+                            local autoScroll = ChatWin.Consoles[channelID].txtAutoScroll
+                            if autoScroll then
+                                ImGui.SetScrollHereY()
+                                ChatWin.Consoles[channelID].bottomPosition = ImGui.GetCursorPosY()
+                            end
+                            local bottomPosition = ChatWin.Consoles[channelID].bottomPosition or 0
                             ImGui.EndTable()
+                            -- Detect manual scroll
+                            local lastScrollPos = ChatWin.Consoles[channelID].lastScrollPos or 0
+                            local scrollPos = ImGui.GetScrollY()
+                            if scrollPos < lastScrollPos then
+                                ChatWin.Consoles[channelID].txtAutoScroll = false  -- Turn off autoscroll if scrolled up manually
+                            elseif scrollPos >= bottomPosition-10 then
+                                ChatWin.Consoles[channelID].txtAutoScroll = true
+                            end
+                            lastScrollPos = scrollPos
+                            ChatWin.Consoles[channelID].lastScrollPos = lastScrollPos
                             ImGui.EndChild()
-                            
                         else
                         ChatWin.Consoles[channelID].console:Render(ImVec2(contentSizeX,contentSizeY))
                         end
@@ -229,8 +246,8 @@ function ChatWin.GUI()
         local textFlags = bit32.bor(0,
             ImGuiInputTextFlags.EnterReturnsTrue,
             -- not implemented yet
-             ImGuiInputTextFlags.CallbackCompletion,
-             ImGuiInputTextFlags.CallbackHistory
+            ImGuiInputTextFlags.CallbackCompletion,
+            ImGuiInputTextFlags.CallbackHistory
         )
         local contentSizeX, _ = ImGui.GetContentRegionAvail()
         ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6)
