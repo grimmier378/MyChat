@@ -23,15 +23,31 @@ local ChatWin = {
     Consoles = {},
     -- Flags
     tabFlags = bit32.bor(ImGuiTabBarFlags.Reorderable, ImGuiTabBarFlags.TabListPopupButton),
-    winFlags = bit32.bor(ImGuiWindowFlags.MenuBar)
+    winFlags = bit32.bor(ImGuiWindowFlags.MenuBar, ImGuiWindowFlags.NoScrollbar)
 }
 --Helper Functioons
 function File_Exists(name)
     local f=io.open(name,"r")
     if f~=nil then io.close(f) return true else return false end
 end
+local function getNextID(table)
+    local maxChannelId = 0
+    for channelId, _ in pairs(table) do
+        local numericId = tonumber(channelId)
+        if numericId and numericId > maxChannelId then
+            maxChannelId = numericId
+        end
+    end
+    return maxChannelId + 1
+end
 local function SetUpConsoles(channelID)
     if ChatWin.Consoles[channelID].console == nil then
+        ChatWin.Consoles[channelID].txtBuffer = {
+            [1] = {
+                color ={[1]=1,[2]=1,[3]=1,[4]=1},
+                text = ''
+            }
+        }
         ChatWin.Consoles[channelID].console = ImGui.ConsoleWidget.new(channelID.."##Console")
     end
 end
@@ -74,12 +90,26 @@ function ChatWin.EventChat(channelID, eventName, line)
     local eventDetails = eventNames[eventName]
     if not eventDetails then return end
     local colorVec = eventDetails.color
-    -- Convert RGB vector to ImGui color code
-    local colorCode = IM_COL32(colorVec[1] * 255, colorVec[2] * 255, colorVec[3] * 255, 255)
-    if ChatWin.Consoles[channelID] and ChatWin.Consoles[channelID].console then
-        ChatWin.Consoles[channelID].console:AppendText(colorCode, line)
+    
+    if ChatWin.Consoles[channelID] then
+        local txtBuffer = ChatWin.Consoles[channelID].txtBuffer
+        if txtBuffer then
+            local i = getNextID(txtBuffer)
+            -- Convert RGB vector to ImGui color code
+            local colorCode = IM_COL32(colorVec[1] * 255, colorVec[2] * 255, colorVec[3] * 255, 255)
+            if ChatWin.Consoles[channelID].console then
+                ChatWin.Consoles[channelID].console:AppendText(colorCode, line)
+            end
+            txtBuffer[i] = {
+                color = colorVec,
+                text = line
+            }
+        else
+            print("Error: txtBuffer is nil for channelID " .. channelID)
+        end
+    else
+        print("Error: ChatWin.Consoles[channelID] is nil for channelID " .. channelID)
     end
-    console:AppendText(colorCode, line)
 end
 function ChatWin.GUI()
     if not ChatWin.openGUI then return end
@@ -146,6 +176,7 @@ function ChatWin.GUI()
             for channelID, data in pairs(ChatWin.Settings.Channels) do
                 if ChatWin.Settings.Channels[channelID].enabled then
                     local name = ChatWin.Settings.Channels[channelID].Name
+                    local zoom = ChatWin.Consoles[channelID].zoom
                     if ImGui.BeginTabItem(name) then
                         local footerHeight = 30
                         local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
@@ -153,10 +184,38 @@ function ChatWin.GUI()
                         if ImGui.BeginPopupContextWindow() then
                             if ImGui.Selectable('Clear') then
                                 ChatWin.Consoles[channelID].console:Clear()
+                                ChatWin.Consoles[channelID].txtBuffer = {}
+                            end
+                            if ImGui.Selectable('Zoom') then
+                                zoom = not zoom
+                                ChatWin.Consoles[channelID].zoom = zoom
                             end
                             ImGui.EndPopup()
                         end
+                        if zoom and ChatWin.Consoles[channelID].txtBuffer ~= '' then
+                            ImGui.BeginChild("ZoomScrollRegion", ImVec2(contentSizeX, contentSizeY),ImGuiChildFlags.Border)
+                            ImGui.BeginTable('##channelID', 1, ImGuiTableFlags.NoBordersInBody)
+                            ImGui.TableSetupColumn("##txt", ImGuiTableColumnFlags.NoHeaderLabel)
+                            ImGui.TableNextRow()
+                            ImGui.TableSetColumnIndex(0)
+                            ImGui.SetWindowFontScale(1.5)
+                            for line, data in pairs(ChatWin.Consoles[channelID].txtBuffer) do
+                                local color = ""
+                                ImGui.PushStyleColor(ImGuiCol.Text,ImVec4(data.color[1],data.color[2],data.color[3],data.color[4]))
+                                --ImGui.Text(color)
+                                ImGui.TextWrapped(data.text)
+                                ImGui.TableNextRow()
+                                ImGui.TableSetColumnIndex(0)
+                                ImGui.PopStyleColor()
+                            end
+                            ImGui.SetWindowFontScale(1)
+                            ImGui.SetScrollHereY()
+                            ImGui.EndTable()
+                            ImGui.EndChild()
+                            
+                        else
                         ChatWin.Consoles[channelID].console:Render(ImVec2(contentSizeX,contentSizeY))
+                        end
                         ImGui.EndTabItem()
                     end
                 end
@@ -168,10 +227,10 @@ function ChatWin.GUI()
         --Command Line
         ImGui.Separator()
         local textFlags = bit32.bor(0,
-            ImGuiInputTextFlags.EnterReturnsTrue
+            ImGuiInputTextFlags.EnterReturnsTrue,
             -- not implemented yet
-            -- ImGuiInputTextFlags.CallbackCompletion,
-            -- ImGuiInputTextFlags.CallbackHistory
+             ImGuiInputTextFlags.CallbackCompletion,
+             ImGuiInputTextFlags.CallbackHistory
         )
         local contentSizeX, _ = ImGui.GetContentRegionAvail()
         ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6)
@@ -202,16 +261,7 @@ end
 local lastID = 0
 local editChanID = 0
 local editEventID = 0
-local function getMaxID(table)
-    local maxChannelId = 0
-    for channelId, _ in pairs(table) do
-        local numericId = tonumber(channelId)
-        if numericId and numericId > maxChannelId then
-            maxChannelId = numericId
-        end
-    end
-    return maxChannelId + 1
-end
+
 local tempEventStrings = {}
 local tempColors = {}
 local newEvent = false
@@ -260,7 +310,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
             tempSettings.Channels[editChanID] = channelData[editChanID]
         end
         if newEvent then
-            local maxEventId = getMaxID(channelData[editChanID].Events)
+            local maxEventId = getNextID(channelData[editChanID].Events)
             print(maxEventId)
             channelData[editChanID]['Events'][maxEventId] = {
                 ['color'] = {
@@ -397,7 +447,7 @@ function ChatWin.Config_GUI(open)
     buildConfig()
     -- Add a button to add a new row
     if ImGui.Button("Add Channel") then
-        editChanID =  getMaxID(ChatWin.Settings.Channels)
+        editChanID =  getNextID(ChatWin.Settings.Channels)
         addChannel = true
         tempSettings = ChatWin.Settings
         ChatWin.openEditGUI = true
