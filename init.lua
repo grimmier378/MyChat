@@ -328,14 +328,17 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                     end
                 end
             end
-            writeSettings(ChatWin.SettingsFile, tempSettings)
             ChatWin.Settings = tempSettings
+            writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+            
             -- Unregister and reregister events to apply changes
             for eventName, _ in pairs(eventNames) do
-                print(eventName)
+                --print(eventName)
                 mq.unevent(eventName)
             end
             eventNames = {}
+            
+            loadSettings()
             BuildEvents()
             ChatWin.openEditGUI = false
             ChatWin.openConfigGUI = true
@@ -359,7 +362,7 @@ local function buildConfig()
                 ImGui.TableNextRow()
                 if channelID ~= lastID then
                     ImGui.TableSetColumnIndex(0)
-                    if ImGui.Button("Edit Channel##" .. bufferKey) then
+                    if ImGui.Button("Edit##" .. bufferKey) then
                         editChanID = channelID
                         addChannel = false
                         tempSettings = ChatWin.Settings
