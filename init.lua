@@ -286,10 +286,10 @@ local lastChan = 0
 function ChatWin.AddChannel(editChanID, isNewChannel)
     if not tempEventStrings[editChanID] then tempEventStrings[editChanID] = {} end
     if not tempColors[editChanID] then tempColors[editChanID] = {} end
-    if ImGui.BeginTable("Channel Events", 3, bit32.bor(ImGuiTableFlags.SizingFixedFit, ImGuiTableFlags.Borders)) then
-        ImGui.TableSetupColumn("Channel", ImGuiTableColumnFlags.WidthFixed, 100)
-        ImGui.TableSetupColumn("EventString", ImGuiTableColumnFlags.WidthFixed, 300)
-        ImGui.TableSetupColumn("Color", ImGuiTableColumnFlags.WidthFixed, 150)
+        if ImGui.BeginTable("Channel Events", 3, bit32.bor(ImGuiTableFlags.None, ImGuiTableFlags.Resizable, ImGuiTableFlags.NoHostExtendX,ImGui.GetContentRegionAvail())) then
+        ImGui.TableSetupColumn("Channel", ImGuiTableColumnFlags.WidthAlwaysAutoResize, 100)
+        ImGui.TableSetupColumn("EventString", ImGuiTableColumnFlags.WidthStretch, 150)
+        ImGui.TableSetupColumn("Color", ImGuiTableColumnFlags.WidthAlwaysAutoResize)
         ImGui.TableHeadersRow()
         local tmpName = 'NewChan'
         local tmpString = 'NewString'
@@ -415,46 +415,71 @@ end
 local function buildConfig()
     -- Add a flag to track if a row is marked for deletion
     local markedForDeletion = {}
-    if ImGui.BeginTable("Channel Events", 4, bit32.bor(ImGuiTableFlags.Resizable,ImGuiTableFlags.RowBg, ImGuiTableFlags.Borders)) then
-        ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 50)
-        ImGui.TableSetupColumn("Channel", ImGuiTableColumnFlags.WidthFixed, 100)
-        ImGui.TableSetupColumn("EventString", ImGuiTableColumnFlags.None,350)
-        ImGui.TableSetupColumn("Color", ImGuiTableColumnFlags.None,150)
+    
+    if ImGui.BeginTable("Channel Events", 1, bit32.bor(ImGuiTableFlags.Resizable, ImGuiTableFlags.RowBg, ImGuiTableFlags.Borders)) then
+        ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthStretch, ImGui.GetContentRegionAvail())
         ImGui.TableHeadersRow()
+        
         for channelID, channelData in pairs(tempSettings.Channels) do
-            for eventId, eventDetails in pairs(channelData.Events) do
-                local name = channelData.Name
-                local bufferKey = channelID .. "_" .. tostring(eventId)
-                local channelKey = "##ChannelName" .. channelID
-                ImGui.TableNextRow()
-                if channelID ~= lastID then
-                    ImGui.TableSetColumnIndex(0)
-                    if ImGui.Button("Edit##" .. bufferKey) then
-                        editChanID = channelID
-                        addChannel = false
-                        tempSettings = ChatWin.Settings
-                        ChatWin.openEditGUI = true
-                        ChatWin.openConfigGUI = false
+            -- Begin a new collapsible section if channelID is different from lastID
+            if channelID ~= lastID then
+                local collapsed, _ = ImGui.CollapsingHeader(channelData.Name)
+                
+                -- Check if the header is collapsed
+                if not collapsed then
+                    -- Begin a table for events within this channel
+                    if ImGui.BeginTable("ChannelEvents_" .. channelData.Name, 4, bit32.bor(ImGuiTableFlags.Resizable, ImGuiTableFlags.RowBg, ImGuiTableFlags.Borders, ImGui.GetWindowWidth())) then
+                        -- Set up table columns once
+                        ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 50)
+                        ImGui.TableSetupColumn("Channel", ImGuiTableColumnFlags.WidthAlwaysAutoResize, 100)
+                        ImGui.TableSetupColumn("EventString", ImGuiTableColumnFlags.WidthStretch, 150)
+                        ImGui.TableSetupColumn("Color", ImGuiTableColumnFlags.WidthAlwaysAutoResize)
+                        ImGui.TableHeadersRow()
+                        
+                        -- Iterate through each event in the channel
+                        for eventId, eventDetails in pairs(channelData.Events) do
+                            local bufferKey = channelID .. "_" .. tostring(eventId)
+                            local name = channelData.Name
+                            local bufferKey = channelID .. "_" .. tostring(eventId)
+                            local channelKey = "##ChannelName" .. channelID
+                            
+                            ImGui.TableNextRow()
+                            ImGui.TableSetColumnIndex(0)
+                            if ImGui.Button("Edit##" .. bufferKey) then
+                                editChanID = channelID
+                                addChannel = false
+                                tempSettings = ChatWin.Settings
+                                ChatWin.openEditGUI = true
+                                ChatWin.openConfigGUI = false
+                            end
+                            ImGui.TableSetColumnIndex(1)
+                            ImGui.Text(name)
+                            ImGui.TableSetColumnIndex(2)
+                            ImGui.Text(eventDetails.eventString)
+                            ImGui.TableSetColumnIndex(3)
+                            if not eventDetails.color then
+                                eventDetails.color = {1.0, 1.0, 1.0, 1.0} -- Default to white with full opacity
+                            end
+                            ImGui.ColorEdit4("##Color" .. bufferKey, eventDetails.color)
+                        end
+                        
+                        -- End the table for this channel
+                        ImGui.EndTable()
                     end
-                    ImGui.TableSetColumnIndex(1)
-                    ImGui.Text(name)
                 end
-                lastID = channelID
-                ImGui.TableSetColumnIndex(2)
-                ImGui.Text(eventDetails.eventString)
-                ImGui.TableSetColumnIndex(3)
-                if not eventDetails.color then
-                    eventDetails.color = {1.0, 1.0, 1.0, 1.0} -- Default to white with full opacity
-                end
-                ImGui.ColorEdit4("##Color" .. bufferKey, eventDetails.color)
             end
+            
+            -- Update lastID
+            lastID = channelID
         end
-        ImGui.EndTable()
+        
+        ImGui.EndTable()  -- End the main table
     end
 end
+
 function ChatWin.Config_GUI(open)
     if not ChatWin.openConfigGUI then return end
-    open, ChatWin.openConfigGUI = ImGui.Begin("Event Configuration", open, bit32.bor(ImGuiWindowFlags.None))
+    open, ChatWin.openConfigGUI = ImGui.Begin("Event Configuration", open, bit32.bor(ImGuiWindowFlags.None, ImGuiWindowFlags.NoCollapse))
     if not ChatWin.openConfigGUI then
         ChatWin.openConfigGUI = false
         open = false
@@ -481,7 +506,7 @@ function ChatWin.Config_GUI(open)
 end
 function ChatWin.Edit_GUI(open)
     if not ChatWin.openEditGUI then return end
-    open, ChatWin.openEditGUI = ImGui.Begin("Channel Editor", open, bit32.bor(ImGuiWindowFlags.None))
+    open, ChatWin.openEditGUI = ImGui.Begin("Channel Editor", open, bit32.bor(ImGuiWindowFlags.None, ImGuiWindowFlags.NoCollapse))
     if not ChatWin.openEditGUI then
         ChatWin.openEditGUI = false
         open = false
