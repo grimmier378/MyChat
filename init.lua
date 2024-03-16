@@ -116,22 +116,35 @@ function ChatWin.EventChat(channelID, eventName, line)
             local i = getNextID(txtBuffer)
             -- Convert RGB vector to ImGui color code
             local colorCode = IM_COL32(colorVec[1] * 255, colorVec[2] * 255, colorVec[3] * 255, 255)
+            -- write channel console
             if ChatWin.Consoles[channelID].console then
                 ChatWin.Consoles[channelID].console:AppendText(colorCode, line)
             end
+            -- write main console
+            console:AppendText(colorCode,line)
+            -- ZOOM Console hack
+            if txtBuffer[i-1].text == '' then i = i-1 end
+            -- Add the new line to the buffer
             txtBuffer[i] = {
                 color = colorVec,
                 text = line
             }
-            console:AppendText(colorCode, line)
+            -- cleanup zoom buffer
+            -- Check if the buffer exceeds 1000 lines
+            local bufferLength = #txtBuffer
+            if bufferLength > 1000 then
+                -- Remove excess lines
+                for j = 1, bufferLength - 1000 do
+                    table.remove(txtBuffer, 1)
+                end
+            end
         else
             print("Error: txtBuffer is nil for channelID " .. channelID)
         end
     else
         print("Error: ChatWin.Consoles[channelID] is nil for channelID " .. channelID)
     end
-    
-end 
+end
 -- Variable to track last scroll position
 function ChatWin.GUI()
 
