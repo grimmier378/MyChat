@@ -1,4 +1,10 @@
 return {
+    ['Colors'] = {
+    ['color_header'] = {0,0,0,1},
+    ['color_headHov'] = {0.05,0.05,0.05,0.9},
+    ['color_headAct'] = {0.05,0.05,0.05,0.9},
+    ['color_WinBg'] = {0,0,0,1},
+    },
     ['Channels'] = {
         [1] = {
             ['Name'] = 'Exp AA pts',
