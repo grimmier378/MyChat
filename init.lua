@@ -10,6 +10,10 @@ local serverName = string.gsub(mq.TLO.EverQuest.Server(), ' ', '_') or ''
 local myName = mq.TLO.Me.DisplayName() or ''
 local addChannel = false
 local tempSettings = {}
+local color_header = {0,0,0,1}
+local color_headHov = {0.05,0.05,0.05,0.9}
+local color_headAct = {0.05,0.05,0.05,0.9}
+local color_WinBg = {0,0,0,1}
 local ChatWin = {
     SHOW = true,
     openGUI = true,
@@ -71,7 +75,21 @@ local function loadSettings()
         end
         SetUpConsoles(channelID)
     end
+    if ChatWin.Settings['Colors'] then
+        color_header = ChatWin.Settings['Colors']['color_header']
+        color_headHov = ChatWin.Settings['Colors']['color_headHov']
+        color_headAct = ChatWin.Settings['Colors']['color_headAct']
+        color_WinBg = ChatWin.Settings['Colors']['color_WinBg']
+    else
+        ChatWin.Settings['Colors'] = {}
+        ChatWin.Settings['Colors']['color_WinBg']     =     color_header
+        ChatWin.Settings['Colors']['color_header']    =     color_headHov
+        ChatWin.Settings['Colors']['color_headHov']   =     color_headAct
+        ChatWin.Settings['Colors']['color_headAct']   =     color_WinBg
+        writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+    end
     tempSettings = ChatWin.Settings
+
 end
 local eventNames = {}
 local function BuildEvents()
@@ -105,19 +123,29 @@ function ChatWin.EventChat(channelID, eventName, line)
                 color = colorVec,
                 text = line
             }
+            console:AppendText(colorCode, line)
         else
             print("Error: txtBuffer is nil for channelID " .. channelID)
         end
     else
         print("Error: ChatWin.Consoles[channelID] is nil for channelID " .. channelID)
     end
-end
+    
+end 
 -- Variable to track last scroll position
 function ChatWin.GUI()
+
+
     if not ChatWin.openGUI then return end
     local windowName = 'My Chat##'..myName
     ImGui.SetNextWindowSize(ImVec2(640, 480), ImGuiCond.FirstUseEver)
     ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, ImVec2(1, 0));
+    ImGui.PushStyleColor(ImGuiCol.WindowBg,color_WinBg[1],color_WinBg[2],color_WinBg[3],color_WinBg[4])
+    ImGui.PushStyleColor(ImGuiCol.Header, color_header[1],color_header[2],color_header[3],color_header[4])
+    ImGui.PushStyleColor(ImGuiCol.HeaderHovered,color_headHov[1],color_headHov[2],color_headHov[3],color_headHov[4])
+    ImGui.PushStyleColor(ImGuiCol.HeaderActive,color_headAct[1],color_headAct[2],color_headAct[3],color_headAct[4])
+    ImGui.PushStyleColor(ImGuiCol.TableRowBg, color_WinBg[1],color_WinBg[2],color_WinBg[3],color_WinBg[4])
+    ImGui.PushStyleColor(ImGuiCol.TableRowBgAlt,color_WinBg[1],color_WinBg[2],color_WinBg[3],color_WinBg[4])
     if ImGui.Begin(windowName, ChatWin.openGUI, ChatWin.winFlags) then
         -- Main menu bar
         if ImGui.BeginMenuBar() then
@@ -196,7 +224,7 @@ function ChatWin.GUI()
                         end
                             if zoom and ChatWin.Consoles[channelID].txtBuffer ~= '' then
                             ImGui.BeginChild("ZoomScrollRegion", ImVec2(contentSizeX, contentSizeY), ImGuiWindowFlags.HorizontalScrollbar)
-                            ImGui.BeginTable('##channelID', 1, ImGuiTableFlags.NoBordersInBody)
+                            ImGui.BeginTable('##channelID', 1, bit32.bor(ImGuiTableFlags.NoBordersInBody, ImGuiTableFlags.RowBg))
                             ImGui.TableSetupColumn("##txt", ImGuiTableColumnFlags.NoHeaderLabel)
                             ImGui.TableNextRow()
                             ImGui.TableSetColumnIndex(0)
@@ -204,6 +232,12 @@ function ChatWin.GUI()
                             for line, data in pairs(ChatWin.Consoles[channelID].txtBuffer) do
                                 local color = ""
                                 ImGui.PushStyleColor(ImGuiCol.Text, ImVec4(data.color[1], data.color[2], data.color[3], data.color[4]))
+                                if ImGui.Selectable("##selectable" .. line, false, ImGuiSelectableFlags.None) then
+                                    -- ImGui.LogToClipboard()
+                                    -- ImGui.LogText(data.text)
+                                    -- ImGui.LogFinish()
+                                end
+                                ImGui.SameLine()
                                 ImGui.SameLine()
                                 ImGui.TextWrapped(data.text)
                                 if ImGui.IsItemHovered() and ImGui.IsKeyDown(ImGuiMod.Ctrl) and ImGui.IsKeyDown(ImGuiKey.C) then
@@ -278,6 +312,7 @@ function ChatWin.GUI()
             ImGui.SetKeyboardFocusHere(-1)
         end
     end
+    ImGui.PopStyleColor(6)
     ImGui.End()
     ImGui.PopStyleVar()
 end
@@ -285,7 +320,6 @@ end
 local lastID = 0
 local editChanID = 0
 local editEventID = 0
-
 local tempEventStrings = {}
 local tempColors = {}
 local newEvent = false
@@ -422,7 +456,7 @@ end
 local function buildConfig()
     -- Add a flag to track if a row is marked for deletion
     local markedForDeletion = {}
-    
+
     if ImGui.BeginTable("Channel Events", 1, bit32.bor(ImGuiTableFlags.Resizable, ImGuiTableFlags.RowBg, ImGuiTableFlags.Borders)) then
         ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthStretch, bit32.bor(ImGui.GetContentRegionAvail(), ImGuiTableColumnFlags.NoHeaderLabel))
         ImGui.TableHeadersRow()
