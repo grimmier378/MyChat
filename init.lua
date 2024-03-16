@@ -75,7 +75,9 @@ local function loadSettings()
             ChatWin.Consoles[channelID] = {}
         end
         SetUpConsoles(channelID)
+        if not ChatWin.Settings.Channels[channelID]['Scale'] then ChatWin.Settings.Channels[channelID]['Scale'] = 1.0 end
     end
+   
     if ChatWin.Settings['Colors'] then
         color_header = ChatWin.Settings['Colors']['color_header']
         color_headHov = ChatWin.Settings['Colors']['color_headHov']
@@ -159,10 +161,8 @@ function ChatWin.EventChat(channelID, eventName, line)
         print("Error: ChatWin.Consoles[channelID] is nil for channelID " .. channelID)
     end
 end
--- Variable to track last scroll position
+
 function ChatWin.GUI()
-
-
     if not ChatWin.openGUI then return end
     local windowName = 'My Chat##'..myName
     ImGui.SetNextWindowSize(ImVec2(640, 480), ImGuiCond.FirstUseEver)
@@ -234,6 +234,7 @@ function ChatWin.GUI()
                 if ChatWin.Settings.Channels[channelID].enabled then
                     local name = ChatWin.Settings.Channels[channelID].Name
                     local zoom = ChatWin.Consoles[channelID].zoom
+                    local scale = ChatWin.Settings.Channels[channelID].Scale
                     if ImGui.BeginTabItem(name) then
                         local footerHeight = 30
                         local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
@@ -255,7 +256,7 @@ function ChatWin.GUI()
                             ImGui.TableSetupColumn("##txt", ImGuiTableColumnFlags.NoHeaderLabel)
                             ImGui.TableNextRow()
                             ImGui.TableSetColumnIndex(0)
-                            ImGui.SetWindowFontScale(1.5)
+                            ImGui.SetWindowFontScale(scale)
                             for line, data in pairs(ChatWin.Consoles[channelID].txtBuffer) do
                                 local color = ""
                                 ImGui.PushStyleColor(ImGuiCol.Text, ImVec4(data.color[1], data.color[2], data.color[3], data.color[4]))
@@ -343,6 +344,8 @@ function ChatWin.GUI()
     ImGui.End()
     ImGui.PopStyleVar()
 end
+
+
 -- --- Configure Windows and Events GUI
 local lastID = 0
 local editChanID = 0
@@ -371,6 +374,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                 [editChanID] = {
                     ['enabled'] = false,
                     ['Name'] = 'new',
+                    ['Scale'] = 1.0,
                     ['Events'] = {
                         [1] = {
                             ['color'] = {
@@ -460,6 +464,9 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
             ChatWin.openConfigGUI = true
             ResetEvents()
         end
+        -- Slider for adjusting zoom level
+        tempSettings.Channels[editChanID].Scale = ImGui.SliderFloat("Zoom Level", tempSettings.Channels[editChanID].Scale, 0.5, 2.0)
+
         if ImGui.Button('Save') then
             -- Initialize the channel in tempSettings if it doesn't exist
             tempSettings.Channels[editChanID] = tempSettings.Channels[editChanID] or {Events = {}, Name = "New Channel", enabled = true}
