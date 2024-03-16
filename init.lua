@@ -56,6 +56,7 @@ local function SetUpConsoles(channelID)
         ChatWin.Consoles[channelID].console = ImGui.ConsoleWidget.new(channelID.."##Console")
     end
 end
+
 local function writeSettings(file, settings)
     mq.pickle(file, settings)
 end
@@ -104,6 +105,19 @@ local function BuildEvents()
             end
         end
     end
+end
+local function ResetEvents()
+    ChatWin.Settings = tempSettings
+    writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+    -- Unregister and reregister events to apply changes
+    for eventName, _ in pairs(eventNames) do
+    --print(eventName)
+        mq.unevent(eventName)
+    end
+    eventNames = {}
+
+    loadSettings()
+    BuildEvents()
 end
 function ChatWin.EventChat(channelID, eventName, line)
     local eventDetails = eventNames[eventName]
@@ -340,10 +354,11 @@ local lastChan = 0
 function ChatWin.AddChannel(editChanID, isNewChannel)
     if not tempEventStrings[editChanID] then tempEventStrings[editChanID] = {} end
     if not tempColors[editChanID] then tempColors[editChanID] = {} end
-        if ImGui.BeginTable("Channel Events", 3, bit32.bor(ImGuiTableFlags.None, ImGuiTableFlags.Resizable, ImGuiTableFlags.NoHostExtendX,ImGui.GetContentRegionAvail())) then
+        if ImGui.BeginTable("Channel Events", 4, bit32.bor(ImGuiTableFlags.None, ImGuiTableFlags.Resizable, ImGuiTableFlags.NoHostExtendX,ImGui.GetContentRegionAvail())) then
         ImGui.TableSetupColumn("Channel", ImGuiTableColumnFlags.WidthAlwaysAutoResize, 100)
         ImGui.TableSetupColumn("EventString", ImGuiTableColumnFlags.WidthStretch, 150)
         ImGui.TableSetupColumn("Color", ImGuiTableColumnFlags.WidthAlwaysAutoResize)
+        ImGui.TableSetupColumn("Delete##", ImGuiTableColumnFlags.WidthFixed, 30)
         ImGui.TableHeadersRow()
         local tmpName = 'NewChan'
         local tmpString = 'NewString'
@@ -421,6 +436,14 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                 tempColors[editChanID][eventId] = eventDetails.color or {1.0, 1.0, 1.0, 1.0} -- Default to white with full opacity
             end
             tempColors[editChanID][eventId] = ImGui.ColorEdit4("##Color" .. bufferKey, tempColors[editChanID][eventId])
+            ImGui.TableSetColumnIndex(3)
+            if ImGui.Button("Delete##" .. bufferKey) then
+                -- Delete the event
+                tempSettings.Channels[editChanID].Events[eventId] = nil
+                tempEventStrings[editChanID][eventId] = nil
+                tempColors[editChanID][eventId] = nil
+                ResetEvents()
+            end
         end
         lastChan = 0
         ImGui.EndTable()
@@ -428,6 +451,15 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
             newEvent = true
         end
         ImGui.SameLine()
+        if ImGui.Button("Delete Channel##" .. editChanID) then
+            -- Delete the event
+            tempSettings.Channels[editChanID] = nil
+            tempEventStrings[editChanID] = nil
+            tempColors[editChanID] = nil
+            ChatWin.openEditGUI = false
+            ChatWin.openConfigGUI = true
+            ResetEvents()
+        end
         if ImGui.Button('Save') then
             -- Initialize the channel in tempSettings if it doesn't exist
             tempSettings.Channels[editChanID] = tempSettings.Channels[editChanID] or {Events = {}, Name = "New Channel", enabled = true}
@@ -449,18 +481,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                     end
                 end
             end
-            ChatWin.Settings = tempSettings
-            writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
-
-            -- Unregister and reregister events to apply changes
-            for eventName, _ in pairs(eventNames) do
-                --print(eventName)
-                mq.unevent(eventName)
-            end
-            eventNames = {}
-
-            loadSettings()
-            BuildEvents()
+            ResetEvents()
             ChatWin.openEditGUI = false
             ChatWin.openConfigGUI = true
         end
