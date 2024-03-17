@@ -465,8 +465,9 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
             ResetEvents()
         end
         -- Slider for adjusting zoom level
-        tempSettings.Channels[editChanID].Scale = ImGui.SliderFloat("Zoom Level", tempSettings.Channels[editChanID].Scale, 0.5, 2.0)
-
+        if tempSettings.Channels[editChanID] then
+            tempSettings.Channels[editChanID].Scale = ImGui.SliderFloat("Zoom Level", tempSettings.Channels[editChanID].Scale, 0.5, 2.0)
+        end
         if ImGui.Button('Save') then
             -- Initialize the channel in tempSettings if it doesn't exist
             tempSettings.Channels[editChanID] = tempSettings.Channels[editChanID] or {Events = {}, Name = "New Channel", enabled = true}
