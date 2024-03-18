@@ -14,6 +14,7 @@ local color_header = {0,0,0,1}
 local color_headHov = {0.05,0.05,0.05,0.9}
 local color_headAct = {0.05,0.05,0.05,0.9}
 local color_WinBg = {0,0,0,1}
+local useTheme = false
 local ChatWin = {
     SHOW = true,
     openGUI = true,
@@ -83,12 +84,14 @@ local function loadSettings()
         color_headHov = ChatWin.Settings['Colors']['color_headHov']
         color_headAct = ChatWin.Settings['Colors']['color_headAct']
         color_WinBg = ChatWin.Settings['Colors']['color_WinBg']
+        useTheme = true
     else
-        ChatWin.Settings['Colors'] = {}
-        ChatWin.Settings['Colors']['color_WinBg']     =     color_header
-        ChatWin.Settings['Colors']['color_header']    =     color_headHov
-        ChatWin.Settings['Colors']['color_headHov']   =     color_headAct
-        ChatWin.Settings['Colors']['color_headAct']   =     color_WinBg
+        useTheme = false
+        -- ChatWin.Settings['Colors'] = {}
+        -- ChatWin.Settings['Colors']['color_WinBg']     =     color_header
+        -- ChatWin.Settings['Colors']['color_header']    =     color_headHov
+        -- ChatWin.Settings['Colors']['color_headHov']   =     color_headAct
+        -- ChatWin.Settings['Colors']['color_headAct']   =     color_WinBg
         writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
     end
     tempSettings = ChatWin.Settings
@@ -139,7 +142,9 @@ function ChatWin.EventChat(channelID, eventName, line)
             -- write main console
             console:AppendText(colorCode,line)
             -- ZOOM Console hack
-            if txtBuffer[i-1].text == '' then i = i-1 end
+            if i > 1 then
+                if txtBuffer[i-1].text == '' then i = i-1 end
+            end
             -- Add the new line to the buffer
             txtBuffer[i] = {
                 color = colorVec,
@@ -167,12 +172,14 @@ function ChatWin.GUI()
     local windowName = 'My Chat##'..myName
     ImGui.SetNextWindowSize(ImVec2(640, 480), ImGuiCond.FirstUseEver)
     ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, ImVec2(1, 0));
+    if useTheme then
     ImGui.PushStyleColor(ImGuiCol.WindowBg,color_WinBg[1],color_WinBg[2],color_WinBg[3],color_WinBg[4])
     ImGui.PushStyleColor(ImGuiCol.Header, color_header[1],color_header[2],color_header[3],color_header[4])
     ImGui.PushStyleColor(ImGuiCol.HeaderHovered,color_headHov[1],color_headHov[2],color_headHov[3],color_headHov[4])
     ImGui.PushStyleColor(ImGuiCol.HeaderActive,color_headAct[1],color_headAct[2],color_headAct[3],color_headAct[4])
     ImGui.PushStyleColor(ImGuiCol.TableRowBg, color_WinBg[1],color_WinBg[2],color_WinBg[3],color_WinBg[4])
     ImGui.PushStyleColor(ImGuiCol.TableRowBgAlt,color_WinBg[1],color_WinBg[2],color_WinBg[3],color_WinBg[4])
+    end
     if ImGui.Begin(windowName, ChatWin.openGUI, ChatWin.winFlags) then
         -- Main menu bar
         if ImGui.BeginMenuBar() then
@@ -340,7 +347,7 @@ function ChatWin.GUI()
             ImGui.SetKeyboardFocusHere(-1)
         end
     end
-    ImGui.PopStyleColor(6)
+    if useTheme then ImGui.PopStyleColor(6) end
     ImGui.End()
     ImGui.PopStyleVar()
 end
@@ -465,8 +472,9 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
             ResetEvents()
         end
         -- Slider for adjusting zoom level
-        tempSettings.Channels[editChanID].Scale = ImGui.SliderFloat("Zoom Level", tempSettings.Channels[editChanID].Scale, 0.5, 2.0)
-
+        if tempSettings.Channels[editChanID] then
+            tempSettings.Channels[editChanID].Scale = ImGui.SliderFloat("Zoom Level", tempSettings.Channels[editChanID].Scale, 0.5, 2.0)
+        end
         if ImGui.Button('Save') then
             -- Initialize the channel in tempSettings if it doesn't exist
             tempSettings.Channels[editChanID] = tempSettings.Channels[editChanID] or {Events = {}, Name = "New Channel", enabled = true}
