@@ -15,6 +15,7 @@ local color_headHov = {0.05,0.05,0.05,0.9}
 local color_headAct = {0.05,0.05,0.05,0.9}
 local color_WinBg = {0,0,0,1}
 local useTheme, timeStamps = false, true
+local zBuffer = 1000 -- the buffer size for the Zoom chat buffer.
 local ChatWin = {
     SHOW = true,
     openGUI = true,
@@ -115,7 +116,7 @@ local function BuildEvents()
             if eventDetails.eventString then
                 local eventName = string.format("event_%s_%d", channelID, eventId)
                 mq.event(eventName, eventDetails.eventString, function(line) ChatWin.EventChat(channelID, eventName, line) end)
-                -- Store event details for direct access, assuming we need it elsewhere
+                -- Store event details for direct access
                 eventNames[eventName] = eventDetails
             end
         end
@@ -126,7 +127,6 @@ local function ResetEvents()
     writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
     -- Unregister and reregister events to apply changes
     for eventName, _ in pairs(eventNames) do
-        --print(eventName)
         mq.unevent(eventName)
     end
     eventNames = {}
@@ -139,10 +139,7 @@ function ChatWin.EventChat(channelID, eventName, line)
     if ChatWin.Consoles[channelID] then
         local txtBuffer = ChatWin.Consoles[channelID].txtBuffer
         local colorVec = eventDetails.Filters[0].color or {1,1,1,1}
-        if timeStamps then
-            local tStamp = mq.TLO.Time.Time24()
-            line = string.format("%s %s",tStamp,line)
-        end
+
         if txtBuffer then
             -- for eID, eData in pairs(eventDetails.Filters) do
             for fID, fData in pairs(eventDetails.Filters) do
@@ -154,12 +151,11 @@ function ChatWin.EventChat(channelID, eventName, line)
                 end
                 -- end
             end
+            local i = getNextID(txtBuffer)
             if timeStamps then
                 local tStamp = mq.TLO.Time.Time24()
                 line = string.format("%s %s",tStamp,line)
             end
-            local i = getNextID(txtBuffer)
-            -- Convert RGB vector to ImGui color code
             local colorCode = ImVec4(colorVec[1], colorVec[2], colorVec[3], colorVec[4])
             -- write channel console
             if ChatWin.Consoles[channelID].console then
@@ -179,9 +175,9 @@ function ChatWin.EventChat(channelID, eventName, line)
             -- cleanup zoom buffer
             -- Check if the buffer exceeds 1000 lines
             local bufferLength = #txtBuffer
-            if bufferLength > 1000 then
+            if bufferLength > zBuffer then
                 -- Remove excess lines
-                for j = 1, bufferLength - 1000 do
+                for j = 1, bufferLength - zBuffer do
                     table.remove(txtBuffer, 1)
                 end
             end
@@ -293,12 +289,7 @@ function ChatWin.GUI()
                             for line, data in pairs(ChatWin.Consoles[channelID].txtBuffer) do
                                 local color = ""
                                 ImGui.PushStyleColor(ImGuiCol.Text, ImVec4(data.color[1], data.color[2], data.color[3], data.color[4]))
-                                if ImGui.Selectable("##selectable" .. line, false, ImGuiSelectableFlags.None) then
-                                    -- ImGui.LogToClipboard()
-                                    -- ImGui.LogText(data.text)
-                                    -- ImGui.LogFinish()
-                                end
-                                ImGui.SameLine()
+                                if ImGui.Selectable("##selectable" .. line, false, ImGuiSelectableFlags.None) then end
                                 ImGui.SameLine()
                                 ImGui.TextWrapped(data.text)
                                 if ImGui.IsItemHovered() and ImGui.IsKeyDown(ImGuiMod.Ctrl) and ImGui.IsKeyDown(ImGuiKey.C) then
