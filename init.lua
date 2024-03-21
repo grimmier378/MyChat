@@ -14,8 +14,7 @@ local color_header = {0,0,0,1}
 local color_headHov = {0.05,0.05,0.05,0.9}
 local color_headAct = {0.05,0.05,0.05,0.9}
 local color_WinBg = {0,0,0,1}
-local useTheme = false
-local timestamps = false
+local useTheme, timeStamps = false, true
 local ChatWin = {
     SHOW = true,
     openGUI = true,
@@ -140,6 +139,10 @@ function ChatWin.EventChat(channelID, eventName, line)
     if ChatWin.Consoles[channelID] then
         local txtBuffer = ChatWin.Consoles[channelID].txtBuffer
         local colorVec = eventDetails.Filters[0].color or {1,1,1,1}
+        if timeStamps then
+            local tStamp = mq.TLO.Time.Time24()
+            line = string.format("%s %s",tStamp,line)
+        end
         if txtBuffer then
             -- for eID, eData in pairs(eventDetails.Filters) do
             for fID, fData in pairs(eventDetails.Filters) do
@@ -225,6 +228,8 @@ function ChatWin.GUI()
                     ChatWin.openConfigGUI = true
                     ChatWin.Config_GUI(ChatWin.openConfigGUI)
                 end
+                _, timeStamps = ImGui.MenuItem('Time Stamps', nil, timeStamps)
+                
                 ImGui.Separator()
                 if ImGui.MenuItem('Reset Position') then
                     resetPosition = true
@@ -398,6 +403,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
             end
         end
     end
+end
     if tempSettings.Channels[editChanID] then
         channelData = tempSettings.Channels
         elseif isNewChannel then
@@ -435,6 +441,65 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
         }
         newEvent = false
     end
+    ---------------- Buttons Sliders and Channel Name ------------------------
+    if lastChan == 0 then
+        --print(channelData.Name)
+        if not tempEventStrings[editChanID].Name then
+            tempEventStrings[editChanID].Name = channelData[editChanID].Name
+        end
+        tmpName = tempEventStrings[editChanID].Name
+        tmpName,_ = ImGui.InputText("Channel Name##ChanName" .. editChanID, tmpName, 256)
+        if tempEventStrings[editChanID].Name ~= tmpName then tempEventStrings[editChanID].Name = tmpName end
+        lastChan = lastChan + 1
+    else ImGui.Text('') end
+    -- Slider for adjusting zoom level
+    if tempSettings.Channels[editChanID] then
+        tempSettings.Channels[editChanID].Scale = ImGui.SliderFloat("Zoom Level", tempSettings.Channels[editChanID].Scale, 0.5, 2.0)
+    end
+    if ImGui.Button('Add Event Line') then
+        newEvent = true
+    end
+    ImGui.SameLine()
+    if ImGui.Button("Delete Channel##" .. editChanID) then
+        -- Delete the event
+        tempSettings.Channels[editChanID] = nil
+        tempEventStrings[editChanID] = nil
+        tempChanColors[editChanID] = nil
+        
+        ChatWin.openEditGUI = false
+        ChatWin.openConfigGUI = true
+        ResetEvents()
+    end
+    ImGui.SameLine()
+    if ImGui.Button('Save') then
+        tempSettings.Channels[editChanID] = tempSettings.Channels[editChanID] or {Events = {}, Name = "New Channel", enabled = true}
+        tempSettings.Channels[editChanID].Name = tempEventStrings[editChanID].Name or "New Channel"
+        tempSettings.Channels[editChanID].enabled = true
+        local channelEvents = tempSettings.Channels[editChanID].Events
+        for eventId, eventData in pairs(tempEventStrings[editChanID]) do
+            -- Skip 'Name' key used for the channel name
+            if eventId ~= 'Name' then
+                if eventData and eventData.eventString then
+                    channelEvents[eventId] = channelEvents[eventId] or {color = {1.0, 1.0, 1.0, 1.0}, Filters = {}}
+                    channelEvents[eventId].eventString = eventData.eventString
+                    channelEvents[eventId].color = tempChanColors[editChanID][eventId] or channelEvents[eventId].color
+                    channelEvents[eventId].Filters = {}
+                    for filterID, filterData in pairs(tempFilterStrings[eventId] or {}) do
+                        channelEvents[eventId].Filters[filterID] = {
+                            filterString = filterData,
+                            color = tempFiltColors[editChanID][eventId][filterID] or {1.0, 1.0, 1.0, 1.0} -- Default to white with full opacity if color not found
+                        }
+                    end
+                end
+            end
+        end
+        ChatWin.Settings = tempSettings
+        ResetEvents()
+        ChatWin.openEditGUI = false
+        ChatWin.openConfigGUI = true
+    end
+    ImGui.BeginChild("##EditStuff", ImVec2(0.0,0.0))
+    ------------------ Table ----------------------
     for eventID, eventDetails in pairs(channelData[editChanID].Events) do
         if ImGui.BeginTable("Channel Events##"..editChanID, 4, bit32.bor(ImGuiTableFlags.NoHostExtendX)) then
             ImGui.TableSetupColumn("ID's##_", ImGuiTableColumnFlags.WidthAlwaysAutoResize, 100)
@@ -674,6 +739,7 @@ function ChatWin.Edit_GUI(open)
     -- Close Button
     if ImGui.Button('Close') then
         ChatWin.openEditGUI = false
+        addChannel = false
         editChanID = 0
         editEventID = 0
     end
