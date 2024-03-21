@@ -403,7 +403,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
             end
         end
     end
-end
+
     if tempSettings.Channels[editChanID] then
         channelData = tempSettings.Channels
         elseif isNewChannel then
