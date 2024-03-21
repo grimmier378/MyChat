@@ -1,17 +1,5 @@
 return {
 	['Colors'] = {
-		['color_headAct'] = {
-			[1] = 0.049999999999999996,
-			[2] = 0.049999999999999996,
-			[3] = 0.049999999999999996,
-			[4] = 0.8999999999999998,
-		},
-		['color_WinBg'] = {
-			[1] = 0,
-			[2] = 0,
-			[3] = 0,
-			[4] = 1,
-		},
 		['color_header'] = {
 			[1] = 0,
 			[2] = 0,
@@ -22,29 +10,27 @@ return {
 			[1] = 0.049999999999999996,
 			[2] = 0.049999999999999996,
 			[3] = 0.049999999999999996,
-			[4] = 0.8999999999999998,
+			[4] = 0.8999999999999997,
+		},
+		['color_headAct'] = {
+			[1] = 0.049999999999999996,
+			[2] = 0.049999999999999996,
+			[3] = 0.049999999999999996,
+			[4] = 0.8999999999999997,
+		},
+		['color_WinBg'] = {
+			[1] = 0,
+			[2] = 0,
+			[3] = 0,
+			[4] = 1,
 		},
 	},
 	['Channels'] = {
 		[2] = {
 			['Scale'] = 1.5,
-			['Name'] = 'Shout',
 			['enabled'] = true,
+			['Name'] = 'Shout',
 			['Events'] = {
-				[2] = {
-					['Filters'] = {
-						[0] = {
-							['color'] = {
-								[1] = 0.6540284156799316,
-								[2] = 0.6137328147888184,
-								[3] = 0.6137328147888184,
-								[4] = 1,
-							},
-							['filterString'] = '',
-						},
-					},
-					['eventString'] = '#*#You shout, \'#*#',
-				},
 				[1] = {
 					['Filters'] = {
 						[0] = {
@@ -56,65 +42,60 @@ return {
 							},
 							['filterString'] = '',
 						},
+						[1] = {
+							['filterString'] = '^You',
+							['color'] = {
+								[1] = 1,
+								[2] = 1,
+								[3] = 1,
+								[4] = 1,
+							},
+						},
 					},
-					['eventString'] = '#*#shouts,#*#',
+					['eventString'] = '#*#shout#*#, \'#*#\'#*#',
 				},
 			},
 		},
 		[5] = {
 			['Scale'] = 1.5,
-			['Name'] = 'Group',
 			['enabled'] = true,
+			['Name'] = 'Group',
 			['Events'] = {
+				[1] = {
+					['Filters'] = {
+						[0] = {
+							['filterString'] = '',
+							['color'] = {
+								[1] = 0.058107390999794,
+								[2] = 0.9053785204887389,
+								[3] = 0.9431279897689818,
+								[4] = 1,
+							},
+						},
+					},
+					['eventString'] = '#*#tells the group#*#',
+				},
 				[2] = {
 					['Filters'] = {
 						[0] = {
+							['filterString'] = '',
 							['color'] = {
 								[1] = 0.521327018737793,
 								[2] = 0.4966195821762085,
 								[3] = 0.4966195821762085,
 								[4] = 1,
 							},
-							['filterString'] = '',
 						},
 					},
 					['eventString'] = '#*#You tell your party, \'#*#',
-				},
-				[1] = {
-					['Filters'] = {
-						[0] = {
-							['color'] = {
-								[1] = 0.058107390999794006,
-								[2] = 0.905378520488739,
-								[3] = 0.9431279897689819,
-								[4] = 1,
-							},
-							['filterString'] = '',
-						},
-					},
-					['eventString'] = '#*#tells the group#*#',
 				},
 			},
 		},
 		[4] = {
 			['Scale'] = 1.5,
-			['Name'] = 'OOC',
 			['enabled'] = true,
+			['Name'] = 'OOC',
 			['Events'] = {
-				[2] = {
-					['Filters'] = {
-						[0] = {
-							['color'] = {
-								[1] = 0.49763035774230957,
-								[2] = 0.4622538089752197,
-								[3] = 0.4622538089752197,
-								[4] = 1,
-							},
-							['filterString'] = '',
-						},
-					},
-					['eventString'] = '#*#You say out of character,#*#',
-				},
 				[1] = {
 					['Filters'] = {
 						[0] = {
@@ -126,30 +107,25 @@ return {
 							},
 							['filterString'] = '',
 						},
-					},
-					['eventString'] = '#*#say#*# out of character,#*#',
-				},
-			},
-		},
-		[9] = {
-			['Scale'] = 1.5,
-			['Name'] = 'Auction',
-			['enabled'] = true,
-			['Events'] = {
-				[2] = {
-					['Filters'] = {
-						[0] = {
+						[1] = {
+							['filterString'] = '^You',
 							['color'] = {
 								[1] = 1,
 								[2] = 1,
 								[3] = 1,
 								[4] = 1,
 							},
-							['filterString'] = '',
 						},
 					},
-					['eventString'] = '#*#You auction,#*#',
+					['eventString'] = '#*#say#*# out of character, \'#*#',
 				},
+			},
+		},
+		[9] = {
+			['Scale'] = 1.5,
+			['enabled'] = true,
+			['Name'] = 'Auction',
+			['Events'] = {
 				[1] = {
 					['Filters'] = {
 						[0] = {
@@ -161,65 +137,25 @@ return {
 							},
 							['filterString'] = '',
 						},
+						[1] = {
+							['filterString'] = '^You',
+							['color'] = {
+								[1] = 1,
+								[2] = 1,
+								[3] = 1,
+								[4] = 1,
+							},
+						},
 					},
-					['eventString'] = '#*#auctions,#*#',
+					['eventString'] = '#*#auction#*#, \'#*#',
 				},
 			},
 		},
 		[8] = {
 			['Scale'] = 1.5,
+			['enabled'] = true,
 			['Name'] = 'Exp AA pts',
-			['enabled'] = true,
 			['Events'] = {
-				[2] = {
-					['Filters'] = {
-						[0] = {
-							['color'] = {
-								[1] = 1,
-								[2] = 0.405063271522522,
-								[3] = 0,
-								[4] = 1,
-							},
-							['filterString'] = '',
-						},
-					},
-					['eventString'] = '#*#gained an ability point#*#',
-				},
-				[1] = {
-					['Filters'] = {
-						[0] = {
-							['color'] = {
-								[1] = 0.9113924503326416,
-								[2] = 1,
-								[3] = 0,
-								[4] = 1,
-							},
-							['filterString'] = '',
-						},
-					},
-					['eventString'] = '#*#You have gained#*#experience!#*#',
-				},
-			},
-		},
-		[3] = {
-			['Scale'] = 1.5,
-			['Name'] = 'Say',
-			['enabled'] = true,
-			['Events'] = {
-				[2] = {
-					['Filters'] = {
-						[0] = {
-							['color'] = {
-								[1] = 0.4599156379699707,
-								[2] = 0.44439104199409485,
-								[3] = 0.44439104199409485,
-								[4] = 1,
-							},
-							['filterString'] = '',
-						},
-					},
-					['eventString'] = '#*#You say, \'#*#',
-				},
 				[1] = {
 					['Filters'] = {
 						[0] = {
@@ -231,30 +167,64 @@ return {
 							},
 							['filterString'] = '',
 						},
+						[1] = {
+							['filterString'] = 'experience!',
+							['color'] = {
+								[1] = 1,
+								[2] = 0.9620252847671509,
+								[3] = 0,
+								[4] = 1,
+							},
+						},
+						[2] = {
+							['filterString'] = 'an ability point',
+							['color'] = {
+								[1] = 1,
+								[2] = 0.5569620132446289,
+								[3] = 0,
+								[4] = 1,
+							},
+						},
 					},
-					['eventString'] = '#*#says,#*#',
+					['eventString'] = '#*#You have gained#*#',
+				},
+			},
+		},
+		[3] = {
+			['Scale'] = 1.5,
+			['enabled'] = true,
+			['Name'] = 'Say',
+			['Events'] = {
+				[1] = {
+					['Filters'] = {
+						[0] = {
+							['color'] = {
+								[1] = 1,
+								[2] = 1,
+								[3] = 1,
+								[4] = 1,
+							},
+							['filterString'] = '',
+						},
+						[1] = {
+							['filterString'] = '^You',
+							['color'] = {
+								[1] = 0.7088607549667358,
+								[2] = 0.7088607549667358,
+								[3] = 0.7088607549667358,
+								[4] = 1,
+							},
+						},
+					},
+					['eventString'] = '#*#say#*#, \'#*#\'#*#',
 				},
 			},
 		},
 		[7] = {
 			['Scale'] = 1.5,
-			['Name'] = 'Raid',
 			['enabled'] = true,
+			['Name'] = 'Raid',
 			['Events'] = {
-				[2] = {
-					['Filters'] = {
-						[0] = {
-							['color'] = {
-								[1] = 0.4556962251663208,
-								[2] = 0.43646854162216187,
-								[3] = 0.43646854162216187,
-								[4] = 1,
-							},
-							['filterString'] = '',
-						},
-					},
-					['eventString'] = '#You tell your raid,#*#',
-				},
 				[1] = {
 					['Filters'] = {
 						[0] = {
@@ -266,78 +236,87 @@ return {
 							},
 							['filterString'] = '',
 						},
+						[1] = {
+							['filterString'] = '^You',
+							['color'] = {
+								[1] = 0.1615125834941864,
+								[2] = 0.6240723133087158,
+								[3] = 0.6835442781448364,
+								[4] = 1,
+							},
+						},
 					},
-					['eventString'] = '#*#tells the raid#*#',
+					['eventString'] = '#*#tell#*# #*# raid, \'#*#',
 				},
 			},
 		},
 		[1] = {
 			['Scale'] = 1.5,
-			['Name'] = 'Tells',
 			['enabled'] = true,
+			['Name'] = 'Tells',
 			['Events'] = {
+				[1] = {
+					['Filters'] = {
+						[0] = {
+							['filterString'] = '',
+							['color'] = {
+								[1] = 0.5837929844856261,
+								[2] = 0.3298972845077514,
+								[3] = 0.9198312163352965,
+								[4] = 1,
+							},
+						},
+					},
+					['eventString'] = '#*#tells you,#*#',
+				},
 				[2] = {
 					['Filters'] = {
 						[0] = {
+							['filterString'] = '',
 							['color'] = {
-								[1] = 0.5924170613288879,
+								[1] = 0.5924170613288878,
 								[2] = 0.5868017077445984,
 								[3] = 0.5868017077445984,
 								[4] = 1,
 							},
-							['filterString'] = '',
 						},
 					},
 					['eventString'] = '#*#You told #1#,#*#',
-				},
-				[1] = {
-					['Filters'] = {
-						[0] = {
-							['color'] = {
-								[1] = 0.5837929844856262,
-								[2] = 0.32989728450775146,
-								[3] = 0.9198312163352966,
-								[4] = 1,
-							},
-							['filterString'] = '',
-						},
-					},
-					['eventString'] = '#*#tells you,#*#',
 				},
 			},
 		},
 		[6] = {
 			['Scale'] = 1.5,
-			['Name'] = 'Guild',
 			['enabled'] = true,
+			['Name'] = 'Guild',
 			['Events'] = {
-				[2] = {
-					['Filters'] = {
-						[0] = {
-							['color'] = {
-								[1] = 0.6398104429244995,
-								[2] = 0.6185845136642456,
-								[3] = 0.6185845136642456,
-								[4] = 1,
-							},
-							['filterString'] = '',
-						},
-					},
-					['eventString'] = '#*#You say to your guild, \'#*#',
-				},
 				[1] = {
 					['Filters'] = {
 						[0] = {
+							['filterString'] = '',
 							['color'] = {
 								[1] = 0.29469239711761475,
 								[2] = 0.971563994884491,
 								[3] = 0.32677161693573,
 								[4] = 1,
 							},
-							['filterString'] = '',
 						},
 					},
 					['eventString'] = '#*#tells the guild#*#',
+				},
+				[2] = {
+					['Filters'] = {
+						[0] = {
+							['filterString'] = '',
+							['color'] = {
+								[1] = 0.6398104429244994,
+								[2] = 0.6185845136642455,
+								[3] = 0.6185845136642455,
+								[4] = 1,
+							},
+						},
+					},
+					['eventString'] = '#*#You say to your guild, \'#*#',
 				},
 			},
 		},
