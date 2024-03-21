@@ -211,7 +211,7 @@ function ChatWin.GUI()
             if ImGui.BeginMenu('Options') then
                 _, console.autoScroll = ImGui.MenuItem('Auto-scroll', nil, console.autoScroll)
                 _, LocalEcho = ImGui.MenuItem('Local echo', nil, LocalEcho)
-                _, timestamps = ImGui.MenuItem('Time Stamps', nil, timestamps)
+                _, timeStamps = ImGui.MenuItem('Time Stamps', nil, timeStamps)
                 ImGui.Separator()
                 if ImGui.BeginMenu('Channels') then
                     for channelID, settings in pairs(ChatWin.Settings.Channels) do
@@ -227,9 +227,7 @@ function ChatWin.GUI()
                 if ImGui.MenuItem('Configure Events') then
                     ChatWin.openConfigGUI = true
                     ChatWin.Config_GUI(ChatWin.openConfigGUI)
-                end
-                _, timeStamps = ImGui.MenuItem('Time Stamps', nil, timeStamps)
-                
+                end                
                 ImGui.Separator()
                 if ImGui.MenuItem('Reset Position') then
                     resetPosition = true
@@ -429,7 +427,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
     end
     if newEvent then
         local maxEventId = getNextID(channelData[editChanID].Events)
-       -- print(maxEventId)
+        -- print(maxEventId)
         channelData[editChanID]['Events'][maxEventId] = {
             ['eventString'] = 'new',
             ['Filters'] = {
