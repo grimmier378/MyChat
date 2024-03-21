@@ -154,7 +154,7 @@ function ChatWin.EventChat(channelID, eventName, line)
                 end
                 -- end
             end
-            if timestamps then
+            if timeStamps then
                 local tStamp = mq.TLO.Time.Time24()
                 line = string.format("%s %s",tStamp,line)
             end
