@@ -55,6 +55,7 @@ local function getNextID(table)
     return maxChannelId + 1
 end
 
+---@param channelID integer -- the channel ID number for the console we are setting up
 local function SetUpConsoles(channelID)
     if ChatWin.Consoles[channelID].console == nil then
         ChatWin.Consoles[channelID].txtBuffer = {
@@ -394,6 +395,8 @@ end
 
 -------------------------------- Configure Windows and Events GUI ---------------------------
 
+---@param editChanID integer -- the channelID we are working with
+---@param isNewChannel boolean -- is this a new channel or are we editing an old one.
 function ChatWin.AddChannel(editChanID, isNewChannel)
     local tmpName = 'NewChan'
     local tmpString = 'NewString'
@@ -737,27 +740,25 @@ function ChatWin.StringTrim(s)
     return s:gsub("^%s*(.-)%s*$", "%1")
 end
 
+
 function ChatWin.ExecCommand(text)
     if LocalEcho then
         console:AppendText(IM_COL32(128, 128, 128), "> %s", text)
     end
-    if ActTab then
-        if not string.sub(text, 1, 1) == '/' then
-            local eChan = '/say'
-            
-            if activeID > 0 then
-                eChan = ChatWin.Settings.Channels[activeID].Echo or '/say'
-            end
-            
-            text = string.format("%s %s",eChan, text)
-        end
-    end
+
+    local eChan = '/say'
     -- todo: implement history
     if string.len(text) > 0 then
         text = ChatWin.StringTrim(text)
         if text == 'clear' then
             console:Clear()
-            elseif string.sub(text, 1, 1) == '/' then
+        elseif string.sub(text, 1, 1) ~= '/' then
+            if activeID > 0 then
+                eChan = ChatWin.Settings.Channels[activeID].Echo or '/say'
+            end
+            text = string.format("%s %s",eChan, text)
+        end
+        if string.sub(text, 1, 1) == '/' then
             mq.cmdf("%s", text)
             else
             console:AppendText(IM_COL32(255, 0, 0), "Unknown command: '%s'", text)
@@ -765,6 +766,9 @@ function ChatWin.ExecCommand(text)
     end
 end
 
+---comment
+---@param text string -- the output line of text from the command prompt
+---@param channel integer -- the channel ID for the console we want to work with.
 function ChatWin.ChannelExecCommand(text,channel)
     if LocalEcho then
         ChatWin.Consoles[channel].console:AppendText(IM_COL32(128, 128, 128), "> %s", text)
