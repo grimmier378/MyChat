@@ -31,6 +31,14 @@ local ChatWin = {
     tabFlags = bit32.bor(ImGuiTabBarFlags.Reorderable, ImGuiTabBarFlags.TabListPopupButton),
     winFlags = bit32.bor(ImGuiWindowFlags.MenuBar, ImGuiWindowFlags.NoScrollbar)
 }
+
+local MyColorFlags = bit32.bor(
+    ImGuiColorEditFlags.NoOptions,
+    ImGuiColorEditFlags.NoInputs,
+    ImGuiColorEditFlags.NoTooltip,
+    ImGuiColorEditFlags.NoLabel
+)
+
 --Helper Functioons
 function File_Exists(name)
     local f=io.open(name,"r")
@@ -143,7 +151,7 @@ function ChatWin.EventChat(channelID, eventName, line)
             for fID, fData in pairs(eventDetails.Filters) do
                 if fID > 0 then
                     local fString = fData.filterString
-                    if fString == 'ME' then
+                    if fString == 'ME' or fString == '^ME' then
                         local ME = mq.TLO.Me.DisplayName()
                         fString = ME
                     end
@@ -534,7 +542,8 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
             if not tempChanColors[editChanID][eventID] then
                 tempChanColors[editChanID][eventID] = eventDetails.Filters[0].color or {1.0, 1.0, 1.0, 1.0} -- Default to white with full opacity
             end
-            tempChanColors[editChanID][eventID] = ImGui.ColorEdit4("##Color" .. bufferKey, tempChanColors[editChanID][eventID])
+
+            tempChanColors[editChanID][eventID] = ImGui.ColorEdit4("##Color" .. bufferKey, tempChanColors[editChanID][eventID], MyColorFlags)
             ImGui.TableSetColumnIndex(3)
             if ImGui.Button("Delete##" .. bufferKey) then
                 -- Delete the event
@@ -572,7 +581,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                     local tmpColor = {}
                     tmpColor = filterData['color']
                     -- Display the color picker for the filter
-                    filterData['color'] = ImGui.ColorEdit4("##Color_" .. filterID, tmpColor)
+                    filterData['color'] = ImGui.ColorEdit4("##Color_" .. filterID, tmpColor, MyColorFlags)
                     if tempFiltColors[editChanID][eventID][filterID] ~= tmpColor then tempFiltColors[editChanID][eventID][filterID] = tmpColor end
                     ImGui.TableSetColumnIndex(3)
                     if ImGui.Button("Delete##_" .. filterID) then
@@ -630,7 +639,7 @@ local function buildConfig()
                         if not eventDetails.Filters[0].color then
                             eventDetails.Filters[0].color = {1.0, 1.0, 1.0, 1.0} -- Default to white with full opacity
                         end
-                        ImGui.ColorEdit4("##Color" .. bufferKey, eventDetails.Filters[0].color)
+                        ImGui.ColorEdit4("##Color" .. bufferKey, eventDetails.Filters[0].color, bit32.bor(ImGuiColorEditFlags.NoOptions,ImGuiColorEditFlags.NoPicker, ImGuiColorEditFlags.NoInputs, ImGuiColorEditFlags.NoTooltip, ImGuiColorEditFlags.NoLabel))
                     end
                     -- End the table for this channel
                     ImGui.EndTable()
