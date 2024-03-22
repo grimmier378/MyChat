@@ -169,9 +169,16 @@ function ChatWin.EventChat(channelID, eventName, line)
             for fID, fData in pairs(eventDetails.Filters) do
                 if fID > 0 then
                     local fString = fData.filterString
-                    if fString == 'ME' or fString == '^ME' then
-                        local ME = mq.TLO.Me.DisplayName()
-                        fString = ME
+                    if string.find(fString, 'ME') then
+                        fString = string.gsub(fString,'ME', mq.TLO.Me.DisplayName())
+                    elseif string.find(fString, 'PET') then
+                        fString = string.gsub(fString,'PET', mq.TLO.Me.Pet.DisplayName() or 'NO PET')
+                    elseif string.find(fString, 'MA') then
+                        fString = string.gsub(fString,'MA', mq.TLO.Group.MainAssist.DisplayName() or 'NO MA')
+                    elseif string.find(fString, 'TANK') then
+                        fString = string.gsub(fString,'TANK', mq.TLO.Group.MainTank.DisplayName() or 'NO TANK')
+                    elseif string.find(fString, 'RL') then
+                        fString = string.gsub(fString,'RL', mq.TLO.Raid.Leader.DisplayName() or 'NO RAID')
                     end
                     if string.find(line, fString) then
                         colorVec = fData.color
