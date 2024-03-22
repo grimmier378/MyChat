@@ -9,13 +9,12 @@ local commandBuffer = ''
 local serverName = string.gsub(mq.TLO.EverQuest.Server(), ' ', '_') or ''
 local myName = mq.TLO.Me.DisplayName() or ''
 local addChannel = false
-local tempSettings = {}
--- local color_header = {0,0,0,1}
--- local color_headHov = {0.05,0.05,0.05,0.9}
--- local color_headAct = {0.05,0.05,0.05,0.9}
--- local color_WinBg = {0,0,0,1}
-local useTheme, timeStamps = false, true
+local tempSettings, eventNames = {}, {} -- tables for storing event details 
+local useTheme, timeStamps, newEvent, newFilter= false, true, false, false
 local zBuffer = 1000 -- the buffer size for the Zoom chat buffer.
+local editChanID, editEventID, lastID, lastChan = 0, 0, 0, 0
+local tempFilterStrings, tempEventStrings, tempChanColors, tempFiltColors = {}, {}, {}, {} -- Tables to store our strings and color values for editing
+local ActTab, activeID = 'Main', 0 -- info about active tab channels
 local ChatWin = {
     SHOW = true,
     openGUI = true,
@@ -29,7 +28,7 @@ local ChatWin = {
     Consoles = {},
     -- Flags
     tabFlags = bit32.bor(ImGuiTabBarFlags.Reorderable, ImGuiTabBarFlags.TabListPopupButton),
-    winFlags = bit32.bor(ImGuiWindowFlags.MenuBar, ImGuiWindowFlags.NoScrollbar)
+    winFlags = bit32.bor(ImGuiWindowFlags.MenuBar, ImGuiWindowFlags.NoScrollbar),
 }
 
 local MyColorFlags = bit32.bor(
@@ -44,6 +43,7 @@ function File_Exists(name)
     local f=io.open(name,"r")
     if f~=nil then io.close(f) return true else return false end
 end
+
 local function getNextID(table)
     local maxChannelId = 0
     for channelId, _ in pairs(table) do
@@ -54,6 +54,7 @@ local function getNextID(table)
     end
     return maxChannelId + 1
 end
+
 local function SetUpConsoles(channelID)
     if ChatWin.Consoles[channelID].console == nil then
         ChatWin.Consoles[channelID].txtBuffer = {
@@ -66,9 +67,11 @@ local function SetUpConsoles(channelID)
         ChatWin.Consoles[channelID].console = ImGui.ConsoleWidget.new(channelID.."##Console")
     end
 end
+
 local function writeSettings(file, settings)
     mq.pickle(file, settings)
 end
+
 local function loadSettings()
     if not File_Exists(ChatWin.SettingsFile) then
         local defaults = require('default_settings')
@@ -78,13 +81,22 @@ local function loadSettings()
         -- Load settings from the Lua config file
         ChatWin.Settings = dofile(ChatWin.SettingsFile)
     end
-    -- Ensure each channel's console widget is initialized
+
     for channelID, channelData in pairs(ChatWin.Settings.Channels) do
+        -- setup default Echo command channels.
+        if not channelData.Echo then
+            ChatWin.Settings.Channels[channelID].Echo = '/say'
+        end
+        -- Ensure each channel's console widget is initialized
         if not ChatWin.Consoles[channelID] then
             ChatWin.Consoles[channelID] = {}
         end
+
         SetUpConsoles(channelID)
-        if not ChatWin.Settings.Channels[channelID]['Scale'] then ChatWin.Settings.Channels[channelID]['Scale'] = 1.0 end
+        if not ChatWin.Settings.Channels[channelID]['Scale'] then
+            ChatWin.Settings.Channels[channelID]['Scale'] = 1.0
+        end
+
         for eID, eData in pairs(channelData['Events']) do
             if eData.color then
                 if not ChatWin.Settings.Channels[channelID]['Events'][eID]['Filters'] then
@@ -97,8 +109,11 @@ local function loadSettings()
                 eData.color = nil
             end
         end
+
     end
+
     writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+
     if ChatWin.Settings['Colors'] then
         ChatWin.Settings['Colors'] = {}
         writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
@@ -114,7 +129,7 @@ local function loadSettings()
     end
     tempSettings = ChatWin.Settings
 end
-local eventNames = {}
+
 local function BuildEvents()
     eventNames = {}
     for channelID, channelData in pairs(ChatWin.Settings.Channels) do
@@ -128,6 +143,7 @@ local function BuildEvents()
         end
     end
 end
+
 local function ResetEvents()
     ChatWin.Settings = tempSettings
     writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
@@ -139,6 +155,7 @@ local function ResetEvents()
     loadSettings()
     BuildEvents()
 end
+
 function ChatWin.EventChat(channelID, eventName, line)
     local eventDetails = eventNames[eventName]
     if not eventDetails then return end
@@ -198,19 +215,13 @@ function ChatWin.EventChat(channelID, eventName, line)
         print("Error: ChatWin.Consoles[channelID] is nil for channelID " .. channelID)
     end
 end
+
 function ChatWin.GUI()
     if not ChatWin.openGUI then return end
     local windowName = 'My Chat##'..myName
     ImGui.SetNextWindowSize(ImVec2(640, 480), ImGuiCond.FirstUseEver)
     ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, ImVec2(1, 0));
-    -- if useTheme then
-    --     ImGui.PushStyleColor(ImGuiCol.WindowBg,color_WinBg[1],color_WinBg[2],color_WinBg[3],color_WinBg[4])
-    --     ImGui.PushStyleColor(ImGuiCol.Header, color_header[1],color_header[2],color_header[3],color_header[4])
-    --     ImGui.PushStyleColor(ImGuiCol.HeaderHovered,color_headHov[1],color_headHov[2],color_headHov[3],color_headHov[4])
-    --     ImGui.PushStyleColor(ImGuiCol.HeaderActive,color_headAct[1],color_headAct[2],color_headAct[3],color_headAct[4])
-    --     ImGui.PushStyleColor(ImGuiCol.TableRowBg, color_WinBg[1],color_WinBg[2],color_WinBg[3],color_WinBg[4])
-    --     ImGui.PushStyleColor(ImGuiCol.TableRowBgAlt,color_WinBg[1],color_WinBg[2],color_WinBg[3],color_WinBg[4])
-    -- end
+
     if ImGui.Begin(windowName, ChatWin.openGUI, ChatWin.winFlags) then
         -- Main menu bar
         if ImGui.BeginMenuBar() then
@@ -255,6 +266,8 @@ function ChatWin.GUI()
         if ImGui.BeginTabBar('Channels', ChatWin.tabFlags) then
             -- Begin Main tab
             if ImGui.BeginTabItem('Main') then
+                ActTab = 'Main'
+                activeID = 0
                 local footerHeight = 30
                 local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
                 contentSizeY = contentSizeY - footerHeight
@@ -275,6 +288,8 @@ function ChatWin.GUI()
                     local zoom = ChatWin.Consoles[channelID].zoom
                     local scale = ChatWin.Settings.Channels[channelID].Scale
                     if ImGui.BeginTabItem(name) then
+                        ActTab = name
+                        activeID = channelID
                         local footerHeight = 30
                         local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
                         contentSizeY = contentSizeY - footerHeight
@@ -372,19 +387,20 @@ function ChatWin.GUI()
             ImGui.SetKeyboardFocusHere(-1)
         end
     end
-    -- if useTheme then ImGui.PopStyleColor(6) end
+
     ImGui.End()
     ImGui.PopStyleVar()
 end
+
 -------------------------------- Configure Windows and Events GUI ---------------------------
-local editChanID, editEventID, lastID, lastChan = 0, 0, 0, 0
-local tempFilterStrings, tempEventStrings, tempChanColors, tempFiltColors = {}, {}, {}, {}
-local newEvent, newFilter = false, false
+
 function ChatWin.AddChannel(editChanID, isNewChannel)
     local tmpName = 'NewChan'
     local tmpString = 'NewString'
+    local tmpEcho = '/say'
     local tmpFilter = 'NewFilter'
     local channelData = {}
+
     if not tempEventStrings[editChanID] then tempEventStrings[editChanID] = {} end
     if not tempChanColors then tempChanColors = {} end
     if not tempFiltColors[editChanID] then tempFiltColors[editChanID] = {} end
@@ -392,6 +408,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
     if not tempFilterStrings[editChanID] then tempFilterStrings[editChanID] = {} end
     if not tempEventStrings[editChanID] then channelData[editChanID] = {} end
     if not tempEventStrings[editChanID][editEventID] then tempEventStrings[editChanID][editEventID] = {} end
+
     if not isNewChannel then
     for eID, eData in pairs(tempSettings.Channels[editChanID].Events)do
         if not tempFiltColors[editChanID][eID] then tempFiltColors[editChanID][eID] = {} end
@@ -405,12 +422,14 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
 
     if tempSettings.Channels[editChanID] then
         channelData = tempSettings.Channels
-        elseif isNewChannel then
+        elseif
+        isNewChannel then
         channelData = {
             [editChanID] = {
                 ['enabled'] = false,
                 ['Name'] = 'new',
                 ['Scale'] = 1.0,
+                ['Echo'] = '/say',
                 ['Events'] = {
                     [1] = {
                         ['eventString'] = 'new',
@@ -426,6 +445,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
         }
         tempSettings.Channels[editChanID] = channelData[editChanID]
     end
+
     if newEvent then
         local maxEventId = getNextID(channelData[editChanID].Events)
         -- print(maxEventId)
@@ -446,11 +466,23 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
         if not tempEventStrings[editChanID].Name then
             tempEventStrings[editChanID].Name = channelData[editChanID].Name
         end
+        if not tempSettings.Channels[editChanID].Echo then
+            tempSettings.Channels[editChanID].Echo = '/say'
+        end
+        tmpEcho = tempSettings.Channels[editChanID].Echo or '/say'
         tmpName = tempEventStrings[editChanID].Name
         tmpName,_ = ImGui.InputText("Channel Name##ChanName" .. editChanID, tmpName, 256)
-        if tempEventStrings[editChanID].Name ~= tmpName then tempEventStrings[editChanID].Name = tmpName end
+        tmpEcho,_ = ImGui.InputText("Echo Channel##Echo_ChanName" .. editChanID, tmpEcho, 256)
+        if tempSettings.Channels[editChanID].Echo ~= tmpEcho then
+            tempSettings.Channels[editChanID].Echo = tmpEcho
+        end
+        if tempEventStrings[editChanID].Name ~= tmpName then
+            tempEventStrings[editChanID].Name = tmpName
+        end
         lastChan = lastChan + 1
-    else ImGui.Text('') end
+    else
+        ImGui.Text('')
+    end
     -- Slider for adjusting zoom level
     if tempSettings.Channels[editChanID] then
         tempSettings.Channels[editChanID].Scale = ImGui.SliderFloat("Zoom Level", tempSettings.Channels[editChanID].Scale, 0.5, 2.0)
@@ -601,6 +633,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
     end
     ImGui.EndChild()
 end
+
 local function buildConfig()
     lastID = 0
     ImGui.BeginChild("Channels##")
@@ -650,6 +683,7 @@ local function buildConfig()
     end
     ImGui.EndChild()
 end
+
 function ChatWin.Config_GUI(open)
     if not ChatWin.openConfigGUI then return end
     open, ChatWin.openConfigGUI = ImGui.Begin("Event Configuration", open, bit32.bor(ImGuiWindowFlags.None, ImGuiWindowFlags.NoCollapse))
@@ -677,6 +711,7 @@ function ChatWin.Config_GUI(open)
     buildConfig()
     ImGui.End()
 end
+
 function ChatWin.Edit_GUI(open)
     if not ChatWin.openEditGUI then return end
     open, ChatWin.openEditGUI = ImGui.Begin("Channel Editor", open, bit32.bor(ImGuiWindowFlags.None, ImGuiWindowFlags.NoCollapse))
@@ -697,12 +732,25 @@ function ChatWin.Edit_GUI(open)
     end
     ImGui.End()
 end
+
 function ChatWin.StringTrim(s)
     return s:gsub("^%s*(.-)%s*$", "%1")
 end
+
 function ChatWin.ExecCommand(text)
     if LocalEcho then
         console:AppendText(IM_COL32(128, 128, 128), "> %s", text)
+    end
+    if ActTab then
+        if not string.sub(text, 1, 1) == '/' then
+            local eChan = '/say'
+            
+            if activeID > 0 then
+                eChan = ChatWin.Settings.Channels[activeID].Echo or '/say'
+            end
+            
+            text = string.format("%s %s",eChan, text)
+        end
     end
     -- todo: implement history
     if string.len(text) > 0 then
@@ -716,6 +764,7 @@ function ChatWin.ExecCommand(text)
         end
     end
 end
+
 function ChatWin.ChannelExecCommand(text,channel)
     if LocalEcho then
         ChatWin.Consoles[channel].console:AppendText(IM_COL32(128, 128, 128), "> %s", text)
@@ -732,11 +781,13 @@ function ChatWin.ChannelExecCommand(text,channel)
         end
     end
 end
+
 function ChatWin.EventFunc(text)
     if console ~= nil then
         console:AppendText(text)
     end
 end
+
 local function init()
     mq.imgui.init('MyChatGUI', ChatWin.GUI)
     mq.imgui.init('ChatConfigGUI', ChatWin.Config_GUI)
@@ -746,12 +797,14 @@ local function init()
         console = ImGui.ConsoleWidget.new("Chat##Console")
     end
 end
+
 local function loop()
     while ChatWin.SHOW do
         mq.delay(1)
         mq.doevents()
     end
 end
+
 loadSettings()
 BuildEvents()
 init()
