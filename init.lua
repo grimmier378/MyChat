@@ -1,5 +1,6 @@
 local mq = require('mq')
 local ImGui = require('ImGui')
+local ColorCount = 0
 ---@type ConsoleWidget
 local console = nil
 local resetPosition = false
@@ -15,11 +16,14 @@ local zBuffer = 1000 -- the buffer size for the Zoom chat buffer.
 local editChanID, editEventID, lastID, lastChan = 0, 0, 0, 0
 local tempFilterStrings, tempEventStrings, tempChanColors, tempFiltColors = {}, {}, {}, {} -- Tables to store our strings and color values for editing
 local ActTab, activeID = 'Main', 0 -- info about active tab channels
+local theme = {}
+local useThemeName = 'Default'
 local ChatWin = {
     SHOW = true,
     openGUI = true,
     openConfigGUI = false,
     SettingsFile = string.format('%s/MyChat_%s_%s.lua', mq.configDir, serverName, myName),
+    ThemesFile = string.format('%s/MyThemeZ.lua', mq.configDir, serverName, myName),
     Settings = {
         -- Channels
         Channels = {},
@@ -83,6 +87,17 @@ local function loadSettings()
         ChatWin.Settings = dofile(ChatWin.SettingsFile)
     end
 
+    useThemeName = ChatWin.Settings.LoadTheme
+
+    if not File_Exists(ChatWin.ThemesFile) then
+        local defaultThemes = require('themes')
+        theme = defaultThemes
+        mq.pickle(ChatWin.ThemesFile, theme)
+        else
+        -- Load settings from the Lua config file
+        theme = dofile(ChatWin.ThemesFile)
+    end
+
     for channelID, channelData in pairs(ChatWin.Settings.Channels) do
         -- setup default Echo command channels.
         if not channelData.Echo then
@@ -113,21 +128,16 @@ local function loadSettings()
 
     end
 
+    if not ChatWin.Settings.LoadTheme then
+        ChatWin.Settings.LoadTheme = 'Default'
+    end
+
+    if useThemeName ~= 'Default' then
+        useTheme = true
+    end
+
     writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
 
-    if ChatWin.Settings['Colors'] then
-        ChatWin.Settings['Colors'] = {}
-        writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
-        -- useTheme = true
-        else
-        -- useTheme = false
-        -- ChatWin.Settings['Colors'] = {}
-        -- ChatWin.Settings['Colors']['color_WinBg']     =     color_header
-        -- ChatWin.Settings['Colors']['color_header']    =     color_headHov
-        -- ChatWin.Settings['Colors']['color_headHov']   =     color_headAct
-        -- ChatWin.Settings['Colors']['color_headAct']   =     color_WinBg
-        -- writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
-    end
     tempSettings = ChatWin.Settings
 end
 
@@ -183,9 +193,9 @@ function ChatWin.EventChat(channelID, eventName, line)
                     elseif string.find(fString, 'RL') then
                         fString = string.gsub(fString,'RL', mq.TLO.Raid.Leader.DisplayName() or 'NO RAID')
                     elseif string.find(fString, 'GROUP') then
-                        for i = 1, mq.TLO.Group.GroupSize() do
+                        for i = 1, mq.TLO.Group.GroupSize() or 0 do
                             fString = string.gsub(fString,'GROUP', mq.TLO.Group.Member(i).DisplayName() or 'NO GROUP')
-                            if string.find(line, fString) then
+                            if string.find(line, fString) or string.find(line, string.lower(fString)) then
                                 colorVec = fData.color
                                 fMatch = true
                                 break
@@ -204,7 +214,7 @@ function ChatWin.EventChat(channelID, eventName, line)
                     elseif string.find(fString, 'RL') then
                         fString = string.gsub(fString,'RL', mq.TLO.Raid.Leader.DisplayName() or 'NO RAID')
                     elseif string.find(fString, 'HEALER') then
-                        for i = 1, mq.TLO.Group.GroupSize() do
+                        for i = 1, mq.TLO.Group.GroupSize() or 0 do
                             local class = mq.TLO.Group.Member(i).Class.ShortName() or 'NO GROUP'
                             if class == 'CLR' or class == 'DRU' or class == 'SHM' then
                                 fString = string.gsub(fString,'HEALER', mq.TLO.Group.Member(i).DisplayName())
@@ -267,10 +277,21 @@ end
 
 function ChatWin.GUI()
     if not ChatWin.openGUI then return end
+    ColorCount = 0
     local windowName = 'My Chat##'..myName
     ImGui.SetNextWindowSize(ImVec2(640, 480), ImGuiCond.FirstUseEver)
     ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, ImVec2(1, 0));
-
+    if useTheme then
+        local themeName = ChatWin.Settings.LoadTheme
+        for tID, tData in pairs(theme.Theme) do
+            if tData.Name == themeName then
+                for pID, cData in pairs(theme.Theme[tID].Color) do
+                    ImGui.PushStyleColor(pID, ImVec4(cData.Color[1], cData.Color[2], cData.Color[3], cData.Color[4]))
+                    ColorCount = ColorCount +1
+                end
+            end
+        end
+    end
     if ImGui.Begin(windowName, ChatWin.openGUI, ChatWin.winFlags) then
         -- Main menu bar
         if ImGui.BeginMenuBar() then
@@ -436,9 +457,10 @@ function ChatWin.GUI()
             ImGui.SetKeyboardFocusHere(-1)
         end
     end
-
-    ImGui.End()
+    if useTheme then ImGui.PopStyleColor(ColorCount) end
     ImGui.PopStyleVar()
+    ImGui.End()
+    
 end
 
 -------------------------------- Configure Windows and Events GUI ---------------------------
@@ -735,12 +757,27 @@ local function buildConfig()
     ImGui.EndChild()
 end
 
+local ColorCountConf = 0
+
 function ChatWin.Config_GUI(open)
     if not ChatWin.openConfigGUI then return end
+    ColorCountConf = 0
+    if useTheme then
+        local themeName = ChatWin.Settings.LoadTheme
+        for tID, tData in pairs(theme.Theme) do
+            if tData.Name == themeName then
+                for pID, cData in pairs(theme.Theme[tID].Color) do
+                    ImGui.PushStyleColor(pID, ImVec4(cData.Color[1], cData.Color[2], cData.Color[3], cData.Color[4]))
+                    ColorCountConf = ColorCountConf +1
+                end
+            end
+        end
+    end
     open, ChatWin.openConfigGUI = ImGui.Begin("Event Configuration", open, bit32.bor(ImGuiWindowFlags.None, ImGuiWindowFlags.NoCollapse))
     if not ChatWin.openConfigGUI then
         ChatWin.openConfigGUI = false
         open = false
+        if useTheme then ImGui.PopStyleColor(ColorCountConf) end
         ImGui.End()
         return open
     end
@@ -759,16 +796,47 @@ function ChatWin.Config_GUI(open)
         editChanID = 0
         editEventID = 0
     end
+    local themeName = tempSettings.LoadTheme
+    ImGui.Text("Cur Theme: %s", themeName)
+    -- Combo Box Load Theme
+    if ImGui.BeginCombo("Load Theme", themeName) then
+        for k, data in pairs(theme.Theme) do
+            local isSelected = data['Name'] == themeName
+            if ImGui.Selectable(data['Name'], isSelected) then
+                tempSettings['LoadTheme'] = data['Name']
+                themeName = tempSettings['LoadTheme']
+                ChatWin.Settings = tempSettings
+                writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+            end
+        end
+        ImGui.EndCombo()
+    end
     buildConfig()
+    if useTheme then ImGui.PopStyleColor(ColorCountConf) end
     ImGui.End()
 end
 
+local ColorCountEdit = 0
+
 function ChatWin.Edit_GUI(open)
+    ColorCountEdit = 0
     if not ChatWin.openEditGUI then return end
+    if useTheme then
+        local themeName = ChatWin.Settings.LoadTheme
+        for tID, tData in pairs(theme.Theme) do
+            if tData.Name == themeName then
+                for pID, cData in pairs(theme.Theme[tID].Color) do
+                    ImGui.PushStyleColor(pID, ImVec4(cData.Color[1], cData.Color[2], cData.Color[3], cData.Color[4]))
+                    ColorCountEdit = ColorCountEdit +1
+                end
+            end
+        end
+    end
     open, ChatWin.openEditGUI = ImGui.Begin("Channel Editor", open, bit32.bor(ImGuiWindowFlags.None, ImGuiWindowFlags.NoCollapse))
     if not ChatWin.openEditGUI then
         ChatWin.openEditGUI = false
         open = false
+        if useTheme then ImGui.PopStyleColor(ColorCountEdit) end
         ImGui.End()
         return open
     end
@@ -781,6 +849,7 @@ function ChatWin.Edit_GUI(open)
         editChanID = 0
         editEventID = 0
     end
+    if useTheme then ImGui.PopStyleColor(ColorCountEdit) end
     ImGui.End()
 end
 

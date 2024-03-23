@@ -1,4 +1,5 @@
 return {
+	['LoadTheme'] = 'Default',
 	['Channels'] = {
 		[2] = {
 			['Scale'] = 1.5,
