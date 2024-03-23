@@ -164,11 +164,12 @@ function ChatWin.EventChat(channelID, eventName, line)
         local txtBuffer = ChatWin.Consoles[channelID].txtBuffer
         local colorVec = eventDetails.Filters[0].color or {1,1,1,1}
         local fMatch = false
-
+        local fCount = 0
         if txtBuffer then
             -- for eID, eData in pairs(eventDetails.Filters) do
             for fID, fData in pairs(eventDetails.Filters) do
                 if fID > 0 then
+                    fCount = fCount + 1
                     local fString = fData.filterString
                     if string.find(fString, 'ME') then
                         fString = string.gsub(fString,'ME', mq.TLO.Me.DisplayName())
@@ -220,7 +221,7 @@ function ChatWin.EventChat(channelID, eventName, line)
                 -- end
             end
             --print(tostring(#eventDetails.Filters))
-            if not fMatch and #eventDetails.Filters ~= 0 then return end
+            if not fMatch and fCount > 0 then return end
             local i = getNextID(txtBuffer)
             if timeStamps then
                 local tStamp = mq.TLO.Time.Time24()
