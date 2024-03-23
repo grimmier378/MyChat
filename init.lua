@@ -164,12 +164,13 @@ function ChatWin.EventChat(channelID, eventName, line)
         local txtBuffer = ChatWin.Consoles[channelID].txtBuffer
         local colorVec = eventDetails.Filters[0].color or {1,1,1,1}
         local fMatch = false
-        local fCount = 0
+
         if txtBuffer then
+            local fCount = 0
             -- for eID, eData in pairs(eventDetails.Filters) do
             for fID, fData in pairs(eventDetails.Filters) do
-                if fID > 0 then
-                    fCount = fCount + 1
+                if fID > 0 and not fMatch then
+                    fCount = fID
                     local fString = fData.filterString
                     if string.find(fString, 'ME') then
                         fString = string.gsub(fString,'ME', mq.TLO.Me.DisplayName())
@@ -185,6 +186,8 @@ function ChatWin.EventChat(channelID, eventName, line)
                         for i = 1, mq.TLO.Group.GroupSize() do
                             fString = string.gsub(fString,'GROUP', mq.TLO.Group.Member(i).DisplayName() or 'NO GROUP')
                             if string.find(line, fString) then
+                                colorVec = fData.color
+                                fMatch = true
                                 break
                             end
                         end
@@ -206,12 +209,14 @@ function ChatWin.EventChat(channelID, eventName, line)
                             if class == 'CLR' or class == 'DRU' or class == 'SHM' then
                                 fString = string.gsub(fString,'HEALER', mq.TLO.Group.Member(i).DisplayName())
                                 if string.find(line, fString) then
+                                    colorVec = fData.color
+                                    fMatch = true
                                     break
                                 end
                             end
                         end
                     end
-                    if string.find(line, fString) then
+                    if string.find(line, fString) and not fMatch then
                         colorVec = fData.color
                         fMatch = true
                     end
@@ -221,7 +226,7 @@ function ChatWin.EventChat(channelID, eventName, line)
                 -- end
             end
             --print(tostring(#eventDetails.Filters))
-            if not fMatch and fCount > 0 then return end
+            if not fMatch and fCount > 0 then return end -- we had filters and didn't match so leave
             local i = getNextID(txtBuffer)
             if timeStamps then
                 local tStamp = mq.TLO.Time.Time24()
