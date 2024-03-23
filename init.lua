@@ -179,6 +179,35 @@ function ChatWin.EventChat(channelID, eventName, line)
                         fString = string.gsub(fString,'TANK', mq.TLO.Group.MainTank.DisplayName() or 'NO TANK')
                     elseif string.find(fString, 'RL') then
                         fString = string.gsub(fString,'RL', mq.TLO.Raid.Leader.DisplayName() or 'NO RAID')
+                    elseif string.find(fString, 'GROUP') then
+                        for i = 1, mq.TLO.Group.GroupSize() do
+                            fString = string.gsub(fString,'GROUP', mq.TLO.Group.Member(i).DisplayName() or 'NO GROUP')
+                            if string.find(line, fString) then
+                                break
+                            end
+                        end
+                    elseif string.find(fString, 'G1') then
+                        fString = string.gsub(fString,'G1', mq.TLO.Group.Member(1).DisplayName() or 'NO GROUP')
+                    elseif string.find(fString, 'G2') then
+                        fString = string.gsub(fString,'G2', mq.TLO.Group.Member(2).DisplayName() or 'NO GROUP')
+                    elseif string.find(fString, 'G3') then
+                        fString = string.gsub(fString,'G1', mq.TLO.Group.Member(3).DisplayName() or 'NO GROUP')
+                    elseif string.find(fString, 'G4') then
+                        fString = string.gsub(fString,'G1', mq.TLO.Group.Member(4).DisplayName() or 'NO GROUP')
+                    elseif string.find(fString, 'G5') then
+                        fString = string.gsub(fString,'G1', mq.TLO.Group.Member(5).DisplayName() or 'NO GROUP')
+                    elseif string.find(fString, 'RL') then
+                        fString = string.gsub(fString,'RL', mq.TLO.Raid.Leader.DisplayName() or 'NO RAID')
+                    elseif string.find(fString, 'HEALER') then
+                        for i = 1, mq.TLO.Group.GroupSize() do
+                            local class = mq.TLO.Group.Member(i).Class.ShortName() or 'NO GROUP'
+                            if class == 'CLR' or class == 'DRU' or class == 'SHM' then
+                                fString = string.gsub(fString,'HEALER', mq.TLO.Group.Member(i).DisplayName())
+                                if string.find(line, fString) then
+                                    break
+                                end
+                            end
+                        end
                     end
                     if string.find(line, fString) then
                         colorVec = fData.color
