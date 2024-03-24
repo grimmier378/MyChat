@@ -1,6 +1,6 @@
 local mq = require('mq')
 local ImGui = require('ImGui')
-local ColorCount = 0
+
 ---@type ConsoleWidget
 local console = nil
 local resetPosition = false
@@ -18,6 +18,8 @@ local tempFilterStrings, tempEventStrings, tempChanColors, tempFiltColors = {}, 
 local ActTab, activeID = 'Main', 0 -- info about active tab channels
 local theme = {}
 local useThemeName = 'Default'
+local ColorCountEdit,ColorCountConf, ColorCount = 0, 0, 0
+
 local ChatWin = {
     SHOW = true,
     openGUI = true,
@@ -43,11 +45,18 @@ local MyColorFlags = bit32.bor(
 )
 
 --Helper Functioons
+
+---comment Check to see if the file we want to work on exists. 
+---@param name string -- Full Path to file
+---@return boolean -- returns true if the file exists and false otherwise
 function File_Exists(name)
     local f=io.open(name,"r")
     if f~=nil then io.close(f) return true else return false end
 end
 
+---comment -- Checks for the last ID number in the table passed. returns the NextID 
+---@param table table -- the table we want to look up ID's in
+---@return number -- returns the NextID that doesn't exist in the table yet.
 local function getNextID(table)
     local maxChannelId = 0
     for channelId, _ in pairs(table) do
@@ -59,6 +68,7 @@ local function getNextID(table)
     return maxChannelId + 1
 end
 
+---comment Build the consoles for each channel based on ChannelID
 ---@param channelID integer -- the channel ID number for the console we are setting up
 local function SetUpConsoles(channelID)
     if ChatWin.Consoles[channelID].console == nil then
@@ -73,6 +83,10 @@ local function SetUpConsoles(channelID)
     end
 end
 
+---comment Writes settings from the settings table passed to the setting file (full path required)
+-- Uses mq.pickle to serialize the table and write to file
+---@param file string -- File Name and path 
+---@param settings table -- Table of settings to write 
 local function writeSettings(file, settings)
     mq.pickle(file, settings)
 end
@@ -167,6 +181,13 @@ local function ResetEvents()
     BuildEvents()
 end
 
+--[[ Reads in the line, channelID and eventName of the triggered events. Parses the line against the Events and Filters for that channel. 
+adjusts coloring for the line based on settings for the matching event / filter and writes to the corresponding console. 
+if an event contains filters and the line doesn't match any of them we discard the line and return. 
+If there are no filters we use the event default coloring and write to the consoles. ]]
+---@param channelID integer -- The ID number of the Channel the triggered event belongs to
+---@param eventName string -- the name of the event that was triggered
+---@param line string -- the line of text that triggred the event
 function ChatWin.EventChat(channelID, eventName, line)
     local eventDetails = eventNames[eventName]
     if not eventDetails then return end
@@ -183,18 +204,18 @@ function ChatWin.EventChat(channelID, eventName, line)
                     fCount = fID
                     local fString = fData.filterString
                     if string.find(fString, 'ME') then
-                        fString = string.gsub(fString,'ME', mq.TLO.Me.DisplayName())
+                        fString = mq.TLO.Me.DisplayName()
                     elseif string.find(fString, 'PET') then
-                        fString = string.gsub(fString,'PET', mq.TLO.Me.Pet.DisplayName() or 'NO PET')
+                        fString = mq.TLO.Me.Pet.DisplayName() or 'NO PET'
                     elseif string.find(fString, 'MA') then
-                        fString = string.gsub(fString,'MA', mq.TLO.Group.MainAssist.DisplayName() or 'NO MA')
+                        fString = mq.TLO.Group.MainAssist.DisplayName() or 'NO MA'
                     elseif string.find(fString, 'TANK') then
-                        fString = string.gsub(fString,'TANK', mq.TLO.Group.MainTank.DisplayName() or 'NO TANK')
+                        fString = mq.TLO.Group.MainTank.DisplayName() or 'NO TANK'
                     elseif string.find(fString, 'RL') then
-                        fString = string.gsub(fString,'RL', mq.TLO.Raid.Leader.DisplayName() or 'NO RAID')
+                        fString = mq.TLO.Raid.Leader.DisplayName() or 'NO RAID'
                     elseif string.find(fString, 'GROUP') then
-                        for i = 1, mq.TLO.Group.GroupSize() or 0 do
-                            fString = string.gsub(fString,'GROUP', mq.TLO.Group.Member(i).DisplayName() or 'NO GROUP')
+                        for i = 1, (mq.TLO.Group.GroupSize() or 0) -1 do
+                            fString = mq.TLO.Group.Member(i).DisplayName() or 'NO GROUP'
                             if string.find(line, fString) or string.find(line, string.lower(fString)) then
                                 colorVec = fData.color
                                 fMatch = true
@@ -202,22 +223,22 @@ function ChatWin.EventChat(channelID, eventName, line)
                             end
                         end
                     elseif string.find(fString, 'G1') then
-                        fString = string.gsub(fString,'G1', mq.TLO.Group.Member(1).DisplayName() or 'NO GROUP')
+                        fString = mq.TLO.Group.Member(1).DisplayName() or 'NO GROUP'
                     elseif string.find(fString, 'G2') then
-                        fString = string.gsub(fString,'G2', mq.TLO.Group.Member(2).DisplayName() or 'NO GROUP')
+                        fString = mq.TLO.Group.Member(2).DisplayName() or 'NO GROUP'
                     elseif string.find(fString, 'G3') then
-                        fString = string.gsub(fString,'G1', mq.TLO.Group.Member(3).DisplayName() or 'NO GROUP')
+                        fString = mq.TLO.Group.Member(3).DisplayName() or 'NO GROUP'
                     elseif string.find(fString, 'G4') then
-                        fString = string.gsub(fString,'G1', mq.TLO.Group.Member(4).DisplayName() or 'NO GROUP')
+                        fString = mq.TLO.Group.Member(4).DisplayName() or 'NO GROUP'
                     elseif string.find(fString, 'G5') then
-                        fString = string.gsub(fString,'G1', mq.TLO.Group.Member(5).DisplayName() or 'NO GROUP')
+                        fString =  mq.TLO.Group.Member(5).DisplayName() or 'NO GROUP'
                     elseif string.find(fString, 'RL') then
-                        fString = string.gsub(fString,'RL', mq.TLO.Raid.Leader.DisplayName() or 'NO RAID')
+                        fString = mq.TLO.Raid.Leader.DisplayName() or 'NO RAID'
                     elseif string.find(fString, 'HEALER') then
-                        for i = 1, mq.TLO.Group.GroupSize() or 0 do
+                        for i = 1, (mq.TLO.Group.GroupSize() or 0) -1 do
                             local class = mq.TLO.Group.Member(i).Class.ShortName() or 'NO GROUP'
                             if class == 'CLR' or class == 'DRU' or class == 'SHM' then
-                                fString = string.gsub(fString,'HEALER', mq.TLO.Group.Member(i).DisplayName())
+                                fString = mq.TLO.Group.Member(i).DisplayName()
                                 if string.find(line, fString) then
                                     colorVec = fData.color
                                     fMatch = true
@@ -382,7 +403,6 @@ function ChatWin.GUI()
                             ImGui.TableSetColumnIndex(0)
                             ImGui.SetWindowFontScale(scale)
                             for line, data in pairs(ChatWin.Consoles[channelID].txtBuffer) do
-                                local color = ""
                                 ImGui.PushStyleColor(ImGuiCol.Text, ImVec4(data.color[1], data.color[2], data.color[3], data.color[4]))
                                 if ImGui.Selectable("##selectable" .. line, false, ImGuiSelectableFlags.None) then end
                                 ImGui.SameLine()
@@ -465,6 +485,7 @@ end
 
 -------------------------------- Configure Windows and Events GUI ---------------------------
 
+---comment Draws the Channel data for editing. Can be either an exisiting Channel or a New one.
 ---@param editChanID integer -- the channelID we are working with
 ---@param isNewChannel boolean -- is this a new channel or are we editing an old one.
 function ChatWin.AddChannel(editChanID, isNewChannel)
@@ -757,8 +778,6 @@ local function buildConfig()
     ImGui.EndChild()
 end
 
-local ColorCountConf = 0
-
 function ChatWin.Config_GUI(open)
     if not ChatWin.openConfigGUI then return end
     ColorCountConf = 0
@@ -773,6 +792,7 @@ function ChatWin.Config_GUI(open)
             end
         end
     end
+
     open, ChatWin.openConfigGUI = ImGui.Begin("Event Configuration", open, bit32.bor(ImGuiWindowFlags.None, ImGuiWindowFlags.NoCollapse))
     if not ChatWin.openConfigGUI then
         ChatWin.openConfigGUI = false
@@ -811,12 +831,12 @@ function ChatWin.Config_GUI(open)
         end
         ImGui.EndCombo()
     end
+
     buildConfig()
     if useTheme then ImGui.PopStyleColor(ColorCountConf) end
+
     ImGui.End()
 end
-
-local ColorCountEdit = 0
 
 function ChatWin.Edit_GUI(open)
     ColorCountEdit = 0
@@ -857,7 +877,8 @@ function ChatWin.StringTrim(s)
     return s:gsub("^%s*(.-)%s*$", "%1")
 end
 
-
+---comments
+---@param text string -- the incomming line of text from the command prompt
 function ChatWin.ExecCommand(text)
     if LocalEcho then
         console:AppendText(IM_COL32(128, 128, 128), "> %s", text)
@@ -883,8 +904,10 @@ function ChatWin.ExecCommand(text)
     end
 end
 
----comment
----@param text string -- the output line of text from the command prompt
+--[[ 
+---comment NOT IMPLIMENTED YET 
+---comment we are currently only using one command line and using it for all of the other consoles.
+---@param text string -- the incomming line of text from the command prompt
 ---@param channel integer -- the channel ID for the console we want to work with.
 function ChatWin.ChannelExecCommand(text,channel)
     if LocalEcho then
@@ -902,12 +925,15 @@ function ChatWin.ChannelExecCommand(text,channel)
         end
     end
 end
+]]
 
-function ChatWin.EventFunc(text)
-    if console ~= nil then
-        console:AppendText(text)
-    end
-end
+--[[
+    function ChatWin.EventFunc(text)
+        if console ~= nil then
+            console:AppendText(text)
+        end
+    end 
+]]
 
 local function init()
     mq.imgui.init('MyChatGUI', ChatWin.GUI)
