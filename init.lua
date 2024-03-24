@@ -203,17 +203,17 @@ function ChatWin.EventChat(channelID, eventName, line)
                 if fID > 0 and not fMatch then
                     fCount = fID
                     local fString = fData.filterString
-                    if string.find(fString, 'ME') then
+                    if fString == 'ME' then
                         fString = mq.TLO.Me.DisplayName()
-                    elseif string.find(fString, 'PET') then
+                    elseif fString == 'PET' then
                         fString = mq.TLO.Me.Pet.DisplayName() or 'NO PET'
-                    elseif string.find(fString, 'MA') then
+                    elseif fString =='MA' then
                         fString = mq.TLO.Group.MainAssist.DisplayName() or 'NO MA'
-                    elseif string.find(fString, 'TANK') then
+                    elseif fString == 'TANK' then
                         fString = mq.TLO.Group.MainTank.DisplayName() or 'NO TANK'
-                    elseif string.find(fString, 'RL') then
+                    elseif fString == 'RL' then
                         fString = mq.TLO.Raid.Leader.DisplayName() or 'NO RAID'
-                    elseif string.find(fString, 'GROUP') then
+                    elseif fString == 'GROUP' then
                         for i = 1, (mq.TLO.Group.GroupSize() or 0) -1 do
                             fString = mq.TLO.Group.Member(i).DisplayName() or 'NO GROUP'
                             if string.find(line, fString) or string.find(line, string.lower(fString)) then
@@ -222,19 +222,19 @@ function ChatWin.EventChat(channelID, eventName, line)
                                 break
                             end
                         end
-                    elseif string.find(fString, 'G1') then
+                    elseif fString == 'G1' then
                         fString = mq.TLO.Group.Member(1).DisplayName() or 'NO GROUP'
-                    elseif string.find(fString, 'G2') then
+                    elseif fString == 'G2' then
                         fString = mq.TLO.Group.Member(2).DisplayName() or 'NO GROUP'
-                    elseif string.find(fString, 'G3') then
+                    elseif fString == 'G3' then
                         fString = mq.TLO.Group.Member(3).DisplayName() or 'NO GROUP'
-                    elseif string.find(fString, 'G4') then
+                    elseif fString == 'G4' then
                         fString = mq.TLO.Group.Member(4).DisplayName() or 'NO GROUP'
-                    elseif string.find(fString, 'G5') then
+                    elseif fString == 'G5' then
                         fString =  mq.TLO.Group.Member(5).DisplayName() or 'NO GROUP'
-                    elseif string.find(fString, 'RL') then
+                    elseif fString == 'RL' then
                         fString = mq.TLO.Raid.Leader.DisplayName() or 'NO RAID'
-                    elseif string.find(fString, 'HEALER') then
+                    elseif fString == 'HEALER' then
                         for i = 1, (mq.TLO.Group.GroupSize() or 0) -1 do
                             local class = mq.TLO.Group.Member(i).Class.ShortName() or 'NO GROUP'
                             if class == 'CLR' or class == 'DRU' or class == 'SHM' then
