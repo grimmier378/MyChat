@@ -835,6 +835,12 @@ function ChatWin.Config_GUI(open)
         editChanID = 0
         editEventID = 0
     end
+
+    ImGui.SameLine()
+    if ImGui.Button("Reload Theme File") then
+        loadSettings()
+    end
+
     local themeName = tempSettings.LoadTheme
     ImGui.Text("Cur Theme: %s", themeName)
     -- Combo Box Load Theme
@@ -850,6 +856,7 @@ function ChatWin.Config_GUI(open)
         end
         ImGui.EndCombo()
     end
+
     ImGui.SeparatorText('Channels and Events Overview')
     buildConfig()
 
