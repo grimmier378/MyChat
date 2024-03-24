@@ -800,6 +800,7 @@ function ChatWin.Config_GUI(open)
     ColorCountConf = 0
     local themeName = tempSettings.LoadTheme or 'notheme'
     if themeName ~= 'notheme' then useTheme = true end
+    -- Push Theme Colors
     if useTheme then
         local themeName = tempSettings.LoadTheme
         for tID, tData in pairs(theme.Theme) do
@@ -922,7 +923,12 @@ function ChatWin.ExecCommand(text)
             if activeID > 0 then
                 eChan = ChatWin.Settings.Channels[activeID].Echo or '/say'
             end
-            text = string.format("%s %s",eChan, text)
+            if string.find(eChan, '_') then
+                eChan = string.gsub(eChan,'_','')
+                text = string.format("%s%s",eChan, text)
+            else
+                text = string.format("%s %s",eChan, text)
+            end
         end
         if string.sub(text, 1, 1) == '/' then
             mq.cmdf("%s", text)
