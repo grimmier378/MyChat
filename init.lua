@@ -685,18 +685,18 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                     tempFilterStrings[editChanID][eventID] = nil
                     ResetEvents()
                 end
-
+                ImGui.TableNextRow()
+                ImGui.TableSetColumnIndex(0)
+                ImGui.SeparatorText('')
+                ImGui.TableSetColumnIndex(1)
+                ImGui.SeparatorText('Filters')
+                ImGui.TableSetColumnIndex(2)
+                ImGui.SeparatorText('')
+                ImGui.TableSetColumnIndex(3)
+                ImGui.SeparatorText('')
                 --------------- Filters ----------------------
                 for filterID, filterData in pairs(eventDetails.Filters) do
-                    ImGui.TableNextRow()
-                    ImGui.TableSetColumnIndex(0)
-                    ImGui.SeparatorText('')
-                    ImGui.TableSetColumnIndex(1)
-                    ImGui.SeparatorText('Filters')
-                    ImGui.TableSetColumnIndex(2)
-                    ImGui.SeparatorText('')
-                    ImGui.TableSetColumnIndex(3)
-                    ImGui.SeparatorText('')
+
 
                     if filterID > 0 and filterData.filterString ~= '' then
                         ImGui.TableNextRow()
