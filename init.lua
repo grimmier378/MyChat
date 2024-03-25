@@ -124,7 +124,7 @@ local function loadSettings()
             ChatWin.Consoles[channelID] = {}
         end
 
-        ChatWin.Settings.Channels[channelID].MainEnable = ChatWin.Settings.Channels[channelID].MainEnable or true
+        ChatWin.Settings.Channels[channelID].MainEnable = ChatWin.Settings.Channels[channelID].MainEnable
 
         SetUpConsoles(channelID)
         if not ChatWin.Settings.Channels[channelID]['Scale'] then
@@ -222,18 +222,6 @@ function ChatWin.EventChat(channelID, eventName, line)
 
         if txtBuffer then
             local fCount = 0
-            -- for eID, eData in pairs(eventDetails.Filters) do
-            --[[
-                OLD NAME   =   NEW NAME
-                TANK = TK1
-                ME = M3
-                PET = P1
-                MA = M1
-                RL = RL
-                HEALER = H1
-                GROUP = GP1
-                G1 - G5 stay the same
-            ]]
             for fID, fData in pairs(eventDetails.Filters) do
                 if fID > 0 and not fMatch then
                     fCount = fID
@@ -564,6 +552,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                 ['Name'] = 'new',
                 ['Scale'] = 1.0,
                 ['Echo'] = '/say',
+                ['MainEnable'] = true,
                 ['Events'] = {
                     [1] = {
                         ['enabled'] = true,
@@ -631,6 +620,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
         tempSettings.Channels[editChanID] = tempSettings.Channels[editChanID] or {Events = {}, Name = "New Channel", enabled = true}
         tempSettings.Channels[editChanID].Name = tempEventStrings[editChanID].Name or "New Channel"
         tempSettings.Channels[editChanID].enabled = true
+        tempSettings.Channels[editChanID].MainEnable = tempSettings.Channels[editChanID].MainEnable
         local channelEvents = tempSettings.Channels[editChanID].Events
         for eventId, eventData in pairs(tempEventStrings[editChanID]) do
             -- Skip 'Name' key used for the channel name
@@ -673,7 +663,9 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
         ChatWin.openConfigGUI = true
     end
     ImGui.SameLine()
-    tempSettings.Channels[editChanID].MainEnable = ImGui.Checkbox('Enabled##'..editChanID, tempSettings.Channels[editChanID].MainEnable)
+    
+    tempSettings.Channels[editChanID].MainEnable = ImGui.Checkbox('Enabled##Main', tempSettings.Channels[editChanID].MainEnable)
+
     ImGui.SeparatorText('Events and Filters')
     ImGui.BeginChild("Details")
     ------------------------------ table -------------------------------------
@@ -975,8 +967,7 @@ function ChatWin.Edit_GUI(open)
         editChanID = 0
         editEventID = 0
     end
-    ImGui.SameLine()
-    
+
     if useTheme then ImGui.PopStyleColor(ColorCountEdit) end
     ImGui.End()
 end
