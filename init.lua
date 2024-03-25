@@ -20,6 +20,7 @@ local ActTab, activeID = 'Main', 0 -- info about active tab channels
 local theme = {} -- table to hold the themes file into.
 local useThemeName = 'Default'
 local ColorCountEdit,ColorCountConf, ColorCount = 0, 0, 0
+local lastImport = 'none'
 local ChatWin = {
     SHOW = true,
     openGUI = true,
@@ -905,19 +906,28 @@ function ChatWin.Config_GUI(open)
     importFile = ImGui.InputText('Import##FileName', importFile, 256)
     if ImGui.Button('Import Channels') then
         local tmp = mq.configDir..'/'..importFile
+        if lastImport == tmp then return end
         if not File_Exists(tmp) then
                 mq.cmd("/msgbox 'No File Found!")
             else
             -- Load settings from the Lua config file
             local backup = string.format('%s/MyChat_%s_%s_BAK.lua', mq.configDir, serverName, myName)
             mq.pickle(backup, ChatWin.Settings)
-            -- local newSettings = {}
-            -- newSettings = dofile(tmp)
-            -- for cID, cData in pairs(newSettings.Channels) do
-            --     if cData.name
-            -- end
-            --tempSettings = {}
-            tempSettings = dofile(tmp)
+            local newSettings = {}
+            local newID = getNextID(tempSettings.Channels)
+
+            newSettings = dofile(tmp)
+            for cID, cData in pairs(newSettings.Channels) do
+                for existingCID, existingCData in pairs(tempSettings.Channels) do
+                    if existingCData.Name == cData.Name then
+                        local newName = cData.Name.. '_NEW'
+                        cData.Name = newName
+                    end
+                end
+                tempSettings.Channels[newID] = cData
+                newID = newID + 1
+            end
+            lastImport = tmp
             ResetEvents()
         end
     end
