@@ -668,7 +668,12 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
     end
     ImGui.SameLine()
     if tempSettings.Channels[editChanID] then
-        tempSettings.Channels[editChanID].MainEnable = ImGui.Checkbox('Enabled##Main', tempSettings.Channels[editChanID].MainEnable)
+        tempSettings.Channels[editChanID].MainEnable = ImGui.Checkbox('Show on Main Tab##Main', tempSettings.Channels[editChanID].MainEnable)
+        if ImGui.IsItemHovered() then
+            ImGui.BeginTooltip()
+            ImGui.Text('Do you want this channel to display on the Main Tab?')
+            ImGui.EndTooltip()
+        end
     end
     ImGui.SeparatorText('Events and Filters')
     ImGui.BeginChild("Details")
@@ -969,6 +974,7 @@ end
 function ChatWin.Edit_GUI(open)
     ColorCountEdit = 0
     if not ChatWin.openEditGUI then return end
+    
     if useTheme then
         local themeName = ChatWin.Settings.LoadTheme
         for tID, tData in pairs(theme.Theme) do
@@ -980,6 +986,7 @@ function ChatWin.Edit_GUI(open)
             end
         end
     end
+
     open, ChatWin.openEditGUI = ImGui.Begin("Channel Editor", open, bit32.bor(ImGuiWindowFlags.None, ImGuiWindowFlags.NoCollapse))
     if not ChatWin.openEditGUI then
         ChatWin.openEditGUI = false
@@ -988,6 +995,7 @@ function ChatWin.Edit_GUI(open)
         ImGui.End()
         return open
     end
+    
     ChatWin.AddChannel(editChanID, addChannel)
     ImGui.SameLine()
     -- Close Button
