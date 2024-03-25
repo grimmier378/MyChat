@@ -104,7 +104,7 @@ local function loadSettings()
     end
 
     useThemeName = ChatWin.Settings.LoadTheme
-
+    
     if not File_Exists(ChatWin.ThemesFile) then
         local defaultThemes = require('themes')
         theme = defaultThemes
@@ -123,6 +123,8 @@ local function loadSettings()
         if not ChatWin.Consoles[channelID] then
             ChatWin.Consoles[channelID] = {}
         end
+
+        ChatWin.Settings.Channels[channelID].MainEnable = ChatWin.Settings.Channels[channelID].MainEnable or true
 
         SetUpConsoles(channelID)
         if not ChatWin.Settings.Channels[channelID]['Scale'] then
@@ -302,7 +304,9 @@ function ChatWin.EventChat(channelID, eventName, line)
                 ChatWin.Consoles[channelID].console:AppendText(colorCode, line)
             end
             -- write main console
-            console:AppendText(colorCode,line)
+            if tempSettings.Channels[channelID].MainEnable then
+                console:AppendText(colorCode,line)
+            end
             -- ZOOM Console hack
             if i > 1 then
                 if txtBuffer[i-1].text == '' then i = i-1 end
@@ -668,6 +672,8 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
         ChatWin.openEditGUI = false
         ChatWin.openConfigGUI = true
     end
+    ImGui.SameLine()
+    tempSettings.Channels[editChanID].MainEnable = ImGui.Checkbox('Enabled##'..editChanID, tempSettings.Channels[editChanID].MainEnable)
     ImGui.SeparatorText('Events and Filters')
     ImGui.BeginChild("Details")
     ------------------------------ table -------------------------------------
@@ -970,7 +976,7 @@ function ChatWin.Edit_GUI(open)
         editEventID = 0
     end
     ImGui.SameLine()
-
+    
     if useTheme then ImGui.PopStyleColor(ColorCountEdit) end
     ImGui.End()
 end
