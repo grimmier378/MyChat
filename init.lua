@@ -131,6 +131,9 @@ local function loadSettings()
                 if not ChatWin.Settings.Channels[channelID]['Events'][eID]['Filters'] then
                     ChatWin.Settings.Channels[channelID]['Events'][eID]['Filters'] = {}
                 end
+                if ChatWin.Settings.Channels[channelID]['Events'][eID].enabled == nil then
+                    ChatWin.Settings.Channels[channelID]['Events'][eID].enabled = true
+                end
                 if not ChatWin.Settings.Channels[channelID]['Events'][eID]['Filters'][0] then
                     ChatWin.Settings.Channels[channelID]['Events'][eID]['Filters'][0] = {filterString = '', color = {}}
                 end
@@ -173,11 +176,13 @@ local function BuildEvents()
     eventNames = {}
     for channelID, channelData in pairs(ChatWin.Settings.Channels) do
         for eventId, eventDetails in pairs(channelData.Events) do
-            if eventDetails.eventString then
-                local eventName = string.format("event_%s_%d", channelID, eventId)
-                mq.event(eventName, eventDetails.eventString, function(line) ChatWin.EventChat(channelID, eventName, line) end)
-                -- Store event details for direct access
-                eventNames[eventName] = eventDetails
+            if eventDetails.enabled then
+                if eventDetails.eventString then
+                    local eventName = string.format("event_%s_%d", channelID, eventId)
+                    mq.event(eventName, eventDetails.eventString, function(line) ChatWin.EventChat(channelID, eventName, line) end)
+                    -- Store event details for direct access
+                    eventNames[eventName] = eventDetails
+                end
             end
         end
     end
@@ -553,6 +558,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                 ['Echo'] = '/say',
                 ['Events'] = {
                     [1] = {
+                        ['enabled'] = true,
                         ['eventString'] = 'new',
                         ['Filters'] = {
                             [0] = {
@@ -571,6 +577,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
         local maxEventId = getNextID(channelData[editChanID].Events)
         -- print(maxEventId)
         channelData[editChanID]['Events'][maxEventId] = {
+            ['enabled'] = true,
             ['eventString'] = 'new',
             ['Filters'] = {
                 [0] = {
@@ -787,6 +794,7 @@ local function buildConfig()
                     ImGui.TableSetupColumn("EventString", ImGuiTableColumnFlags.WidthStretch, 150)
                     ImGui.TableSetupColumn("Color", ImGuiTableColumnFlags.WidthAlwaysAutoResize)
                     -- Iterate through each event in the channel
+                    local once = true
                     for eventId, eventDetails in pairs(channelData.Events) do
                         local bufferKey = channelID .. "_" .. tostring(eventId)
                         local name = channelData.Name
@@ -794,15 +802,20 @@ local function buildConfig()
                         local channelKey = "##ChannelName" .. channelID
                         ImGui.TableNextRow()
                         ImGui.TableSetColumnIndex(0)
-                        if ImGui.Button("Edit##" .. bufferKey) then
-                            editChanID = channelID
-                            addChannel = false
-                            tempSettings = ChatWin.Settings
-                            ChatWin.openEditGUI = true
-                            ChatWin.openConfigGUI = false
+                        if once then
+                            if ImGui.Button("Edit Channel##" .. bufferKey) then
+                                editChanID = channelID
+                                addChannel = false
+                                tempSettings = ChatWin.Settings
+                                ChatWin.openEditGUI = true
+                                ChatWin.openConfigGUI = false
+                            end
+                            once = false
+                        else
+                            ImGui.Dummy(1,1)
                         end
                         ImGui.TableSetColumnIndex(1)
-                        ImGui.Text(name)
+                        tempSettings.Channels[channelID].Events[eventId].enabled = ImGui.Checkbox('Enabled##'..eventId, tempSettings.Channels[channelID].Events[eventId].enabled)
                         ImGui.TableSetColumnIndex(2)
                         ImGui.Text(eventDetails.eventString)
                         ImGui.TableSetColumnIndex(3)
@@ -861,6 +874,9 @@ function ChatWin.Config_GUI(open)
         ChatWin.openConfigGUI = false
         editChanID = 0
         editEventID = 0
+        ChatWin.Settings = tempSettings
+        ResetEvents()
+
     end
 
     ImGui.SameLine()
