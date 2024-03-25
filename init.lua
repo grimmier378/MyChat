@@ -16,7 +16,7 @@ local zBuffer = 1000 -- the buffer size for the Zoom chat buffer.
 local editChanID, editEventID, lastID, lastChan = 0, 0, 0, 0
 local tempFilterStrings, tempEventStrings, tempChanColors, tempFiltColors = {}, {}, {}, {} -- Tables to store our strings and color values for editing
 local ActTab, activeID = 'Main', 0 -- info about active tab channels
-local theme = {}
+local theme = {} -- table to hold the themes file into.
 local useThemeName = 'Default'
 local ColorCountEdit,ColorCountConf, ColorCount = 0, 0, 0
 local ChatWin = {
@@ -137,6 +137,21 @@ local function loadSettings()
                 ChatWin.Settings.Channels[channelID]['Events'][eID]['Filters'][0].color = eData.color
                 eData.color = nil
             end
+            for fID, fData in pairs(eData.Filters) do
+                if fData.filterString == 'TANK' then
+                    ChatWin.Settings.Channels[channelID].Events[eID].Filters[fID].filterString = 'TK1'
+                elseif fData.filterString == 'PET' then
+                    ChatWin.Settings.Channels[channelID].Events[eID].Filters[fID].filterString = 'P1'
+                elseif fData.filterString == 'MA' then
+                    ChatWin.Settings.Channels[channelID].Events[eID].Filters[fID].filterString = 'M1'
+                elseif fData.filterString == 'HEALER' then
+                    ChatWin.Settings.Channels[channelID].Events[eID].Filters[fID].filterString = 'H1'
+                elseif fData.filterString == 'GROUP' then
+                    ChatWin.Settings.Channels[channelID].Events[eID].Filters[fID].filterString = 'GP1'
+                elseif fData.filterString == 'ME' then
+                    ChatWin.Settings.Channels[channelID].Events[eID].Filters[fID].filterString = 'M3'
+                end
+            end
         end
 
     end
@@ -198,46 +213,57 @@ function ChatWin.EventChat(channelID, eventName, line)
         if txtBuffer then
             local fCount = 0
             -- for eID, eData in pairs(eventDetails.Filters) do
+            --[[
+                OLD NAME   =   NEW NAME
+                TANK = TK1
+                ME = M3
+                PET = P1
+                MA = M1
+                RL = RL
+                HEALER = H1
+                GROUP = GP1
+                G1 - G5 stay the same
+            ]]
             for fID, fData in pairs(eventDetails.Filters) do
                 if fID > 0 and not fMatch then
                     fCount = fID
                     local fString = fData.filterString
-                    if fString == 'ME' then
-                        fString = mq.TLO.Me.DisplayName()
-                        elseif fString == 'PET' then
-                        fString = mq.TLO.Me.Pet.DisplayName() or 'NO PET'
-                        elseif fString =='MA' then
-                        fString = mq.TLO.Group.MainAssist.DisplayName() or 'NO MA'
-                        elseif fString == 'TANK' then
-                        fString = mq.TLO.Group.MainTank.DisplayName() or 'NO TANK'
-                        elseif fString == 'RL' then
-                        fString = mq.TLO.Raid.Leader.DisplayName() or 'NO RAID'
-                        elseif fString == 'GROUP' then
-                        for i = 1, (mq.TLO.Group.GroupSize() or 0) -1 do
-                            fString = mq.TLO.Group.Member(i).DisplayName() or 'NO GROUP'
+                    if string.find(fString, 'M3') then
+                        fString = string.gsub(fString,'M3', mq.TLO.Me.DisplayName())
+                    elseif string.find(fString, 'P1') then
+                        fString = string.gsub(fString,'P1', mq.TLO.Me.Pet.DisplayName() or 'NO PET')
+                    elseif string.find(fString, 'M1') then
+                        fString = string.gsub(fString,'M1', mq.TLO.Group.MainAssist.DisplayName() or 'NO MA')
+                    elseif string.find(fString, 'TK1') then
+                        fString = string.gsub(fString,'TK1', mq.TLO.Group.MainTank.DisplayName() or 'NO TANK')
+                    elseif string.find(fString, 'RL') then
+                        fString = string.gsub(fString,'RL', mq.TLO.Raid.Leader.DisplayName() or 'NO RAID')
+                    elseif string.find(fString, 'GP1') then
+                        for i = 1, mq.TLO.Group.GroupSize() or 0 do
+                            fString = string.gsub(fString,'GP1', mq.TLO.Group.Member(i).DisplayName() or 'NO GROUP')
                             if string.find(line, fString) or string.find(line, string.lower(fString)) then
                                 colorVec = fData.color
                                 fMatch = true
                                 break
                             end
                         end
-                        elseif fString == 'G1' then
-                        fString = mq.TLO.Group.Member(1).DisplayName() or 'NO GROUP'
-                        elseif fString == 'G2' then
-                        fString = mq.TLO.Group.Member(2).DisplayName() or 'NO GROUP'
-                        elseif fString == 'G3' then
-                        fString = mq.TLO.Group.Member(3).DisplayName() or 'NO GROUP'
-                        elseif fString == 'G4' then
-                        fString = mq.TLO.Group.Member(4).DisplayName() or 'NO GROUP'
-                        elseif fString == 'G5' then
-                        fString =  mq.TLO.Group.Member(5).DisplayName() or 'NO GROUP'
-                        elseif fString == 'RL' then
-                        fString = mq.TLO.Raid.Leader.DisplayName() or 'NO RAID'
-                        elseif fString == 'HEALER' then
-                        for i = 1, (mq.TLO.Group.GroupSize() or 0) -1 do
+                    elseif string.find(fString, 'G1') then
+                        fString = string.gsub(fString,'G1', mq.TLO.Group.Member(1).DisplayName() or 'NO GROUP')
+                    elseif string.find(fString, 'G2') then
+                        fString = string.gsub(fString,'G2', mq.TLO.Group.Member(2).DisplayName() or 'NO GROUP')
+                    elseif string.find(fString, 'G3') then
+                        fString = string.gsub(fString,'G3', mq.TLO.Group.Member(3).DisplayName() or 'NO GROUP')
+                    elseif string.find(fString, 'G4') then
+                        fString = string.gsub(fString,'G4', mq.TLO.Group.Member(4).DisplayName() or 'NO GROUP')
+                    elseif string.find(fString, 'G5') then
+                        fString = string.gsub(fString,'G5', mq.TLO.Group.Member(5).DisplayName() or 'NO GROUP')
+                    elseif string.find(fString, 'RL') then
+                        fString = string.gsub(fString,'RL', mq.TLO.Raid.Leader.DisplayName() or 'NO RAID')
+                    elseif string.find(fString, 'H1') then
+                        for i = 1, mq.TLO.Group.GroupSize() or 0 do
                             local class = mq.TLO.Group.Member(i).Class.ShortName() or 'NO GROUP'
                             if class == 'CLR' or class == 'DRU' or class == 'SHM' then
-                                fString = mq.TLO.Group.Member(i).DisplayName()
+                                fString = string.gsub(fString,'H1', mq.TLO.Group.Member(i).DisplayName())
                                 if string.find(line, fString) then
                                     colorVec = fData.color
                                     fMatch = true
@@ -912,7 +938,7 @@ function ChatWin.ExecCommand(text)
     if LocalEcho then
         console:AppendText(IM_COL32(128, 128, 128), "> %s", text)
     end
-    
+
     local eChan = '/say'
     -- todo: implement history
     if string.len(text) > 0 then
