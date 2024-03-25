@@ -696,6 +696,20 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                         newFilter = false
                     end
                 end
+                if ImGui.IsItemHovered() then
+                    ImGui.BeginTooltip()
+                    ImGui.Text('You can add TOKENs to your filters in place for character names.\n')
+                    ImGui.Text('LIST OF TOKENS')
+                    ImGui.Text('M3\t = Your Name')
+                    ImGui.Text('M3\t = Your Name')
+                    ImGui.Text('P1\t = Your Pet Name')
+                    ImGui.Text('GR1\t = Party Members Name')
+                    ImGui.Text('TK1\t = Main Tank Name')
+                    ImGui.Text('RL\t = Raid Leader Name')
+                    ImGui.Text('H1\t = Group Healer (DRU, CLR, or SHM)')
+                    ImGui.Text('G1 - G5\t = Party Members Name in Group Slot 1-5')
+                    ImGui.EndTooltip()
+                end
                 ImGui.TableSetColumnIndex(1)
                 if not tempEventStrings[editChanID][eventID] then tempEventStrings[editChanID][eventID] = eventDetails end
                 tmpString = tempEventStrings[editChanID][eventID].eventString
@@ -939,6 +953,7 @@ function ChatWin.Edit_GUI(open)
         editChanID = 0
         editEventID = 0
     end
+    ImGui.SameLine()
 
     if useTheme then ImGui.PopStyleColor(ColorCountEdit) end
     ImGui.End()
