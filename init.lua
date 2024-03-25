@@ -665,9 +665,9 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
         ChatWin.openConfigGUI = true
     end
     ImGui.SameLine()
-    
-    tempSettings.Channels[editChanID].MainEnable = ImGui.Checkbox('Enabled##Main', tempSettings.Channels[editChanID].MainEnable)
-
+    if tempSettings.Channels[editChanID] then
+        tempSettings.Channels[editChanID].MainEnable = ImGui.Checkbox('Enabled##Main', tempSettings.Channels[editChanID].MainEnable)
+    end
     ImGui.SeparatorText('Events and Filters')
     ImGui.BeginChild("Details")
     ------------------------------ table -------------------------------------
@@ -909,7 +909,14 @@ function ChatWin.Config_GUI(open)
                 mq.cmd("/msgbox 'No File Found!")
             else
             -- Load settings from the Lua config file
-            tempSettings = {}
+            local backup = string.format('%s/MyChat_%s_%s_BAK.lua', mq.configDir, serverName, myName)
+            mq.pickle(backup, ChatWin.Settings)
+            -- local newSettings = {}
+            -- newSettings = dofile(tmp)
+            -- for cID, cData in pairs(newSettings.Channels) do
+            --     if cData.name
+            -- end
+            --tempSettings = {}
             tempSettings = dofile(tmp)
             ResetEvents()
         end
