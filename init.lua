@@ -1,5 +1,6 @@
 local mq = require('mq')
 local ImGui = require('ImGui')
+local defaults =  require('default_settings')
 
 ---@type ConsoleWidget
 local console = nil
@@ -92,12 +93,14 @@ end
 
 local function loadSettings()
     if not File_Exists(ChatWin.SettingsFile) then
-        local defaults = require('default_settings')
-        ChatWin.Settings = defaults
+        -- ChatWin.Settings = defaults
         mq.pickle(ChatWin.SettingsFile, defaults)
-        else
-        -- Load settings from the Lua config file
-        ChatWin.Settings = dofile(ChatWin.SettingsFile)
+        loadSettings()
+    end
+    if File_Exists(ChatWin.SettingsFile) then
+        -- ChatWin.Settings = defaults
+    -- Load settings from the Lua config file
+    ChatWin.Settings = dofile(ChatWin.SettingsFile)
     end
 
     useThemeName = ChatWin.Settings.LoadTheme
@@ -214,7 +217,7 @@ function ChatWin.EventChat(channelID, eventName, line)
         local txtBuffer = ChatWin.Consoles[channelID].txtBuffer
         local colorVec = eventDetails.Filters[0].color or {1,1,1,1}
         local fMatch = false
-        
+
         if txtBuffer then
             local fCount = 0
             -- for eID, eData in pairs(eventDetails.Filters) do
@@ -516,6 +519,7 @@ function ChatWin.GUI()
 end
 
 -------------------------------- Configure Windows and Events GUI ---------------------------
+local importFile = 'MyChat_Server_CharName.lua'
 
 ---comment Draws the Channel data for editing. Can be either an exisiting Channel or a New one.
 ---@param editChanID integer -- the channelID we are working with
@@ -882,6 +886,12 @@ function ChatWin.Config_GUI(open)
         ChatWin.openEditGUI = true
         ChatWin.openConfigGUI = false
     end
+
+    ImGui.SameLine()
+    if ImGui.Button("Reload Theme File") then
+        loadSettings()
+    end
+
     ImGui.SameLine()
     -- Close Button
     if ImGui.Button('Close') then
@@ -890,14 +900,20 @@ function ChatWin.Config_GUI(open)
         editEventID = 0
         ChatWin.Settings = tempSettings
         ResetEvents()
-
     end
 
-    ImGui.SameLine()
-    if ImGui.Button("Reload Theme File") then
-        loadSettings()
+    importFile = ImGui.InputText('Import##FileName', importFile, 256)
+    if ImGui.Button('Import Channels') then
+        local tmp = mq.configDir..'/'..importFile
+        if not File_Exists(tmp) then
+                mq.cmd("/msgbox 'No File Found!")
+            else
+            -- Load settings from the Lua config file
+            tempSettings = {}
+            tempSettings = dofile(tmp)
+            ResetEvents()
+        end
     end
-
     local themeName = tempSettings.LoadTheme
     ImGui.Text("Cur Theme: %s", themeName)
     -- Combo Box Load Theme
