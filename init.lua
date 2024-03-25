@@ -515,6 +515,7 @@ end
 
 -------------------------------- Configure Windows and Events GUI ---------------------------
 local importFile = 'MyChat_Server_CharName.lua'
+local cleanImport = false
 
 ---comment Draws the Channel data for editing. Can be either an exisiting Channel or a New one.
 ---@param editChanID integer -- the channelID we are working with
@@ -903,10 +904,13 @@ function ChatWin.Config_GUI(open)
         ResetEvents()
     end
 
+    ImGui.SeparatorText('Import Settings')
     importFile = ImGui.InputText('Import##FileName', importFile, 256)
+    ImGui.SameLine()
+    cleanImport = ImGui.Checkbox('Clean Import##clean', cleanImport)
+
     if ImGui.Button('Import Channels') then
         local tmp = mq.configDir..'/'..importFile
-        if lastImport == tmp then return end
         if not File_Exists(tmp) then
                 mq.cmd("/msgbox 'No File Found!")
             else
@@ -917,6 +921,8 @@ function ChatWin.Config_GUI(open)
             local newID = getNextID(tempSettings.Channels)
 
             newSettings = dofile(tmp)
+            print(tostring(cleanImport))
+        if not cleanImport and lastImport ~= tmp then
             for cID, cData in pairs(newSettings.Channels) do
                 for existingCID, existingCData in pairs(tempSettings.Channels) do
                     if existingCData.Name == cData.Name then
@@ -927,10 +933,15 @@ function ChatWin.Config_GUI(open)
                 tempSettings.Channels[newID] = cData
                 newID = newID + 1
             end
+        else
+            tempSettings = {}
+            tempSettings = newSettings
+        end
             lastImport = tmp
             ResetEvents()
         end
     end
+    ImGui.SeparatorText('Theme')
     local themeName = tempSettings.LoadTheme
     ImGui.Text("Cur Theme: %s", themeName)
     -- Combo Box Load Theme
