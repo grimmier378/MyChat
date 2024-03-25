@@ -104,7 +104,7 @@ local function loadSettings()
     end
 
     useThemeName = ChatWin.Settings.LoadTheme
-    
+
     if not File_Exists(ChatWin.ThemesFile) then
         local defaultThemes = require('themes')
         theme = defaultThemes
@@ -124,7 +124,9 @@ local function loadSettings()
             ChatWin.Consoles[channelID] = {}
         end
 
-        ChatWin.Settings.Channels[channelID].MainEnable = ChatWin.Settings.Channels[channelID].MainEnable
+        if ChatWin.Settings.Channels[channelID].MainEnable == nil then
+            ChatWin.Settings.Channels[channelID].MainEnable = true
+        end
 
         SetUpConsoles(channelID)
         if not ChatWin.Settings.Channels[channelID]['Scale'] then
