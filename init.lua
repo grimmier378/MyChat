@@ -1,6 +1,7 @@
 local mq = require('mq')
 local ImGui = require('ImGui')
 local defaults =  require('default_settings')
+Icons = require('mq.ICONS')
 
 ---@type ConsoleWidget
 local console = nil
@@ -135,6 +136,9 @@ local function loadSettings()
         
         if ChatWin.Settings.Channels[channelID].PopOut == nil then
             ChatWin.Settings.Channels[channelID].PopOut = false
+        end
+        if ChatWin.Settings.Channels[channelID].locled == nil then
+            ChatWin.Settings.Channels[channelID].look = false
         end
 
         SetUpConsoles(channelID)
@@ -635,7 +639,11 @@ function ChatWin.GUI()
             -- local scale = ChatWin.Settings.Channels[channelID].Scale
             local PopOut = ChatWin.Settings.Channels[channelID].PopOut
             local ShowPop = ChatWin.Settings.Channels[channelID].PopOut
-
+            if ChatWin.Settings.Channels[channelID].locked then
+                ChatWin.PopOutFlags = bit32.bor(ImGuiWindowFlags.NoScrollbar, ImGuiWindowFlags.NoMove)
+            else
+                ChatWin.PopOutFlags = bit32.bor(ImGuiWindowFlags.NoScrollbar)
+            end
             if PopOut then
                 ColorCount = 0
                 ImGui.SetNextWindowSize(ImVec2(640, 480), ImGuiCond.FirstUseEver)
@@ -651,9 +659,22 @@ function ChatWin.GUI()
                         end
                     end
                 end
+
                 PopOut, show = ImGui.Begin(name.."##"..channelID..name, PopOut, ChatWin.PopOutFlags)
                 if show then
-                    -- PopOut = ImGui.Checkbox("PopOut##"..channelID, PopOut)
+                    local lockedIcon = ChatWin.Settings.Channels[channelID].locked and Icons.FA_LOCK .. '##lockTabButton'..channelID or
+                    Icons.FA_UNLOCK .. '##lockTablButton'..channelID
+                    if ImGui.Button(lockedIcon) then
+                        --ImGuiWindowFlags.NoMove
+                        ChatWin.Settings.Channels[channelID].locked = not ChatWin.Settings.Channels[channelID].locked
+                        tempSettings.Channels[channelID].locked = ChatWin.Settings.Channels[channelID].locked
+                        ResetEvents()
+                    end
+                    if ImGui.IsItemHovered() then
+                        ImGui.BeginTooltip()
+                        ImGui.Text("Lock Window")
+                        ImGui.EndTooltip()
+                    end
                     if PopOut ~= ChatWin.Settings.Channels[channelID].PopOut then
                         ChatWin.Settings.Channels[channelID].PopOut = PopOut
                         tempSettings.Channels[channelID].PopOut = PopOut
