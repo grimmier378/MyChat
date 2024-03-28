@@ -608,13 +608,13 @@ function ChatWin.GUI()
     ImGui.End()
 
     for channelID, data in pairs(ChatWin.Settings.Channels) do
-        
+
         if ChatWin.Settings.Channels[channelID].enabled then
             local name = ChatWin.Settings.Channels[channelID].Name..'##'..windowNum
             local zoom = ChatWin.Consoles[channelID].zoom
             -- local scale = ChatWin.Settings.Channels[channelID].Scale
             local PopOut = ChatWin.Settings.Channels[channelID].PopOut
-            
+
             if PopOut then
                 ColorCount = 0
                 ImGui.SetNextWindowSize(ImVec2(640, 480), ImGuiCond.FirstUseEver)
@@ -630,14 +630,20 @@ function ChatWin.GUI()
                         end
                     end
                 end
-                ChatWin.openGUI, ChatWin.SHOW = ImGui.Begin(name.."##"..channelID..name, ChatWin.openGUI, ChatWin.PopOutFlags)
-                if ChatWin.openGUI then
+                PopOut, show = ImGui.Begin(name.."##"..channelID..name, PopOut, ChatWin.PopOutFlags)
+                if show then
                     PopOut = ImGui.Checkbox("PopOut##"..channelID, PopOut)
                     if PopOut ~= ChatWin.Settings.Channels[channelID].PopOut then
                         ChatWin.Settings.Channels[channelID].PopOut = PopOut
                         tempSettings.Channels[channelID].PopOut = PopOut
                     end
                     DrawConsole(channelID)
+                else
+                    ChatWin.Settings.Channels[channelID].PopOut = show
+                    tempSettings.Channels[channelID].PopOut = show
+                    ImGui.PopStyleVar()
+                    if useTheme then ImGui.PopStyleColor(ColorCount) end
+                    ImGui.End()
                 end
                 ImGui.PopStyleVar()
                 if useTheme then ImGui.PopStyleColor(ColorCount) end
