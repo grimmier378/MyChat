@@ -614,6 +614,7 @@ function ChatWin.GUI()
             local zoom = ChatWin.Consoles[channelID].zoom
             -- local scale = ChatWin.Settings.Channels[channelID].Scale
             local PopOut = ChatWin.Settings.Channels[channelID].PopOut
+            local ShowPop = ChatWin.Settings.Channels[channelID].PopOut
 
             if PopOut then
                 ColorCount = 0
@@ -639,11 +640,13 @@ function ChatWin.GUI()
                     end
                     DrawConsole(channelID)
                 else
+                    if not ShowPop then
                     ChatWin.Settings.Channels[channelID].PopOut = show
                     tempSettings.Channels[channelID].PopOut = show
                     ImGui.PopStyleVar()
                     if useTheme then ImGui.PopStyleColor(ColorCount) end
                     ImGui.End()
+                end
                 end
                 ImGui.PopStyleVar()
                 if useTheme then ImGui.PopStyleColor(ColorCount) end
