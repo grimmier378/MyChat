@@ -637,16 +637,18 @@ function ChatWin.GUI()
                     if PopOut ~= ChatWin.Settings.Channels[channelID].PopOut then
                         ChatWin.Settings.Channels[channelID].PopOut = PopOut
                         tempSettings.Channels[channelID].PopOut = PopOut
+                        ResetEvents()
                     end
                     DrawConsole(channelID)
                 else
                     if not ShowPop then
-                    ChatWin.Settings.Channels[channelID].PopOut = show
-                    tempSettings.Channels[channelID].PopOut = show
-                    ImGui.PopStyleVar()
-                    if useTheme then ImGui.PopStyleColor(ColorCount) end
-                    ImGui.End()
-                end
+                        ChatWin.Settings.Channels[channelID].PopOut = ShowPop
+                        tempSettings.Channels[channelID].PopOut = ShowPop
+                        ResetEvents()
+                        ImGui.PopStyleVar()
+                        if useTheme then ImGui.PopStyleColor(ColorCount) end
+                        ImGui.End()
+                    end
                 end
                 ImGui.PopStyleVar()
                 if useTheme then ImGui.PopStyleColor(ColorCount) end
