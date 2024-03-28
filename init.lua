@@ -459,6 +459,17 @@ local function DrawChatWindow()
                 end
                 ImGui.EndMenu()
             end
+            ImGui.Separator()
+            if ImGui.BeginMenu('Zoom##'..windowNum) then
+                for channelID, settings in pairs(ChatWin.Settings.Channels) do
+                    local zoom = ChatWin.Consoles[channelID].zoom
+                    local name = ChatWin.Settings.Channels[channelID].Name
+                    if ImGui.MenuItem(name, '', zoom) then
+                        ChatWin.Consoles[channelID].zoom = not zoom
+                    end
+                end
+                ImGui.EndMenu()
+            end
             if ImGui.MenuItem('Configure Events##'..windowNum) then
                 ChatWin.openConfigGUI = true
                 ChatWin.Config_GUI(ChatWin.openConfigGUI)
@@ -1226,7 +1237,6 @@ end
 
 local function init()
     mq.imgui.init('MyChatGUI', ChatWin.GUI)
-    --mq.imgui.init('MyChatPop', ChatWin.PopOut_GUI)
     mq.imgui.init('ChatConfigGUI', ChatWin.Config_GUI)
     mq.imgui.init('EditGUI', ChatWin.Edit_GUI)
     -- initialize the console
