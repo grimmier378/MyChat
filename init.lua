@@ -22,7 +22,7 @@ local useThemeName = 'Default'
 local ColorCountEdit,ColorCountConf, ColorCount = 0, 0, 0
 local lastImport = 'none'
 local windowNum = 0
-local drawNew = false
+local drawNew, fromConf = false, false
 
 local ChatWin = {
     SHOW = true,
@@ -459,7 +459,7 @@ local function DrawChatWindow()
                 end
                 ImGui.EndMenu()
             end
-            ImGui.Separator()
+            
             if ImGui.BeginMenu('Zoom##'..windowNum) then
                 for channelID, settings in pairs(ChatWin.Settings.Channels) do
                     local zoom = ChatWin.Consoles[channelID].zoom
@@ -470,6 +470,7 @@ local function DrawChatWindow()
                 end
                 ImGui.EndMenu()
             end
+            ImGui.Separator()
             if ImGui.MenuItem('Configure Events##'..windowNum) then
                 ChatWin.openConfigGUI = true
                 ChatWin.Config_GUI(ChatWin.openConfigGUI)
@@ -556,6 +557,14 @@ local function DrawChatWindow()
                         if ImGui.Selectable('Clear##'..windowNum) then
                             ChatWin.Consoles[channelID].console:Clear()
                             ChatWin.Consoles[channelID].txtBuffer = {}
+                        end
+                        if ImGui.Selectable('Configure##'..windowNum) then
+                            editChanID =  channelID
+                            addChannel = false
+                            fromConf = false
+                            tempSettings = ChatWin.Settings
+                            ChatWin.openEditGUI = true
+                            ChatWin.openConfigGUI = false
                         end
                         if ImGui.Selectable('Zoom##'..windowNum) then
                             zoom = not zoom
@@ -803,7 +812,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
         ChatWin.Settings = tempSettings
         ResetEvents()
         ChatWin.openEditGUI = false
-        ChatWin.openConfigGUI = true
+        if fromConf then ChatWin.openConfigGUI = true end
     end
     ImGui.SameLine()
     if ImGui.Button("DELETE Channel##" .. editChanID) then
@@ -821,7 +830,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
     ImGui.SameLine()
     if ImGui.Button(' Close ##_close') then
         ChatWin.openEditGUI = false
-        ChatWin.openConfigGUI = true
+        if fromConf then ChatWin.openConfigGUI = true end
     end
     ImGui.SameLine()
     if tempSettings.Channels[editChanID] then
@@ -1046,6 +1055,7 @@ function ChatWin.Config_GUI(open)
     if ImGui.Button("Add Channel") then
         editChanID =  getNextID(ChatWin.Settings.Channels)
         addChannel = true
+        fromConf = true
         tempSettings = ChatWin.Settings
         ChatWin.openEditGUI = true
         ChatWin.openConfigGUI = false
