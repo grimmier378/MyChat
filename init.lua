@@ -10,7 +10,7 @@ local commandBuffer = ''
 -- local var's
 local serverName = string.gsub(mq.TLO.EverQuest.Server(), ' ', '_') or ''
 local myName = mq.TLO.Me.DisplayName() or ''
-local addChannel = false
+local addChannel = false -- Are we adding a new channel or editing an old one
 local tempSettings, eventNames = {}, {} -- tables for storing event details
 local useTheme, timeStamps, newEvent, newFilter= false, true, false, false
 local zBuffer = 1000 -- the buffer size for the Zoom chat buffer.
@@ -18,11 +18,11 @@ local editChanID, editEventID, lastID, lastChan = 0, 0, 0, 0
 local tempFilterStrings, tempEventStrings, tempChanColors, tempFiltColors = {}, {}, {}, {} -- Tables to store our strings and color values for editing
 local ActTab, activeID = 'Main', 0 -- info about active tab channels
 local theme = {} -- table to hold the themes file into.
-local useThemeName = 'Default'
+local useThemeName = 'Default' -- Name of the theme we wish to apply
 local ColorCountEdit,ColorCountConf, ColorCount = 0, 0, 0
-local lastImport = 'none'
-local windowNum = 0
-local drawNew, fromConf = false, false
+local lastImport = 'none' -- file name of the last imported file, if we try and import the same file again we will abort.
+local windowNum = 0 --unused will remove later.
+local fromConf = false -- Did we open the edit channel window from the main config window? if we did we will go back to that window after closing.
 
 local ChatWin = {
     SHOW = true,
@@ -1259,10 +1259,6 @@ local function loop()
     while ChatWin.openGUI do
         mq.delay(1)
         mq.doevents()
-        if drawNew then
-            ChatWin.GUI()
-            drawNew = false
-        end
     end
 end
 
