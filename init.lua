@@ -633,7 +633,7 @@ function ChatWin.GUI()
                 end
                 PopOut, show = ImGui.Begin(name.."##"..channelID..name, PopOut, ChatWin.PopOutFlags)
                 if show then
-                    PopOut = ImGui.Checkbox("PopOut##"..channelID, PopOut)
+                    -- PopOut = ImGui.Checkbox("PopOut##"..channelID, PopOut)
                     if PopOut ~= ChatWin.Settings.Channels[channelID].PopOut then
                         ChatWin.Settings.Channels[channelID].PopOut = PopOut
                         tempSettings.Channels[channelID].PopOut = PopOut
