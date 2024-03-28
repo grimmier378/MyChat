@@ -39,6 +39,7 @@ local ChatWin = {
     -- Flags
     tabFlags = bit32.bor(ImGuiTabBarFlags.Reorderable, ImGuiTabBarFlags.TabListPopupButton),
     winFlags = bit32.bor(ImGuiWindowFlags.MenuBar, ImGuiWindowFlags.NoScrollbar),
+    PopOutFlags = bit32.bor(ImGuiWindowFlags.NoScrollbar),
 }
 
 local MyColorFlags = bit32.bor(
@@ -629,7 +630,7 @@ function ChatWin.GUI()
                         end
                     end
                 end
-                ChatWin.openGUI, ChatWin.SHOW = ImGui.Begin(name.."##"..channelID..name, ChatWin.openGUI, ChatWin.winFlags)
+                ChatWin.openGUI, ChatWin.SHOW = ImGui.Begin(name.."##"..channelID..name, ChatWin.openGUI, ChatWin.PopOutFlags)
                 if ChatWin.openGUI then
                     PopOut = ImGui.Checkbox("PopOut##"..channelID, PopOut)
                     if PopOut ~= ChatWin.Settings.Channels[channelID].PopOut then
