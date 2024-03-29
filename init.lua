@@ -24,6 +24,7 @@ local ColorCountEdit,ColorCountConf, ColorCount = 0, 0, 0
 local lastImport = 'none' -- file name of the last imported file, if we try and import the same file again we will abort.
 local windowNum = 0 --unused will remove later.
 local fromConf = false -- Did we open the edit channel window from the main config window? if we did we will go back to that window after closing.
+local gIcon = Icons.MD_SETTINGS
 
 local ChatWin = {
     SHOW = true,
@@ -139,6 +140,10 @@ local function loadSettings()
         end
         if ChatWin.Settings.Channels[channelID].locled == nil then
             ChatWin.Settings.Channels[channelID].look = false
+        end
+
+        if ChatWin.Settings.locked == nil then
+            ChatWin.Settings.locked = false
         end
 
         SetUpConsoles(channelID)
@@ -342,6 +347,24 @@ function ChatWin.EventChat(channelID, eventName, line)
 end
 
 ------------------------------------------ GUI's --------------------------------------------
+
+---comment
+---@param counter integer -- the counter used for this window to keep track of color changes
+---@param themeName string -- name of the theme to load form table
+---@return integer -- returns the new counter value 
+local function DrawTheme(counter, themeName)
+    -- Push Theme Colors
+        for tID, tData in pairs(theme.Theme) do
+            if tData.Name == themeName then
+                for pID, cData in pairs(theme.Theme[tID].Color) do
+                    ImGui.PushStyleColor(pID, ImVec4(cData.Color[1], cData.Color[2], cData.Color[3], cData.Color[4]))
+                    counter = counter +1
+                end
+            end
+        end
+        return counter
+end
+
 local function DrawConsole(channelID)
     local name = ChatWin.Settings.Channels[channelID].Name..'##'..channelID
     local zoom = ChatWin.Consoles[channelID].zoom
@@ -445,6 +468,22 @@ end
 local function DrawChatWindow()
     -- Main menu bar
     if ImGui.BeginMenuBar() then
+        local lockedIcon = ChatWin.Settings.locked and Icons.FA_LOCK .. '##lockTabButton_MyChat' or
+        Icons.FA_UNLOCK .. '##lockTablButton_MyChat'
+        if ImGui.Button(lockedIcon) then
+            --ImGuiWindowFlags.NoMove
+            ChatWin.Settings.locked = not ChatWin.Settings.locked
+            tempSettings.locked = ChatWin.Settings.locked
+            ResetEvents()
+        end
+        if ImGui.IsItemHovered() then
+            ImGui.BeginTooltip()
+            ImGui.Text("Lock Window")
+            ImGui.EndTooltip()
+        end
+        if ImGui.Button(gIcon..'##'..windowNum) then
+            ChatWin.openConfigGUI = not ChatWin.openConfigGUI
+        end
         if ImGui.BeginMenu('Options##'..windowNum) then
             _, console.autoScroll = ImGui.MenuItem('Auto-scroll##'..windowNum, nil, console.autoScroll)
             _, LocalEcho = ImGui.MenuItem('Local echo##'..windowNum, nil, LocalEcho)
@@ -456,34 +495,7 @@ local function DrawChatWindow()
             --     drawNew = true
             --     print(windowNum)
             -- end
-            ImGui.Separator()
-            if ImGui.BeginMenu('Channels##'..windowNum) then
-                for channelID, settings in pairs(ChatWin.Settings.Channels) do
-                    local enabled = ChatWin.Settings.Channels[channelID].enabled
-                    local name = ChatWin.Settings.Channels[channelID].Name
-                    if ImGui.MenuItem(name, '', enabled) then
-                        ChatWin.Settings.Channels[channelID].enabled = not enabled
-                        writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
-                    end
-                end
-                ImGui.EndMenu()
-            end
-            
-            if ImGui.BeginMenu('Zoom##'..windowNum) then
-                for channelID, settings in pairs(ChatWin.Settings.Channels) do
-                    local zoom = ChatWin.Consoles[channelID].zoom
-                    local name = ChatWin.Settings.Channels[channelID].Name
-                    if ImGui.MenuItem(name, '', zoom) then
-                        ChatWin.Consoles[channelID].zoom = not zoom
-                    end
-                end
-                ImGui.EndMenu()
-            end
-            ImGui.Separator()
-            if ImGui.MenuItem('Configure Events##'..windowNum) then
-                ChatWin.openConfigGUI = true
-                ChatWin.Config_GUI(ChatWin.openConfigGUI)
-            end
+
             ImGui.Separator()
             if ImGui.MenuItem('Reset Position##'..windowNum) then
                 resetPosition = true
@@ -499,6 +511,40 @@ local function DrawChatWindow()
             ImGui.Spacing()
             ImGui.EndMenu()
         end
+            if ImGui.BeginMenu('Channels##'..windowNum) then
+                for channelID, settings in pairs(ChatWin.Settings.Channels) do
+                    local enabled = ChatWin.Settings.Channels[channelID].enabled
+                    local name = ChatWin.Settings.Channels[channelID].Name
+                    if ImGui.MenuItem(name, '', enabled) then
+                        ChatWin.Settings.Channels[channelID].enabled = not enabled
+                        writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+                    end
+                end
+                ImGui.EndMenu()
+            end
+            if ImGui.BeginMenu('Zoom##'..windowNum) then
+                for channelID, settings in pairs(ChatWin.Settings.Channels) do
+                    local zoom = ChatWin.Consoles[channelID].zoom
+                    local name = ChatWin.Settings.Channels[channelID].Name
+                    if ImGui.MenuItem(name, '', zoom) then
+                        ChatWin.Consoles[channelID].zoom = not zoom
+                    end
+                end
+                ImGui.EndMenu()
+            end
+            if ImGui.BeginMenu('PopOut##'..windowNum) then
+                for channelID, settings in pairs(ChatWin.Settings.Channels) do
+                    local PopOut = ChatWin.Settings.Channels[channelID].PopOut
+                    local name = ChatWin.Settings.Channels[channelID].Name
+                    if ImGui.MenuItem(name, '', PopOut) then
+                        PopOut = not PopOut
+                        ChatWin.Settings.Channels[channelID].PopOut = PopOut
+                        tempSettings.Channels[channelID].PopOut = PopOut
+                        writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+                    end
+                end
+                ImGui.EndMenu()
+            end
         ImGui.EndMenuBar()
     end
     -- End of menu bar
@@ -616,18 +662,14 @@ function ChatWin.GUI()
     ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, ImVec2(1, 0));
     if useTheme then
         local themeName = tempSettings.LoadTheme
-        for tID, tData in pairs(theme.Theme) do
-            if tData.Name == themeName then
-                for pID, cData in pairs(theme.Theme[tID].Color) do
-                    ImGui.PushStyleColor(pID, ImVec4(cData.Color[1], cData.Color[2], cData.Color[3], cData.Color[4]))
-                    ColorCount = ColorCount +1
-                end
-            end
-        end
+        ColorCount = DrawTheme(ColorCount, themeName)
+    end
+    local winFlags = ChatWin.winFlags
+    if ChatWin.Settings.locked then
+        winFlags = bit32.bor(ImGuiWindowFlags.MenuBar,ImGuiWindowFlags.NoMove, ImGuiWindowFlags.NoScrollbar)
     end
 
-
-    ChatWin.openGUI, ChatWin.SHOW = ImGui.Begin(windowName, ChatWin.openGUI, ChatWin.winFlags)
+    ChatWin.openGUI, ChatWin.SHOW = ImGui.Begin(windowName, ChatWin.openGUI, winFlags)
     if ChatWin.openGUI then
 
         DrawChatWindow()
@@ -905,7 +947,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                     ImGui.Text('LIST OF TOKENS')
                     ImGui.Text('M3\t = Your Name')
                     ImGui.Text('M1\t = Main Assist Name')
-                    ImGui.Text('P1\t = Your Pet Name')
+                    ImGui.Text('PT1\t = Your Pet Name')
                     ImGui.Text('GP1\t = Party Members Name')
                     ImGui.Text('TK1\t = Main Tank Name')
                     ImGui.Text('RL\t = Raid Leader Name')
@@ -1059,14 +1101,7 @@ function ChatWin.Config_GUI(open)
     -- Push Theme Colors
     if useTheme then
         local themeName = tempSettings.LoadTheme
-        for tID, tData in pairs(theme.Theme) do
-            if tData.Name == themeName then
-                for pID, cData in pairs(theme.Theme[tID].Color) do
-                    ImGui.PushStyleColor(pID, ImVec4(cData.Color[1], cData.Color[2], cData.Color[3], cData.Color[4]))
-                    ColorCountConf = ColorCountConf +1
-                end
-            end
-        end
+        ColorCountConf = DrawTheme(ColorCountConf, themeName)
     end
 
     open, ChatWin.openConfigGUI = ImGui.Begin("Event Configuration", open, bit32.bor(ImGuiWindowFlags.None, ImGuiWindowFlags.NoCollapse))
@@ -1170,14 +1205,7 @@ function ChatWin.Edit_GUI(open)
 
     if useTheme then
         local themeName = ChatWin.Settings.LoadTheme
-        for tID, tData in pairs(theme.Theme) do
-            if tData.Name == themeName then
-                for pID, cData in pairs(theme.Theme[tID].Color) do
-                    ImGui.PushStyleColor(pID, ImVec4(cData.Color[1], cData.Color[2], cData.Color[3], cData.Color[4]))
-                    ColorCountEdit = ColorCountEdit +1
-                end
-            end
-        end
+        ColorCountEdit = DrawTheme(ColorCountEdit, themeName)
     end
 
     open, ChatWin.openEditGUI = ImGui.Begin("Channel Editor", open, bit32.bor(ImGuiWindowFlags.None, ImGuiWindowFlags.NoCollapse))
