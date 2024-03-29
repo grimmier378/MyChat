@@ -759,12 +759,17 @@ function ChatWin.GUI()
     end
 
     ChatWin.openGUI, ChatWin.SHOW = ImGui.Begin(windowName, ChatWin.openGUI, winFlags)
+    ImGui.BeginGroup()
     if ChatWin.openGUI then
 
         DrawChatWindow()
     end
     if useTheme then ImGui.PopStyleColor(ColorCount) end
     ImGui.PopStyleVar()
+    ImGui.EndGroup()
+    if ImGui.IsItemHovered() then
+        ImGui.SetWindowFocus(windowName)
+    end
     ImGui.End()
 
     for channelID, data in pairs(ChatWin.Settings.Channels) do
@@ -798,6 +803,7 @@ function ChatWin.GUI()
 
                 PopOut, show = ImGui.Begin(name.."##"..channelID..name, PopOut, ChatWin.PopOutFlags)
                 if show then
+                    ImGui.BeginGroup()
                     local lockedIcon = ChatWin.Settings.Channels[channelID].locked and Icons.FA_LOCK .. '##lockTabButton'..channelID or
                     Icons.FA_UNLOCK .. '##lockTablButton'..channelID
                     if ImGui.Button(lockedIcon) then
@@ -838,6 +844,10 @@ function ChatWin.GUI()
                         ResetEvents()
                         ImGui.PopStyleVar()
                         if useTheme then ImGui.PopStyleColor(ColorCount) end
+                        ImGui.EndGroup()
+                        if ImGui.IsItemHovered() then
+                            ImGui.SetWindowFocus(name.."##"..channelID..name)
+                        end
                         ImGui.End()
                     end
                 end
