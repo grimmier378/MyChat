@@ -8,6 +8,7 @@ local console = nil
 local resetPosition = false
 local setFocus = false
 local commandBuffer = ''
+
 -- local var's
 local serverName = string.gsub(mq.TLO.EverQuest.Server(), ' ', '_') or ''
 local myName = mq.TLO.Me.Name() or ''
@@ -25,6 +26,10 @@ local lastImport = 'none' -- file name of the last imported file, if we try and 
 local windowNum = 0 --unused will remove later.
 local fromConf = false -- Did we open the edit channel window from the main config window? if we did we will go back to that window after closing.
 local gIcon = Icons.MD_SETTINGS
+local zoomMain = false
+local mainLastScrollPos = 0
+local mainBottomPosition = 0
+local mainBuffer = {}
 
 local ChatWin = {
     SHOW = true,
@@ -317,8 +322,26 @@ function ChatWin.EventChat(channelID, eventName, line)
                 ChatWin.Consoles[channelID].console:AppendText(colorCode, line)
             end
             -- write main console
+            
             if tempSettings.Channels[channelID].MainEnable then
+            
                 console:AppendText(colorCode,line)
+                local z = getNextID(mainBuffer)
+
+                if z > 1 then
+                    if mainBuffer[z-1].text == '' then z = z-1 end
+                end
+                mainBuffer[z] = {
+                    color = colorVec,
+                    text = line
+                }
+                local bufferLength = #mainBuffer
+                if bufferLength > zBuffer then
+                    -- Remove excess lines
+                    for j = 1, bufferLength - zBuffer do
+                        table.remove(mainBuffer, 1)
+                    end
+                end
             end
             -- ZOOM Console hack
             if i > 1 then
@@ -424,45 +447,44 @@ local function DrawConsole(channelID)
         ImGui.EndTable()
 
         ImGui.EndChild()
-
+        
         else
             local footerHeight = 30
             local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
             contentSizeY = contentSizeY - footerHeight
             ChatWin.Consoles[channelID].console:Render(ImVec2(contentSizeX,contentSizeY))
-    --Command Line
-    ImGui.Separator()
-    local textFlags = bit32.bor(0,
-        ImGuiInputTextFlags.EnterReturnsTrue,
-        -- not implemented yet
-        ImGuiInputTextFlags.CallbackCompletion,
-        ImGuiInputTextFlags.CallbackHistory
-    )
-    local contentSizeX, _ = ImGui.GetContentRegionAvail()
-    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6)
-    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2)
-    ImGui.PushItemWidth(contentSizeX)
-    ImGui.PushStyleColor(ImGuiCol.FrameBg, ImVec4(0, 0, 0, 0))
-    ImGui.PushFont(ImGui.ConsoleFont)
-    local accept = false
-    local cmdBuffer = ChatWin.Settings.Channels[channelID].commandBuffer
-    cmdBuffer, accept = ImGui.InputText('##Input##'..name, cmdBuffer, textFlags)
-    ImGui.PopFont()
-    ImGui.PopStyleColor()
-    ImGui.PopItemWidth()
-    if accept then
-        ChatWin.ChannelExecCommand(cmdBuffer, channelID)
-        cmdBuffer = ''
-        ChatWin.Settings.Channels[channelID].commandBuffer = cmdBuffer
-        setFocus = true
     end
-    ImGui.SetItemDefaultFocus()
-    if setFocus then
-        setFocus = false
-        ImGui.SetKeyboardFocusHere(-1)
-    end
-
-    end
+--Command Line
+ImGui.Separator()
+local textFlags = bit32.bor(0,
+    ImGuiInputTextFlags.EnterReturnsTrue,
+    -- not implemented yet
+    ImGuiInputTextFlags.CallbackCompletion,
+    ImGuiInputTextFlags.CallbackHistory
+)
+local contentSizeX, _ = ImGui.GetContentRegionAvail()
+ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6)
+ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2)
+ImGui.PushItemWidth(contentSizeX)
+ImGui.PushStyleColor(ImGuiCol.FrameBg, ImVec4(0, 0, 0, 0))
+ImGui.PushFont(ImGui.ConsoleFont)
+local accept = false
+local cmdBuffer = ChatWin.Settings.Channels[channelID].commandBuffer
+cmdBuffer, accept = ImGui.InputText('##Input##'..name, cmdBuffer, textFlags)
+ImGui.PopFont()
+ImGui.PopStyleColor()
+ImGui.PopItemWidth()
+if accept then
+    ChatWin.ChannelExecCommand(cmdBuffer, channelID)
+    cmdBuffer = ''
+    ChatWin.Settings.Channels[channelID].commandBuffer = cmdBuffer
+    setFocus = true
+end
+ImGui.SetItemDefaultFocus()
+if setFocus then
+    setFocus = false
+    ImGui.SetKeyboardFocusHere(-1)
+end
 end
 
 local function DrawChatWindow()
@@ -560,9 +582,16 @@ local function DrawChatWindow()
             if ImGui.BeginPopupContextWindow() then
                 if ImGui.Selectable('Clear##'..windowNum) then
                     console:Clear()
+                    mainBuffer = {}
+                end
+                
+                if ImGui.Selectable('Zoom##Main'..windowNum) then
+                    zoomMain = not zoomMain
+                    
                 end
                 ImGui.EndPopup()
             end
+            if not zoomMain then
             console:Render(ImVec2(contentSizeX,contentSizeY))
             --Command Line
             ImGui.Separator()
@@ -572,6 +601,62 @@ local function DrawChatWindow()
                 ImGuiInputTextFlags.CallbackCompletion,
                 ImGuiInputTextFlags.CallbackHistory
             )
+        else
+            local footerHeight = 30
+            local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
+            contentSizeY = contentSizeY - footerHeight
+
+            ImGui.BeginChild("ZoomScrollRegion##"..windowNum, ImVec2(contentSizeX, contentSizeY), ImGuiWindowFlags.HorizontalScrollbar)
+            ImGui.BeginTable('##channelID_'..windowNum, 1, bit32.bor(ImGuiTableFlags.NoBordersInBody, ImGuiTableFlags.RowBg))
+            ImGui.TableSetupColumn("##txt"..windowNum, ImGuiTableColumnFlags.NoHeaderLabel)
+            --- draw rows ---
+
+            ImGui.TableNextRow()
+            ImGui.TableSetColumnIndex(0)
+            ImGui.SetWindowFontScale(1.5)
+
+            for line, data in pairs(mainBuffer) do
+                ImGui.PushStyleColor(ImGuiCol.Text, ImVec4(data.color[1], data.color[2], data.color[3], data.color[4]))
+                if ImGui.Selectable("##selectable" .. line, false, ImGuiSelectableFlags.None) then end
+                ImGui.SameLine()
+                ImGui.TextWrapped(data.text)
+                if ImGui.IsItemHovered() and ImGui.IsKeyDown(ImGuiMod.Ctrl) and ImGui.IsKeyDown(ImGuiKey.C) then
+                    ImGui.LogToClipboard()
+                    ImGui.LogText(data.text)
+                    ImGui.LogFinish()
+                end
+                ImGui.TableNextRow()
+                ImGui.TableSetColumnIndex(0)
+                ImGui.PopStyleColor()
+            end
+
+            ImGui.SetWindowFontScale(1)
+
+            --Scroll to the bottom if autoScroll is enabled
+            local autoScroll = AutoScroll
+            if autoScroll then
+                ImGui.SetScrollHereY()
+                mainBottomPosition = ImGui.GetCursorPosY()
+            end
+
+            local bottomPosition = mainBottomPosition or 0
+            -- Detect manual scroll
+            local lastScrollPos = mainLastScrollPos or 0
+            local scrollPos = ImGui.GetScrollY()
+
+            if scrollPos < lastScrollPos then
+                AutoScroll = false  -- Turn off autoscroll if scrolled up manually
+                elseif scrollPos >= bottomPosition-10 then
+                AutoScroll = true
+            end
+
+            lastScrollPos = scrollPos
+            mainLastScrollPos = lastScrollPos
+
+            ImGui.EndTable()
+
+            ImGui.EndChild()
+        end
             local contentSizeX, _ = ImGui.GetContentRegionAvail()
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6)
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2)
@@ -1321,6 +1406,12 @@ local function init()
     -- initialize the console
     if console == nil then
         console = ImGui.ConsoleWidget.new("Chat##Console")
+        mainBuffer = {
+            [1] = {
+                color ={[1]=1,[2]=1,[3]=1,[4]=1},
+                text = '',
+            }
+        }
     end
 end
 
