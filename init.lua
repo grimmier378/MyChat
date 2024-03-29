@@ -639,12 +639,12 @@ local function DrawChatWindow()
                     ImGui.EndTabItem()
                 end
             end
-                if ImGui.IsItemHovered() then
-                        ImGui.BeginTooltip()
-                        local sizeBuff = string.format("Buffer Size: %s lines.",tostring(getNextID(ChatWin.Consoles[channelID].txtBuffer)-1))
-                        ImGui.Text(sizeBuff)
-                        ImGui.EndTooltip()
-                end
+                -- if ImGui.IsItemHovered() then
+                --         ImGui.BeginTooltip()
+                --         local sizeBuff = string.format("Buffer Size: %s lines.",tostring(getNextID(ChatWin.Consoles[channelID].txtBuffer)-1))
+                --         ImGui.Text(sizeBuff)
+                --         ImGui.EndTooltip()
+                -- end
             end
         end
         -- End other tabs
@@ -726,6 +726,20 @@ function ChatWin.GUI()
                         ChatWin.Settings.Channels[channelID].PopOut = PopOut
                         tempSettings.Channels[channelID].PopOut = PopOut
                         ResetEvents()
+                    end
+                    ImGui.SameLine()
+                    if ImGui.Button(Icons.MD_SETTINGS.."##"..channelID) then
+                        editChanID =  channelID
+                        addChannel = false
+                        fromConf = false
+                        tempSettings = ChatWin.Settings
+                        ChatWin.openEditGUI = not ChatWin.openEditGUI 
+                        ChatWin.openConfigGUI = false
+                    end
+                    if ImGui.IsItemHovered() then
+                        ImGui.BeginTooltip()
+                        ImGui.Text("Opens the Edit window for this channel")
+                        ImGui.EndTooltip()
                     end
                     DrawConsole(channelID)
                 else
@@ -909,6 +923,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
             ImGui.EndTooltip()
         end
     end
+
     ImGui.SeparatorText('Events and Filters')
     ImGui.BeginChild("Details")
     ------------------------------ table -------------------------------------
