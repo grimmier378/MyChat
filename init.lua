@@ -147,6 +147,10 @@ local function loadSettings()
             ChatWin.Settings.Channels[channelID].look = false
         end
 
+        if ChatWin.Settings.Scale == nil then
+            ChatWin.Settings.Scale = 1.5
+        end
+
         if ChatWin.Settings.locked == nil then
             ChatWin.Settings.locked = false
         end
@@ -1290,7 +1294,17 @@ function ChatWin.Config_GUI(open)
         end
         ImGui.EndCombo()
     end
-
+    ImGui.SeparatorText('Main Tab Zoom')
+    -- Slider for adjusting zoom level
+    local tmpZoom = ChatWin.Settings.Scale
+    if ChatWin.Settings.Scale then
+        tmpZoom = ImGui.SliderFloat("Zoom Level##MyBuffs", tmpZoom, 0.5, 2.0)
+    end
+    if ChatWin.Settings.Scale ~= tmpZoom then
+        ChatWin.Settings.Scale = tmpZoom
+        tempSettings.Scale = tmpZoom
+        ResetEvents()
+    end
     ImGui.SeparatorText('Channels and Events Overview')
     buildConfig()
 
