@@ -461,10 +461,10 @@ local function DrawConsole(channelID)
 --Command Line
 ImGui.Separator()
 local textFlags = bit32.bor(0,
-    ImGuiInputTextFlags.EnterReturnsTrue,
+    ImGuiInputTextFlags.EnterReturnsTrue
     -- not implemented yet
-    ImGuiInputTextFlags.CallbackCompletion,
-    ImGuiInputTextFlags.CallbackHistory
+    -- ImGuiInputTextFlags.CallbackCompletion,
+    -- ImGuiInputTextFlags.CallbackHistory
 )
 local contentSizeX, _ = ImGui.GetContentRegionAvail()
 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6)
@@ -600,10 +600,10 @@ local function DrawChatWindow()
             --Command Line
             ImGui.Separator()
             local textFlags = bit32.bor(0,
-                ImGuiInputTextFlags.EnterReturnsTrue,
+                ImGuiInputTextFlags.EnterReturnsTrue
                 -- not implemented yet
-                ImGuiInputTextFlags.CallbackCompletion,
-                ImGuiInputTextFlags.CallbackHistory
+                -- ImGuiInputTextFlags.CallbackCompletion,
+                -- ImGuiInputTextFlags.CallbackHistory
             )
         else
             local footerHeight = 30
@@ -661,6 +661,12 @@ local function DrawChatWindow()
 
             ImGui.EndChild()
         end
+        local textFlags = bit32.bor(0,
+        ImGuiInputTextFlags.EnterReturnsTrue
+        -- not implemented yet
+        -- ImGuiInputTextFlags.CallbackCompletion,
+        -- ImGuiInputTextFlags.CallbackHistory
+    )
             local contentSizeX, _ = ImGui.GetContentRegionAvail()
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6)
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2)
