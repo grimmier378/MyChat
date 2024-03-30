@@ -771,7 +771,6 @@ function ChatWin.GUI()
     --     ImGui.SetWindowFocus(name.."##"..channelID..name)
     --     end
     -- end
-    ImGui.SetWindowFontScale(1)
     ImGui.End()
 
     for channelID, data in pairs(ChatWin.Settings.Channels) do
@@ -846,14 +845,12 @@ function ChatWin.GUI()
                         ResetEvents()
                         ImGui.PopStyleVar()
                         if useTheme then ImGui.PopStyleColor(ColorCount) end
-                        ImGui.SetWindowFontScale(1)
                         ImGui.End()
                     end
                 end
 
                 ImGui.PopStyleVar()
                 if useTheme then ImGui.PopStyleColor(ColorCount) end
-                ImGui.SetWindowFontScale(1)
                 ImGui.End()
                 -- if ImGui.IsWindowHovered() then
                 --     if not ImGui.IsWindowFocused() then
@@ -1229,7 +1226,6 @@ function ChatWin.Config_GUI(open)
         ChatWin.openConfigGUI = false
         open = false
         if useTheme then ImGui.PopStyleColor(ColorCountConf) end
-        ImGui.SetWindowFontScale(1)
         ImGui.End()
         return open
     end
@@ -1269,7 +1265,10 @@ function ChatWin.Config_GUI(open)
                 mq.cmd("/msgbox 'No File Found!")
             else
             -- Load settings from the Lua config file
-            local backup = string.format('%s/MyChat_%s_%s_BAK.lua', mq.configDir, serverName, myName)
+            local date = os.date("%m_%d_%Y_%H_%M")
+
+            print(date)
+            local backup = string.format('%s/MyChat_%s_%s_BAK_%s.lua', mq.configDir, serverName, myName, date)
             mq.pickle(backup, ChatWin.Settings)
             local newSettings = {}
             local newID = getNextID(tempSettings.Channels)
@@ -1326,7 +1325,7 @@ function ChatWin.Config_GUI(open)
     buildConfig()
 
     if useTheme then ImGui.PopStyleColor(ColorCountConf) end
-    ImGui.SetWindowFontScale(1)
+
     ImGui.End()
 end
 
@@ -1344,7 +1343,6 @@ function ChatWin.Edit_GUI(open)
         ChatWin.openEditGUI = false
         open = false
         if useTheme then ImGui.PopStyleColor(ColorCountEdit) end
-        ImGui.SetWindowFontScale(1)
         ImGui.End()
         return open
     end
@@ -1360,7 +1358,6 @@ function ChatWin.Edit_GUI(open)
     end
 
     if useTheme then ImGui.PopStyleColor(ColorCountEdit) end
-    ImGui.SetWindowFontScale(1)
     ImGui.End()
 end
 
