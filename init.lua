@@ -771,6 +771,7 @@ function ChatWin.GUI()
     --     ImGui.SetWindowFocus(name.."##"..channelID..name)
     --     end
     -- end
+    ImGui.SetWindowFontScale(1)
     ImGui.End()
 
     for channelID, data in pairs(ChatWin.Settings.Channels) do
@@ -845,12 +846,14 @@ function ChatWin.GUI()
                         ResetEvents()
                         ImGui.PopStyleVar()
                         if useTheme then ImGui.PopStyleColor(ColorCount) end
+                        ImGui.SetWindowFontScale(1)
                         ImGui.End()
                     end
                 end
 
                 ImGui.PopStyleVar()
                 if useTheme then ImGui.PopStyleColor(ColorCount) end
+                ImGui.SetWindowFontScale(1)
                 ImGui.End()
                 -- if ImGui.IsWindowHovered() then
                 --     if not ImGui.IsWindowFocused() then
@@ -1226,6 +1229,7 @@ function ChatWin.Config_GUI(open)
         ChatWin.openConfigGUI = false
         open = false
         if useTheme then ImGui.PopStyleColor(ColorCountConf) end
+        ImGui.SetWindowFontScale(1)
         ImGui.End()
         return open
     end
@@ -1322,7 +1326,7 @@ function ChatWin.Config_GUI(open)
     buildConfig()
 
     if useTheme then ImGui.PopStyleColor(ColorCountConf) end
-
+    ImGui.SetWindowFontScale(1)
     ImGui.End()
 end
 
@@ -1340,6 +1344,7 @@ function ChatWin.Edit_GUI(open)
         ChatWin.openEditGUI = false
         open = false
         if useTheme then ImGui.PopStyleColor(ColorCountEdit) end
+        ImGui.SetWindowFontScale(1)
         ImGui.End()
         return open
     end
@@ -1355,6 +1360,7 @@ function ChatWin.Edit_GUI(open)
     end
 
     if useTheme then ImGui.PopStyleColor(ColorCountEdit) end
+    ImGui.SetWindowFontScale(1)
     ImGui.End()
 end
 
