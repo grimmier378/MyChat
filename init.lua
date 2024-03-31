@@ -549,6 +549,9 @@ local function DrawChatWindow()
             ImGui.EndMenu()
         end
         if ImGui.BeginMenu('Zoom##'..windowNum) then
+            if ImGui.MenuItem('Main##MyChat', '', zoomMain) then
+                zoomMain = not zoomMain
+            end
             for channelID, settings in pairs(ChatWin.Settings.Channels) do
                 local zoom = ChatWin.Consoles[channelID].zoom
                 local name = ChatWin.Settings.Channels[channelID].Name
