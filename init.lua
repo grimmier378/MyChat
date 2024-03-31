@@ -109,14 +109,14 @@ local function loadSettings()
         -- ChatWin.Settings = defaults
         mq.pickle(ChatWin.SettingsFile, defaults)
         loadSettings()
-    else
+        else
         -- ChatWin.Settings = defaults
-    -- Load settings from the Lua config file
-    ChatWin.Settings = dofile(ChatWin.SettingsFile)
+        -- Load settings from the Lua config file
+        ChatWin.Settings = dofile(ChatWin.SettingsFile)
     end
-
+    
     useThemeName = ChatWin.Settings.LoadTheme
-
+    
     if not File_Exists(ChatWin.ThemesFile) then
         local defaultThemes = require('themes')
         theme = defaultThemes
@@ -125,7 +125,7 @@ local function loadSettings()
         -- Load settings from the Lua config file
         theme = dofile(ChatWin.ThemesFile)
     end
-
+    
     for channelID, channelData in pairs(ChatWin.Settings.Channels) do
         -- setup default Echo command channels.
         if not channelData.Echo then
@@ -135,7 +135,7 @@ local function loadSettings()
         if not ChatWin.Consoles[channelID] then
             ChatWin.Consoles[channelID] = {}
         end
-
+        
         if ChatWin.Settings.Channels[channelID].MainEnable == nil then
             ChatWin.Settings.Channels[channelID].MainEnable = true
         end
@@ -146,20 +146,20 @@ local function loadSettings()
         if ChatWin.Settings.Channels[channelID].locled == nil then
             ChatWin.Settings.Channels[channelID].look = false
         end
-
+        
         if ChatWin.Settings.Scale == nil then
             ChatWin.Settings.Scale = 1.5
         end
-
+        
         if ChatWin.Settings.locked == nil then
             ChatWin.Settings.locked = false
         end
-
+        
         SetUpConsoles(channelID)
         if not ChatWin.Settings.Channels[channelID]['Scale'] then
             ChatWin.Settings.Channels[channelID]['Scale'] = 1.0
         end
-
+        
         for eID, eData in pairs(channelData['Events']) do
             if eData.color then
                 if not ChatWin.Settings.Channels[channelID]['Events'][eID]['Filters'] then
@@ -177,34 +177,34 @@ local function loadSettings()
             for fID, fData in pairs(eData.Filters) do
                 if fData.filterString == 'TANK' then
                     ChatWin.Settings.Channels[channelID].Events[eID].Filters[fID].filterString = 'TK1'
-                elseif fData.filterString == 'PET' then
+                    elseif fData.filterString == 'PET' then
                     ChatWin.Settings.Channels[channelID].Events[eID].Filters[fID].filterString = 'PT1'
-                elseif fData.filterString == 'P1' then
+                    elseif fData.filterString == 'P1' then
                     ChatWin.Settings.Channels[channelID].Events[eID].Filters[fID].filterString = 'PT1'
-                elseif fData.filterString == 'MA' then
+                    elseif fData.filterString == 'MA' then
                     ChatWin.Settings.Channels[channelID].Events[eID].Filters[fID].filterString = 'M1'
-                elseif fData.filterString == 'HEALER' then
+                    elseif fData.filterString == 'HEALER' then
                     ChatWin.Settings.Channels[channelID].Events[eID].Filters[fID].filterString = 'H1'
-                elseif fData.filterString == 'GROUP' then
+                    elseif fData.filterString == 'GROUP' then
                     ChatWin.Settings.Channels[channelID].Events[eID].Filters[fID].filterString = 'GP1'
-                elseif fData.filterString == 'ME' then
+                    elseif fData.filterString == 'ME' then
                     ChatWin.Settings.Channels[channelID].Events[eID].Filters[fID].filterString = 'M3'
                 end
             end
         end
-
+        
     end
-
+    
     if not ChatWin.Settings.LoadTheme then
         ChatWin.Settings.LoadTheme = theme.LoadTheme
     end
-
+    
     if useThemeName ~= 'Default' then
         useTheme = true
     end
-
+    
     writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
-
+    
     tempSettings = ChatWin.Settings
 end
 
@@ -260,16 +260,16 @@ function ChatWin.EventChat(channelID, eventName, line)
                     local fString = fData.filterString
                     if string.find(fString, 'M3') then
                         fString = string.gsub(fString,'M3', mq.TLO.Me.Name())
-                    elseif string.find(fString, 'PT1') then
+                        elseif string.find(fString, 'PT1') then
                         fString = string.gsub(fString,'PT1', mq.TLO.Me.Pet.Name() or 'NO PET')
-                    elseif string.find(fString, 'M1') then
+                        elseif string.find(fString, 'M1') then
                         fString = string.gsub(fString,'M1', mq.TLO.Group.MainAssist.Name() or 'NO MA')
-                    elseif string.find(fString, 'TK1') then
+                        elseif string.find(fString, 'TK1') then
                         fString = string.gsub(fString,'TK1', mq.TLO.Group.MainTank.Name() or 'NO TANK')
-                    elseif string.find(fString, 'RL') then
+                        elseif string.find(fString, 'RL') then
                         fString = string.gsub(fString,'RL', mq.TLO.Raid.Leader.Name() or 'NO RAID')
-                    elseif string.find(fString,'GP1') then
-                            for i = 1, gSize do
+                        elseif string.find(fString,'GP1') then
+                        for i = 1, gSize do
                             fString = string.gsub(fString,'GP1', mq.TLO.Group.Member(i).Name() or 'NO GROUP')
                             if string.find(line, fString) or string.find(line, string.lower(fString)) then
                                 colorVec = fData.color
@@ -277,20 +277,20 @@ function ChatWin.EventChat(channelID, eventName, line)
                                 break
                             end
                         end
-
-                    elseif string.find(fString, 'G1') then
+                        
+                        elseif string.find(fString, 'G1') then
                         fString = string.gsub(fString,'G1', mq.TLO.Group.Member(1).Name() or 'NO GROUP')
-                    elseif string.find(fString, 'G2') then
+                        elseif string.find(fString, 'G2') then
                         fString = string.gsub(fString,'G2', mq.TLO.Group.Member(2).Name() or 'NO GROUP')
-                    elseif string.find(fString, 'G3') then
+                        elseif string.find(fString, 'G3') then
                         fString = string.gsub(fString,'G3', mq.TLO.Group.Member(3).Name() or 'NO GROUP')
-                    elseif string.find(fString, 'G4') then
+                        elseif string.find(fString, 'G4') then
                         fString = string.gsub(fString,'G4', mq.TLO.Group.Member(4).Name() or 'NO GROUP')
-                    elseif string.find(fString, 'G5') then
+                        elseif string.find(fString, 'G5') then
                         fString = string.gsub(fString,'G5', mq.TLO.Group.Member(5).Name() or 'NO GROUP')
-                    elseif string.find(fString, 'RL') then
+                        elseif string.find(fString, 'RL') then
                         fString = string.gsub(fString,'RL', mq.TLO.Raid.Leader.Name() or 'NO RAID')
-                    elseif string.find(fString, 'H1') then
+                        elseif string.find(fString, 'H1') then
                         for i = 1, gSize do
                             local class = mq.TLO.Group.Member(i).Class.ShortName() or 'NO GROUP'
                             if class == 'CLR' or class == 'DRU' or class == 'SHM' then
@@ -328,10 +328,10 @@ function ChatWin.EventChat(channelID, eventName, line)
             -- write main console
             
             if tempSettings.Channels[channelID].MainEnable then
-            
+                
                 console:AppendText(colorCode,line)
                 local z = getNextID(mainBuffer)
-
+                
                 if z > 1 then
                     if mainBuffer[z-1].text == '' then z = z-1 end
                 end
@@ -378,18 +378,18 @@ end
 ---comment
 ---@param counter integer -- the counter used for this window to keep track of color changes
 ---@param themeName string -- name of the theme to load form table
----@return integer -- returns the new counter value 
+---@return integer -- returns the new counter value
 local function DrawTheme(counter, themeName)
     -- Push Theme Colors
-        for tID, tData in pairs(theme.Theme) do
-            if tData.Name == themeName then
-                for pID, cData in pairs(theme.Theme[tID].Color) do
-                    ImGui.PushStyleColor(pID, ImVec4(cData.Color[1], cData.Color[2], cData.Color[3], cData.Color[4]))
-                    counter = counter +1
-                end
+    for tID, tData in pairs(theme.Theme) do
+        if tData.Name == themeName then
+            for pID, cData in pairs(theme.Theme[tID].Color) do
+                ImGui.PushStyleColor(pID, ImVec4(cData.Color[1], cData.Color[2], cData.Color[3], cData.Color[4]))
+                counter = counter +1
             end
         end
-        return counter
+    end
+    return counter
 end
 
 local function DrawConsole(channelID)
@@ -400,16 +400,16 @@ local function DrawConsole(channelID)
         local footerHeight = 30
         local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
         contentSizeY = contentSizeY - footerHeight
-
+        
         ImGui.BeginChild("ZoomScrollRegion##"..channelID, ImVec2(contentSizeX, contentSizeY), ImGuiWindowFlags.HorizontalScrollbar)
         ImGui.BeginTable('##channelID_'..channelID, 1, bit32.bor(ImGuiTableFlags.NoBordersInBody, ImGuiTableFlags.RowBg))
         ImGui.TableSetupColumn("##txt"..channelID, ImGuiTableColumnFlags.NoHeaderLabel)
         --- draw rows ---
-
+        
         ImGui.TableNextRow()
         ImGui.TableSetColumnIndex(0)
         ImGui.SetWindowFontScale(scale)
-
+        
         for line, data in pairs(ChatWin.Consoles[channelID].txtBuffer) do
             ImGui.PushStyleColor(ImGuiCol.Text, ImVec4(data.color[1], data.color[2], data.color[3], data.color[4]))
             if ImGui.Selectable("##selectable" .. line, false, ImGuiSelectableFlags.None) then end
@@ -424,71 +424,71 @@ local function DrawConsole(channelID)
             ImGui.TableSetColumnIndex(0)
             ImGui.PopStyleColor()
         end
-
+        
         ImGui.SetWindowFontScale(1)
-
+        
         --Scroll to the bottom if autoScroll is enabled
         local autoScroll = ChatWin.Consoles[channelID].txtAutoScroll
         if autoScroll then
             ImGui.SetScrollHereY()
             ChatWin.Consoles[channelID].bottomPosition = ImGui.GetCursorPosY()
         end
-
+        
         local bottomPosition = ChatWin.Consoles[channelID].bottomPosition or 0
         -- Detect manual scroll
         local lastScrollPos = ChatWin.Consoles[channelID].lastScrollPos or 0
         local scrollPos = ImGui.GetScrollY()
-
+        
         if scrollPos < lastScrollPos then
             ChatWin.Consoles[channelID].txtAutoScroll = false  -- Turn off autoscroll if scrolled up manually
             elseif scrollPos >= bottomPosition-10 then
             ChatWin.Consoles[channelID].txtAutoScroll = true
         end
-
+        
         lastScrollPos = scrollPos
         ChatWin.Consoles[channelID].lastScrollPos = lastScrollPos
-
+        
         ImGui.EndTable()
-
+        
         ImGui.EndChild()
         
         else
-            local footerHeight = 30
-            local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
-            contentSizeY = contentSizeY - footerHeight
-            ChatWin.Consoles[channelID].console:Render(ImVec2(contentSizeX,contentSizeY))
+        local footerHeight = 30
+        local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
+        contentSizeY = contentSizeY - footerHeight
+        ChatWin.Consoles[channelID].console:Render(ImVec2(contentSizeX,contentSizeY))
     end
---Command Line
-ImGui.Separator()
-local textFlags = bit32.bor(0,
-    ImGuiInputTextFlags.EnterReturnsTrue
-    -- not implemented yet
-    -- ImGuiInputTextFlags.CallbackCompletion,
-    -- ImGuiInputTextFlags.CallbackHistory
-)
-local contentSizeX, _ = ImGui.GetContentRegionAvail()
-ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6)
-ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2)
-ImGui.PushItemWidth(contentSizeX)
-ImGui.PushStyleColor(ImGuiCol.FrameBg, ImVec4(0, 0, 0, 0))
-ImGui.PushFont(ImGui.ConsoleFont)
-local accept = false
-local cmdBuffer = ChatWin.Settings.Channels[channelID].commandBuffer
-cmdBuffer, accept = ImGui.InputText('##Input##'..name, cmdBuffer, textFlags)
-ImGui.PopFont()
-ImGui.PopStyleColor()
-ImGui.PopItemWidth()
-if accept then
-    ChatWin.ChannelExecCommand(cmdBuffer, channelID)
-    cmdBuffer = ''
-    ChatWin.Settings.Channels[channelID].commandBuffer = cmdBuffer
-    setFocus = true
-end
-ImGui.SetItemDefaultFocus()
-if setFocus then
-    setFocus = false
-    ImGui.SetKeyboardFocusHere(-1)
-end
+    --Command Line
+    ImGui.Separator()
+    local textFlags = bit32.bor(0,
+        ImGuiInputTextFlags.EnterReturnsTrue
+        -- not implemented yet
+        -- ImGuiInputTextFlags.CallbackCompletion,
+        -- ImGuiInputTextFlags.CallbackHistory
+    )
+    local contentSizeX, _ = ImGui.GetContentRegionAvail()
+    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6)
+    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2)
+    ImGui.PushItemWidth(contentSizeX)
+    ImGui.PushStyleColor(ImGuiCol.FrameBg, ImVec4(0, 0, 0, 0))
+    ImGui.PushFont(ImGui.ConsoleFont)
+    local accept = false
+    local cmdBuffer = ChatWin.Settings.Channels[channelID].commandBuffer
+    cmdBuffer, accept = ImGui.InputText('##Input##'..name, cmdBuffer, textFlags)
+    ImGui.PopFont()
+    ImGui.PopStyleColor()
+    ImGui.PopItemWidth()
+    if accept then
+        ChatWin.ChannelExecCommand(cmdBuffer, channelID)
+        cmdBuffer = ''
+        ChatWin.Settings.Channels[channelID].commandBuffer = cmdBuffer
+        setFocus = true
+    end
+    ImGui.SetItemDefaultFocus()
+    if setFocus then
+        setFocus = false
+        ImGui.SetKeyboardFocusHere(-1)
+    end
 end
 
 local function DrawChatWindow()
@@ -521,7 +521,7 @@ local function DrawChatWindow()
             --     drawNew = true
             --     print(windowNum)
             -- end
-
+            
             ImGui.Separator()
             if ImGui.MenuItem('Reset Position##'..windowNum) then
                 resetPosition = true
@@ -537,40 +537,40 @@ local function DrawChatWindow()
             ImGui.Spacing()
             ImGui.EndMenu()
         end
-            if ImGui.BeginMenu('Channels##'..windowNum) then
-                for channelID, settings in pairs(ChatWin.Settings.Channels) do
-                    local enabled = ChatWin.Settings.Channels[channelID].enabled
-                    local name = ChatWin.Settings.Channels[channelID].Name
-                    if ImGui.MenuItem(name, '', enabled) then
-                        ChatWin.Settings.Channels[channelID].enabled = not enabled
-                        writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
-                    end
+        if ImGui.BeginMenu('Channels##'..windowNum) then
+            for channelID, settings in pairs(ChatWin.Settings.Channels) do
+                local enabled = ChatWin.Settings.Channels[channelID].enabled
+                local name = ChatWin.Settings.Channels[channelID].Name
+                if ImGui.MenuItem(name, '', enabled) then
+                    ChatWin.Settings.Channels[channelID].enabled = not enabled
+                    writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
                 end
-                ImGui.EndMenu()
             end
-            if ImGui.BeginMenu('Zoom##'..windowNum) then
-                for channelID, settings in pairs(ChatWin.Settings.Channels) do
-                    local zoom = ChatWin.Consoles[channelID].zoom
-                    local name = ChatWin.Settings.Channels[channelID].Name
-                    if ImGui.MenuItem(name, '', zoom) then
-                        ChatWin.Consoles[channelID].zoom = not zoom
-                    end
+            ImGui.EndMenu()
+        end
+        if ImGui.BeginMenu('Zoom##'..windowNum) then
+            for channelID, settings in pairs(ChatWin.Settings.Channels) do
+                local zoom = ChatWin.Consoles[channelID].zoom
+                local name = ChatWin.Settings.Channels[channelID].Name
+                if ImGui.MenuItem(name, '', zoom) then
+                    ChatWin.Consoles[channelID].zoom = not zoom
                 end
-                ImGui.EndMenu()
             end
-            if ImGui.BeginMenu('PopOut##'..windowNum) then
-                for channelID, settings in pairs(ChatWin.Settings.Channels) do
-                    local PopOut = ChatWin.Settings.Channels[channelID].PopOut
-                    local name = ChatWin.Settings.Channels[channelID].Name
-                    if ImGui.MenuItem(name, '', PopOut) then
-                        PopOut = not PopOut
-                        ChatWin.Settings.Channels[channelID].PopOut = PopOut
-                        tempSettings.Channels[channelID].PopOut = PopOut
-                        writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
-                    end
+            ImGui.EndMenu()
+        end
+        if ImGui.BeginMenu('PopOut##'..windowNum) then
+            for channelID, settings in pairs(ChatWin.Settings.Channels) do
+                local PopOut = ChatWin.Settings.Channels[channelID].PopOut
+                local name = ChatWin.Settings.Channels[channelID].Name
+                if ImGui.MenuItem(name, '', PopOut) then
+                    PopOut = not PopOut
+                    ChatWin.Settings.Channels[channelID].PopOut = PopOut
+                    tempSettings.Channels[channelID].PopOut = PopOut
+                    writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
                 end
-                ImGui.EndMenu()
             end
+            ImGui.EndMenu()
+        end
         ImGui.EndMenuBar()
     end
     -- End of menu bar
@@ -596,77 +596,77 @@ local function DrawChatWindow()
                 ImGui.EndPopup()
             end
             if not zoomMain then
-            console:Render(ImVec2(contentSizeX,contentSizeY))
-            --Command Line
-            ImGui.Separator()
+                console:Render(ImVec2(contentSizeX,contentSizeY))
+                --Command Line
+                ImGui.Separator()
+                local textFlags = bit32.bor(0,
+                    ImGuiInputTextFlags.EnterReturnsTrue
+                    -- not implemented yet
+                    -- ImGuiInputTextFlags.CallbackCompletion,
+                    -- ImGuiInputTextFlags.CallbackHistory
+                )
+                else
+                local footerHeight = 30
+                local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
+                contentSizeY = contentSizeY - footerHeight
+                
+                ImGui.BeginChild("ZoomScrollRegion##"..windowNum, ImVec2(contentSizeX, contentSizeY), ImGuiWindowFlags.HorizontalScrollbar)
+                ImGui.BeginTable('##channelID_'..windowNum, 1, bit32.bor(ImGuiTableFlags.NoBordersInBody, ImGuiTableFlags.RowBg))
+                ImGui.TableSetupColumn("##txt"..windowNum, ImGuiTableColumnFlags.NoHeaderLabel)
+                --- draw rows ---
+                
+                ImGui.TableNextRow()
+                ImGui.TableSetColumnIndex(0)
+                ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
+                
+                for line, data in pairs(mainBuffer) do
+                    ImGui.PushStyleColor(ImGuiCol.Text, ImVec4(data.color[1], data.color[2], data.color[3], data.color[4]))
+                    if ImGui.Selectable("##selectable" .. line, false, ImGuiSelectableFlags.None) then end
+                    ImGui.SameLine()
+                    ImGui.TextWrapped(data.text)
+                    if ImGui.IsItemHovered() and ImGui.IsKeyDown(ImGuiMod.Ctrl) and ImGui.IsKeyDown(ImGuiKey.C) then
+                        ImGui.LogToClipboard()
+                        ImGui.LogText(data.text)
+                        ImGui.LogFinish()
+                    end
+                    ImGui.TableNextRow()
+                    ImGui.TableSetColumnIndex(0)
+                    ImGui.PopStyleColor()
+                end
+                
+                ImGui.SetWindowFontScale(1)
+                
+                --Scroll to the bottom if autoScroll is enabled
+                local autoScroll = AutoScroll
+                if autoScroll then
+                    ImGui.SetScrollHereY()
+                    mainBottomPosition = ImGui.GetCursorPosY()
+                end
+                
+                local bottomPosition = mainBottomPosition or 0
+                -- Detect manual scroll
+                local lastScrollPos = mainLastScrollPos or 0
+                local scrollPos = ImGui.GetScrollY()
+                
+                if scrollPos < lastScrollPos then
+                    AutoScroll = false  -- Turn off autoscroll if scrolled up manually
+                    elseif scrollPos >= bottomPosition-10 then
+                    AutoScroll = true
+                end
+                
+                lastScrollPos = scrollPos
+                mainLastScrollPos = lastScrollPos
+                
+                ImGui.EndTable()
+                
+                ImGui.EndChild()
+            end
             local textFlags = bit32.bor(0,
                 ImGuiInputTextFlags.EnterReturnsTrue
                 -- not implemented yet
                 -- ImGuiInputTextFlags.CallbackCompletion,
                 -- ImGuiInputTextFlags.CallbackHistory
             )
-        else
-            local footerHeight = 30
-            local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
-            contentSizeY = contentSizeY - footerHeight
-
-            ImGui.BeginChild("ZoomScrollRegion##"..windowNum, ImVec2(contentSizeX, contentSizeY), ImGuiWindowFlags.HorizontalScrollbar)
-            ImGui.BeginTable('##channelID_'..windowNum, 1, bit32.bor(ImGuiTableFlags.NoBordersInBody, ImGuiTableFlags.RowBg))
-            ImGui.TableSetupColumn("##txt"..windowNum, ImGuiTableColumnFlags.NoHeaderLabel)
-            --- draw rows ---
-
-            ImGui.TableNextRow()
-            ImGui.TableSetColumnIndex(0)
-            ImGui.SetWindowFontScale(1.5)
-
-            for line, data in pairs(mainBuffer) do
-                ImGui.PushStyleColor(ImGuiCol.Text, ImVec4(data.color[1], data.color[2], data.color[3], data.color[4]))
-                if ImGui.Selectable("##selectable" .. line, false, ImGuiSelectableFlags.None) then end
-                ImGui.SameLine()
-                ImGui.TextWrapped(data.text)
-                if ImGui.IsItemHovered() and ImGui.IsKeyDown(ImGuiMod.Ctrl) and ImGui.IsKeyDown(ImGuiKey.C) then
-                    ImGui.LogToClipboard()
-                    ImGui.LogText(data.text)
-                    ImGui.LogFinish()
-                end
-                ImGui.TableNextRow()
-                ImGui.TableSetColumnIndex(0)
-                ImGui.PopStyleColor()
-            end
-
-            ImGui.SetWindowFontScale(1)
-
-            --Scroll to the bottom if autoScroll is enabled
-            local autoScroll = AutoScroll
-            if autoScroll then
-                ImGui.SetScrollHereY()
-                mainBottomPosition = ImGui.GetCursorPosY()
-            end
-
-            local bottomPosition = mainBottomPosition or 0
-            -- Detect manual scroll
-            local lastScrollPos = mainLastScrollPos or 0
-            local scrollPos = ImGui.GetScrollY()
-
-            if scrollPos < lastScrollPos then
-                AutoScroll = false  -- Turn off autoscroll if scrolled up manually
-                elseif scrollPos >= bottomPosition-10 then
-                AutoScroll = true
-            end
-
-            lastScrollPos = scrollPos
-            mainLastScrollPos = lastScrollPos
-
-            ImGui.EndTable()
-
-            ImGui.EndChild()
-        end
-        local textFlags = bit32.bor(0,
-        ImGuiInputTextFlags.EnterReturnsTrue
-        -- not implemented yet
-        -- ImGuiInputTextFlags.CallbackCompletion,
-        -- ImGuiInputTextFlags.CallbackHistory
-    )
             local contentSizeX, _ = ImGui.GetContentRegionAvail()
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6)
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2)
@@ -697,43 +697,43 @@ local function DrawChatWindow()
                 local name = ChatWin.Settings.Channels[channelID].Name..'##'..windowNum
                 local zoom = ChatWin.Consoles[channelID].zoom
                 local scale = ChatWin.Settings.Channels[channelID].Scale
-
+                
                 local PopOut = ChatWin.Settings.Channels[channelID].PopOut
                 if not PopOut then
-                if ImGui.BeginTabItem(name) then
-                    ActTab = name
-                    activeID = channelID
-                    if ImGui.BeginPopupContextWindow() then
-                        if ImGui.Selectable('Clear##'..windowNum) then
-                            ChatWin.Consoles[channelID].console:Clear()
-                            ChatWin.Consoles[channelID].txtBuffer = {}
+                    if ImGui.BeginTabItem(name) then
+                        ActTab = name
+                        activeID = channelID
+                        if ImGui.BeginPopupContextWindow() then
+                            if ImGui.Selectable('Clear##'..windowNum) then
+                                ChatWin.Consoles[channelID].console:Clear()
+                                ChatWin.Consoles[channelID].txtBuffer = {}
+                            end
+                            if ImGui.Selectable('Configure##'..windowNum) then
+                                editChanID =  channelID
+                                addChannel = false
+                                fromConf = false
+                                tempSettings = ChatWin.Settings
+                                ChatWin.openEditGUI = true
+                                ChatWin.openConfigGUI = false
+                            end
+                            if ImGui.Selectable('Zoom##'..windowNum) then
+                                zoom = not zoom
+                                ChatWin.Consoles[channelID].zoom = zoom
+                            end
+                            if ImGui.Selectable('Popout##'..windowNum) then
+                                PopOut = not PopOut
+                                ChatWin.Settings.Channels[channelID].PopOut = PopOut
+                                tempSettings.Channels[channelID].PopOut = PopOut
+                                writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+                            end
+                            ImGui.EndPopup()
                         end
-                        if ImGui.Selectable('Configure##'..windowNum) then
-                            editChanID =  channelID
-                            addChannel = false
-                            fromConf = false
-                            tempSettings = ChatWin.Settings
-                            ChatWin.openEditGUI = true
-                            ChatWin.openConfigGUI = false
-                        end
-                        if ImGui.Selectable('Zoom##'..windowNum) then
-                            zoom = not zoom
-                            ChatWin.Consoles[channelID].zoom = zoom
-                        end
-                        if ImGui.Selectable('Popout##'..windowNum) then
-                            PopOut = not PopOut
-                            ChatWin.Settings.Channels[channelID].PopOut = PopOut
-                            tempSettings.Channels[channelID].PopOut = PopOut
-                            writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
-                        end
-                        ImGui.EndPopup()
-                    end
-                    
+                        
                         DrawConsole(channelID)
-                    
-                    ImGui.EndTabItem()
+                        
+                        ImGui.EndTabItem()
+                    end
                 end
-            end
                 -- if ImGui.IsItemHovered() then
                 --         ImGui.BeginTooltip()
                 --         local sizeBuff = string.format("Buffer Size: %s lines.",tostring(getNextID(ChatWin.Consoles[channelID].txtBuffer)-1))
@@ -746,7 +746,7 @@ local function DrawChatWindow()
         ImGui.EndTabBar()
     end
     -- End Tab Bar
-
+    
 end
 
 function ChatWin.GUI()
@@ -763,11 +763,11 @@ function ChatWin.GUI()
     if ChatWin.Settings.locked then
         winFlags = bit32.bor(ImGuiWindowFlags.MenuBar,ImGuiWindowFlags.NoMove, ImGuiWindowFlags.NoScrollbar)
     end
-
+    
     ChatWin.openGUI, ChatWin.SHOW = ImGui.Begin(windowName, ChatWin.openGUI, winFlags)
-
+    
     if ChatWin.openGUI then
-
+        
         DrawChatWindow()
     end
     if useTheme then ImGui.PopStyleColor(ColorCount) end
@@ -778,9 +778,9 @@ function ChatWin.GUI()
     --     end
     -- end
     ImGui.End()
-
+    
     for channelID, data in pairs(ChatWin.Settings.Channels) do
-
+        
         if ChatWin.Settings.Channels[channelID].enabled then
             local name = ChatWin.Settings.Channels[channelID].Name..'##'..windowNum
             local zoom = ChatWin.Consoles[channelID].zoom
@@ -789,7 +789,7 @@ function ChatWin.GUI()
             local ShowPop = ChatWin.Settings.Channels[channelID].PopOut
             if ChatWin.Settings.Channels[channelID].locked then
                 ChatWin.PopOutFlags = bit32.bor(ImGuiWindowFlags.NoScrollbar, ImGuiWindowFlags.NoMove)
-            else
+                else
                 ChatWin.PopOutFlags = bit32.bor(ImGuiWindowFlags.NoScrollbar)
             end
             if PopOut then
@@ -807,7 +807,7 @@ function ChatWin.GUI()
                         end
                     end
                 end
-
+                
                 PopOut, show = ImGui.Begin(name.."##"..channelID..name, PopOut, ChatWin.PopOutFlags)
                 if show then
                     
@@ -835,7 +835,7 @@ function ChatWin.GUI()
                         addChannel = false
                         fromConf = false
                         tempSettings = ChatWin.Settings
-                        ChatWin.openEditGUI = not ChatWin.openEditGUI 
+                        ChatWin.openEditGUI = not ChatWin.openEditGUI
                         ChatWin.openConfigGUI = false
                     end
                     if ImGui.IsItemHovered() then
@@ -844,7 +844,7 @@ function ChatWin.GUI()
                         ImGui.EndTooltip()
                     end
                     DrawConsole(channelID)
-                else
+                    else
                     if not ShowPop then
                         ChatWin.Settings.Channels[channelID].PopOut = ShowPop
                         tempSettings.Channels[channelID].PopOut = ShowPop
@@ -854,7 +854,7 @@ function ChatWin.GUI()
                         ImGui.End()
                     end
                 end
-
+                
                 ImGui.PopStyleVar()
                 if useTheme then ImGui.PopStyleColor(ColorCount) end
                 ImGui.End()
@@ -866,7 +866,7 @@ function ChatWin.GUI()
             end
         end
     end
-
+    
 end
 
 -------------------------------- Configure Windows and Events GUI ---------------------------
@@ -882,7 +882,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
     local tmpEcho = '/say'
     local tmpFilter = 'NewFilter'
     local channelData = {}
-
+    
     if not tempEventStrings[editChanID] then tempEventStrings[editChanID] = {} end
     if not tempChanColors then tempChanColors = {} end
     if not tempFiltColors[editChanID] then tempFiltColors[editChanID] = {} end
@@ -890,7 +890,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
     if not tempFilterStrings[editChanID] then tempFilterStrings[editChanID] = {} end
     if not tempEventStrings[editChanID] then channelData[editChanID] = {} end
     if not tempEventStrings[editChanID][editEventID] then tempEventStrings[editChanID][editEventID] = {} end
-
+    
     if not isNewChannel then
         for eID, eData in pairs(tempSettings.Channels[editChanID].Events)do
             if not tempFiltColors[editChanID][eID] then tempFiltColors[editChanID][eID] = {} end
@@ -901,7 +901,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
             end
         end
     end
-
+    
     if tempSettings.Channels[editChanID] then
         channelData = tempSettings.Channels
         elseif
@@ -929,7 +929,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
         }
         tempSettings.Channels[editChanID] = channelData[editChanID]
     end
-
+    
     if newEvent then
         local maxEventId = getNextID(channelData[editChanID].Events)
         -- print(maxEventId)
@@ -1031,7 +1031,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
             ImGui.EndTooltip()
         end
     end
-
+    
     ImGui.SeparatorText('Events and Filters')
     ImGui.BeginChild("Details")
     ------------------------------ table -------------------------------------
@@ -1088,7 +1088,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                 if not tempChanColors[editChanID][eventID] then
                     tempChanColors[editChanID][eventID] = eventDetails.Filters[0].color or {1.0, 1.0, 1.0, 1.0} -- Default to white with full opacity
                 end
-
+                
                 tempChanColors[editChanID][eventID] = ImGui.ColorEdit4("##Color" .. bufferKey, tempChanColors[editChanID][eventID], MyColorFlags)
                 ImGui.TableSetColumnIndex(3)
                 if ImGui.Button("Delete##" .. bufferKey) then
@@ -1111,8 +1111,8 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                 ImGui.SeparatorText('')
                 --------------- Filters ----------------------
                 for filterID, filterData in pairs(eventDetails.Filters) do
-
-
+                    
+                    
                     if filterID > 0 and filterData.filterString ~= '' then
                         ImGui.TableNextRow()
                         ImGui.TableSetColumnIndex(0)
@@ -1193,7 +1193,7 @@ local function buildConfig()
                                 ChatWin.openConfigGUI = false
                             end
                             once = false
-                        else
+                            else
                             ImGui.Dummy(1,1)
                         end
                         ImGui.TableSetColumnIndex(1)
@@ -1226,7 +1226,7 @@ function ChatWin.Config_GUI(open)
         local themeName = tempSettings.LoadTheme
         ColorCountConf = DrawTheme(ColorCountConf, themeName)
     end
-
+    
     open, ChatWin.openConfigGUI = ImGui.Begin("Event Configuration", open, bit32.bor(ImGuiWindowFlags.None, ImGuiWindowFlags.NoCollapse))
     if not ChatWin.openConfigGUI then
         ChatWin.openConfigGUI = false
@@ -1244,12 +1244,12 @@ function ChatWin.Config_GUI(open)
         ChatWin.openEditGUI = true
         ChatWin.openConfigGUI = false
     end
-
+    
     ImGui.SameLine()
     if ImGui.Button("Reload Theme File") then
         loadSettings()
     end
-
+    
     ImGui.SameLine()
     -- Close Button
     if ImGui.Button('Close') then
@@ -1259,43 +1259,43 @@ function ChatWin.Config_GUI(open)
         ChatWin.Settings = tempSettings
         ResetEvents()
     end
-
+    
     ImGui.SeparatorText('Import Settings')
-    importFile = ImGui.InputText('Import##FileName', importFile, 256)
+    importFile = ImGui.InputTextWithHint('Import##FileName', importFile,importFile, 256)
     ImGui.SameLine()
     cleanImport = ImGui.Checkbox('Clean Import##clean', cleanImport)
-
+    
     if ImGui.Button('Import Channels') then
         local tmp = mq.configDir..'/'..importFile
         if not File_Exists(tmp) then
-                mq.cmd("/msgbox 'No File Found!")
+            mq.cmd("/msgbox 'No File Found!")
             else
             -- Load settings from the Lua config file
             local date = os.date("%m_%d_%Y_%H_%M")
-
+            
             print(date)
             local backup = string.format('%s/MyChat_%s_%s_BAK_%s.lua', mq.configDir, serverName, myName, date)
             mq.pickle(backup, ChatWin.Settings)
             local newSettings = {}
             local newID = getNextID(tempSettings.Channels)
-
+            
             newSettings = dofile(tmp)
             print(tostring(cleanImport))
-        if not cleanImport and lastImport ~= tmp then
-            for cID, cData in pairs(newSettings.Channels) do
-                for existingCID, existingCData in pairs(tempSettings.Channels) do
-                    if existingCData.Name == cData.Name then
-                        local newName = cData.Name.. '_NEW'
-                        cData.Name = newName
+            if not cleanImport and lastImport ~= tmp then
+                for cID, cData in pairs(newSettings.Channels) do
+                    for existingCID, existingCData in pairs(tempSettings.Channels) do
+                        if existingCData.Name == cData.Name then
+                            local newName = cData.Name.. '_NEW'
+                            cData.Name = newName
+                        end
                     end
+                    tempSettings.Channels[newID] = cData
+                    newID = newID + 1
                 end
-                tempSettings.Channels[newID] = cData
-                newID = newID + 1
+                else
+                tempSettings = {}
+                tempSettings = newSettings
             end
-        else
-            tempSettings = {}
-            tempSettings = newSettings
-        end
             lastImport = tmp
             ResetEvents()
         end
@@ -1325,25 +1325,24 @@ function ChatWin.Config_GUI(open)
     if ChatWin.Settings.Scale ~= tmpZoom then
         ChatWin.Settings.Scale = tmpZoom
         tempSettings.Scale = tmpZoom
-        ResetEvents()
     end
     ImGui.SeparatorText('Channels and Events Overview')
     buildConfig()
-
+    
     if useTheme then ImGui.PopStyleColor(ColorCountConf) end
-
+    
     ImGui.End()
 end
 
 function ChatWin.Edit_GUI(open)
     ColorCountEdit = 0
     if not ChatWin.openEditGUI then return end
-
+    
     if useTheme then
         local themeName = ChatWin.Settings.LoadTheme
         ColorCountEdit = DrawTheme(ColorCountEdit, themeName)
     end
-
+    
     open, ChatWin.openEditGUI = ImGui.Begin("Channel Editor", open, bit32.bor(ImGuiWindowFlags.None, ImGuiWindowFlags.NoCollapse))
     if not ChatWin.openEditGUI then
         ChatWin.openEditGUI = false
@@ -1362,7 +1361,7 @@ function ChatWin.Edit_GUI(open)
         editChanID = 0
         editEventID = 0
     end
-
+    
     if useTheme then ImGui.PopStyleColor(ColorCountEdit) end
     ImGui.End()
 end
@@ -1377,7 +1376,7 @@ function ChatWin.ExecCommand(text)
     if LocalEcho then
         console:AppendText(IM_COL32(128, 128, 128), "> %s", text)
     end
-
+    
     local eChan = '/say'
     -- todo: implement history
     if string.len(text) > 0 then
@@ -1391,7 +1390,7 @@ function ChatWin.ExecCommand(text)
             if string.find(eChan, '_') then
                 eChan = string.gsub(eChan,'_','')
                 text = string.format("%s%s",eChan, text)
-            else
+                else
                 text = string.format("%s %s",eChan, text)
             end
         end
@@ -1409,7 +1408,7 @@ function ChatWin.ChannelExecCommand(text, channelID)
     if LocalEcho then
         console:AppendText(IM_COL32(128, 128, 128), "> %s", text)
     end
-
+    
     local eChan = '/say'
     -- todo: implement history
     if string.len(text) > 0 then
@@ -1423,7 +1422,7 @@ function ChatWin.ChannelExecCommand(text, channelID)
             if string.find(eChan, '_') then
                 eChan = string.gsub(eChan,'_','')
                 text = string.format("%s%s",eChan, text)
-            else
+                else
                 text = string.format("%s %s",eChan, text)
             end
         end
