@@ -236,13 +236,37 @@ local function ResetEvents()
     BuildEvents()
 end
 
+local function CheckGroup(string, line, type)
+    local tString = string
+        for i = 1, 5 do
+            local class = mq.TLO.Group.Member(i).Class.ShortName() or 'NO GROUP'
+            local name = mq.TLO.Group.Member(i).Name() or 'NO GROUP'
+            if type == 'healer' then
+                class = mq.TLO.Group.Member(i).Class.ShortName() or 'NO GROUP'
+                if (class == 'CLR') or (class == 'DRU') or (class == 'SHM') then
+                    name = mq.TLO.Group.Member(i).CleanName() or 'NO GROUP'
+                    tString = string.gsub(string,'H1', name)
+                end
+            end
+            if type == 'group' then
+                tString = string.gsub(string, 'GP1', name)
+            end
+            if string.find(line,tString) then
+                string = tString
+                return string
+            end
+            name = ''
+        end
+        return string
+end
+
 --[[ Reads in the line, channelID and eventName of the triggered events. Parses the line against the Events and Filters for that channel.
     adjusts coloring for the line based on settings for the matching event / filter and writes to the corresponding console.
     if an event contains filters and the line doesn't match any of them we discard the line and return.
 If there are no filters we use the event default coloring and write to the consoles. ]]
----@param channelID integer -- The ID number of the Channel the triggered event belongs to
----@param eventName string -- the name of the event that was triggered
----@param line string -- the line of text that triggred the event
+---@param channelID integer @ The ID number of the Channel the triggered event belongs to
+---@param eventName string @ the name of the event that was triggered
+---@param line string @ the line of text that triggred the event
 function ChatWin.EventChat(channelID, eventName, line)
     local eventDetails = eventNames[eventName]
     if not eventDetails then return end
@@ -260,51 +284,33 @@ function ChatWin.EventChat(channelID, eventName, line)
                     local fString = fData.filterString
                     if string.find(fString, 'M3') then
                         fString = string.gsub(fString,'M3', mq.TLO.Me.Name())
-                        elseif string.find(fString, 'PT1') then
+                    elseif string.find(fString, 'PT1') then
                         fString = string.gsub(fString,'PT1', mq.TLO.Me.Pet.Name() or 'NO PET')
-                        elseif string.find(fString, 'M1') then
+                    elseif string.find(fString, 'M1') then
                         fString = string.gsub(fString,'M1', mq.TLO.Group.MainAssist.Name() or 'NO MA')
-                        elseif string.find(fString, 'TK1') then
+                    elseif string.find(fString, 'TK1') then
                         fString = string.gsub(fString,'TK1', mq.TLO.Group.MainTank.Name() or 'NO TANK')
-                        elseif string.find(fString, 'RL') then
+                    elseif string.find(fString, 'RL') then
                         fString = string.gsub(fString,'RL', mq.TLO.Raid.Leader.Name() or 'NO RAID')
-                        elseif string.find(fString,'GP1') then
-                        for i = 1, gSize do
-                            fString = string.gsub(fString,'GP1', mq.TLO.Group.Member(i).Name() or 'NO GROUP')
-                            if string.find(line, fString) or string.find(line, string.lower(fString)) then
-                                colorVec = fData.color
-                                fMatch = true
-                                break
-                            end
-                        end
-                        
-                        elseif string.find(fString, 'G1') then
+                    elseif string.find(fString, 'G1') then
                         fString = string.gsub(fString,'G1', mq.TLO.Group.Member(1).Name() or 'NO GROUP')
-                        elseif string.find(fString, 'G2') then
+                    elseif string.find(fString, 'G2') then
                         fString = string.gsub(fString,'G2', mq.TLO.Group.Member(2).Name() or 'NO GROUP')
-                        elseif string.find(fString, 'G3') then
+                    elseif string.find(fString, 'G3') then
                         fString = string.gsub(fString,'G3', mq.TLO.Group.Member(3).Name() or 'NO GROUP')
-                        elseif string.find(fString, 'G4') then
+                    elseif string.find(fString, 'G4') then
                         fString = string.gsub(fString,'G4', mq.TLO.Group.Member(4).Name() or 'NO GROUP')
-                        elseif string.find(fString, 'G5') then
+                    elseif string.find(fString, 'G5') then
                         fString = string.gsub(fString,'G5', mq.TLO.Group.Member(5).Name() or 'NO GROUP')
-                        elseif string.find(fString, 'RL') then
+                    elseif string.find(fString, 'RL') then
                         fString = string.gsub(fString,'RL', mq.TLO.Raid.Leader.Name() or 'NO RAID')
-                        elseif string.find(fString, 'H1') then
-                        for i = 1, gSize do
-                            local class = mq.TLO.Group.Member(i).Class.ShortName() or 'NO GROUP'
-                            if class == 'CLR' or class == 'DRU' or class == 'SHM' then
-                                fString = string.gsub(fString,'H1', mq.TLO.Group.Member(i).Name())
-                                if string.find(line, fString) then
-                                    colorVec = fData.color
-                                    fMatch = true
-                                    break
-                                end
-                            end
-                        end
+                    elseif string.find(fString, 'H1') then
+                        fString = CheckGroup(fString, line, 'healer')
+                    elseif string.find(fString,'GP1') then
+                        fString = CheckGroup(fString, line, 'group')
                     end
                     
-                    if string.find(line, fString) and not fMatch then
+                    if string.find(line, fString) then
                         colorVec = fData.color
                         fMatch = true
                     end
@@ -1455,7 +1461,7 @@ end
 
 local function loop()
     while ChatWin.openGUI do
-        mq.delay(1)
+        mq.delay(100)
         mq.doevents()
     end
 end
