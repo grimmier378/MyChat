@@ -236,6 +236,11 @@ local function ResetEvents()
     BuildEvents()
 end
 
+---comment
+---@param string string @ the filter string we are parsing
+---@param line string @ the line captured by the event
+---@param type string @ the type either 'healer' or 'group' for tokens H1 and GP1 respectivly.
+---@return string string @ new value for the filter string if found else return the original
 local function CheckGroup(string, line, type)
     local tString = string
         for i = 1, 5 do
@@ -255,7 +260,6 @@ local function CheckGroup(string, line, type)
                 string = tString
                 return string
             end
-            name = ''
         end
         return string
 end
