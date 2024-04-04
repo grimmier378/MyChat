@@ -21,7 +21,7 @@ local tempFilterStrings, tempEventStrings, tempChanColors, tempFiltColors = {}, 
 local ActTab, activeID = 'Main', 0 -- info about active tab channels
 local theme = {} -- table to hold the themes file into.
 local useThemeName = 'Default' -- Name of the theme we wish to apply
-local ColorCountEdit,ColorCountConf, ColorCount = 0, 0, 0
+local ColorCountEdit,ColorCountConf, ColorCount, StyleCount, StyleCountEdit, StyleCountConf = 0, 0, 0, 0, 0, 0
 local lastImport = 'none' -- file name of the last imported file, if we try and import the same file again we will abort.
 local windowNum = 0 --unused will remove later.
 local fromConf = false -- Did we open the edit channel window from the main config window? if we did we will go back to that window after closing.
@@ -242,8 +242,10 @@ end
 ---@param type string @ the type either 'healer' or 'group' for tokens H1 and GP1 respectivly.
 ---@return string string @ new value for the filter string if found else return the original
 local function CheckGroup(string, line, type)
+    local gSize = mq.TLO.Me.GroupSize()
+    gSize = gSize -1
     local tString = string
-        for i = 1, 5 do
+        for i = 1, gSize do
             local class = mq.TLO.Group.Member(i).Class.ShortName() or 'NO GROUP'
             local name = mq.TLO.Group.Member(i).Name() or 'NO GROUP'
             if type == 'healer' then
@@ -386,20 +388,34 @@ end
 ------------------------------------------ GUI's --------------------------------------------
 
 ---comment
----@param counter integer -- the counter used for this window to keep track of color changes
 ---@param themeName string -- name of the theme to load form table
----@return integer -- returns the new counter value
-local function DrawTheme(counter, themeName)
-    -- Push Theme Colors
+---@return integer, integer -- returns the new counter values 
+local function DrawTheme(themeName)
+    local StyleCounter = 0
+    local ColorCounter = 0
     for tID, tData in pairs(theme.Theme) do
         if tData.Name == themeName then
             for pID, cData in pairs(theme.Theme[tID].Color) do
                 ImGui.PushStyleColor(pID, ImVec4(cData.Color[1], cData.Color[2], cData.Color[3], cData.Color[4]))
-                counter = counter +1
+                ColorCounter = ColorCounter + 1
+            end
+            if tData['Style'] ~= nil then
+                if next(tData['Style']) ~= nil then
+                    
+                    for sID, sData in pairs (theme.Theme[tID].Style) do
+                        if sData.Size ~= nil then
+                            ImGui.PushStyleVar(sID, sData.Size)
+                            StyleCounter = StyleCounter + 1
+                            elseif sData.X ~= nil then
+                            ImGui.PushStyleVar(sID, sData.X, sData.Y)
+                            StyleCounter = StyleCounter + 1
+                        end
+                    end
+                end
             end
         end
     end
-    return counter
+    return ColorCounter, StyleCounter
 end
 
 local function DrawConsole(channelID)
@@ -765,12 +781,12 @@ end
 function ChatWin.GUI()
     if not ChatWin.openGUI then return false end
     ColorCount = 0
+    StyleCount = 0
     local windowName = 'My Chat - Main##'..myName..'_'..windowNum
     ImGui.SetNextWindowSize(ImVec2(640, 480), ImGuiCond.FirstUseEver)
-    ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, ImVec2(1, 0));
     if useTheme then
         local themeName = tempSettings.LoadTheme
-        ColorCount = DrawTheme(ColorCount, themeName)
+        ColorCount, StyleCount = DrawTheme(themeName)
     end
     local winFlags = ChatWin.winFlags
     if ChatWin.Settings.locked then
@@ -783,13 +799,9 @@ function ChatWin.GUI()
         
         DrawChatWindow()
     end
-    if useTheme then ImGui.PopStyleColor(ColorCount) end
-    ImGui.PopStyleVar()
-    -- if ImGui.IsWindowHovered() then
-    --     if not ImGui.IsWindow then
-    --     ImGui.SetWindowFocus(name.."##"..channelID..name)
-    --     end
-    -- end
+    if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) end
+    if ColorCount > 0 then ImGui.PopStyleColor(ColorCount) end
+
     ImGui.End()
     
     for channelID, data in pairs(ChatWin.Settings.Channels) do
@@ -807,19 +819,13 @@ function ChatWin.GUI()
             end
             if PopOut then
                 ColorCount = 0
+                StyleCount = 0
                 ImGui.SetNextWindowSize(ImVec2(640, 480), ImGuiCond.FirstUseEver)
-                ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, ImVec2(1, 0));
-                if useTheme then
+                
+
                     local themeName = tempSettings.LoadTheme
-                    for tID, tData in pairs(theme.Theme) do
-                        if tData.Name == themeName then
-                            for pID, cData in pairs(theme.Theme[tID].Color) do
-                                ImGui.PushStyleColor(pID, ImVec4(cData.Color[1], cData.Color[2], cData.Color[3], cData.Color[4]))
-                                ColorCount = ColorCount +1
-                            end
-                        end
-                    end
-                end
+                    ColorCount, StyleCount = DrawTheme(themeName)
+
                 
                 PopOut, show = ImGui.Begin(name.."##"..channelID..name, PopOut, ChatWin.PopOutFlags)
                 if show then
@@ -862,14 +868,16 @@ function ChatWin.GUI()
                         ChatWin.Settings.Channels[channelID].PopOut = ShowPop
                         tempSettings.Channels[channelID].PopOut = ShowPop
                         ResetEvents()
-                        ImGui.PopStyleVar()
-                        if useTheme then ImGui.PopStyleColor(ColorCount) end
+                        if StyleCount > 0  then ImGui.PopStyleVar(StyleCount) end
+                        if ColorCount > 0  then ImGui.PopStyleColor(ColorCount) end
+
                         ImGui.End()
                     end
                 end
                 
                 ImGui.PopStyleVar()
-                if useTheme then ImGui.PopStyleColor(ColorCount) end
+                if StyleCount > 0  then ImGui.PopStyleVar(StyleCount) end
+                if ColorCount > 0  then ImGui.PopStyleColor(ColorCount) end
                 ImGui.End()
                 -- if ImGui.IsWindowHovered() then
                 --     if not ImGui.IsWindowFocused() then
@@ -1232,19 +1240,21 @@ end
 function ChatWin.Config_GUI(open)
     if not ChatWin.openConfigGUI then return end
     ColorCountConf = 0
+    StyleCountConf = 0
     local themeName = tempSettings.LoadTheme or 'notheme'
     if themeName ~= 'notheme' then useTheme = true end
     -- Push Theme Colors
     if useTheme then
         local themeName = tempSettings.LoadTheme
-        ColorCountConf = DrawTheme(ColorCountConf, themeName)
+        ColorCountConf, StyleCountConf = DrawTheme(themeName)
     end
     
     open, ChatWin.openConfigGUI = ImGui.Begin("Event Configuration", open, bit32.bor(ImGuiWindowFlags.None, ImGuiWindowFlags.NoCollapse))
     if not ChatWin.openConfigGUI then
         ChatWin.openConfigGUI = false
         open = false
-        if useTheme then ImGui.PopStyleColor(ColorCountConf) end
+        if ColorCountConf > 0 then ImGui.PopStyleColor(ColorCountConf) end
+        if StyleCountConf > 0 then ImGui.PopStyleVar(StyleCountConf) end
         ImGui.End()
         return open
     end
@@ -1341,26 +1351,28 @@ function ChatWin.Config_GUI(open)
     end
     ImGui.SeparatorText('Channels and Events Overview')
     buildConfig()
-    
-    if useTheme then ImGui.PopStyleColor(ColorCountConf) end
+    if ColorCountConf > 0 then ImGui.PopStyleColor(ColorCountConf) end
+    if StyleCountConf > 0 then ImGui.PopStyleVar(StyleCountConf) end
     
     ImGui.End()
 end
 
 function ChatWin.Edit_GUI(open)
     ColorCountEdit = 0
+    StyleCountEdit = 0
     if not ChatWin.openEditGUI then return end
     
     if useTheme then
         local themeName = ChatWin.Settings.LoadTheme
-        ColorCountEdit = DrawTheme(ColorCountEdit, themeName)
+        ColorCountEdit, StyleCountEdit = DrawTheme(themeName)
     end
     
     open, ChatWin.openEditGUI = ImGui.Begin("Channel Editor", open, bit32.bor(ImGuiWindowFlags.None, ImGuiWindowFlags.NoCollapse))
     if not ChatWin.openEditGUI then
         ChatWin.openEditGUI = false
         open = false
-        if useTheme then ImGui.PopStyleColor(ColorCountEdit) end
+        if ColorCountEdit > 0 then ImGui.PopStyleColor(ColorCountEdit) end
+        if StyleCountEdit > 0 then ImGui.PopStyleVar(StyleCountEdit) end
         ImGui.End()
         return open
     end
@@ -1375,7 +1387,8 @@ function ChatWin.Edit_GUI(open)
         editEventID = 0
     end
     
-    if useTheme then ImGui.PopStyleColor(ColorCountEdit) end
+    if ColorCountEdit > 0 then ImGui.PopStyleColor(ColorCountEdit) end
+    if StyleCountEdit > 0 then ImGui.PopStyleVar(StyleCountEdit) end
     ImGui.End()
 end
 
