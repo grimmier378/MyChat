@@ -120,7 +120,6 @@ local function loadSettings()
     if not File_Exists(ChatWin.ThemesFile) then
         local defaultThemes = require('themes')
         theme = defaultThemes
-        mq.pickle(ChatWin.ThemesFile, theme)
         else
         -- Load settings from the Lua config file
         theme = dofile(ChatWin.ThemesFile)
@@ -1051,7 +1050,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
     for eventID, eventDetails in pairs(channelData[editChanID].Events) do
         local collapsed, _ = ImGui.CollapsingHeader(channelData[editChanID].Name .. ' : ' ..eventDetails.eventString)
         -- Check if the header is collapsed
-        if not collapsed then
+        if collapsed then
             if ImGui.BeginTable("Channel Events##"..editChanID, 4, bit32.bor(ImGuiTableFlags.NoHostExtendX)) then
                 ImGui.TableSetupColumn("ID's##_", ImGuiTableColumnFlags.WidthAlwaysAutoResize, 100)
                 ImGui.TableSetupColumn("Strings", ImGuiTableColumnFlags.WidthStretch, 150)
@@ -1179,7 +1178,7 @@ local function buildConfig()
         if channelID ~= lastID then
             local collapsed, _ = ImGui.CollapsingHeader(channelData.Name)
             -- Check if the header is collapsed
-            if not collapsed then
+            if collapsed then
                 -- Begin a table for events within this channel
                 if ImGui.BeginTable("ChannelEvents_" .. channelData.Name, 4, bit32.bor(ImGuiTableFlags.Resizable, ImGuiTableFlags.RowBg, ImGuiTableFlags.Borders, ImGui.GetWindowWidth() - 5)) then
                     -- Set up table columns once
