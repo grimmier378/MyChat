@@ -120,7 +120,6 @@ local function loadSettings()
     if not File_Exists(ChatWin.ThemesFile) then
         local defaultThemes = require('themes')
         theme = defaultThemes
-        mq.pickle(ChatWin.ThemesFile, theme)
         else
         -- Load settings from the Lua config file
         theme = dofile(ChatWin.ThemesFile)
@@ -1051,7 +1050,8 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
     for eventID, eventDetails in pairs(channelData[editChanID].Events) do
         local collapsed, _ = ImGui.CollapsingHeader(channelData[editChanID].Name .. ' : ' ..eventDetails.eventString)
         -- Check if the header is collapsed
-        if not collapsed then
+        if collapsed then
+            ImGui.BeginChild('Events##'..eventID, 0.0,0.0,bit32.bor(ImGuiChildFlags.Border, ImGuiChildFlags.AutoResizeY))
             if ImGui.BeginTable("Channel Events##"..editChanID, 4, bit32.bor(ImGuiTableFlags.NoHostExtendX)) then
                 ImGui.TableSetupColumn("ID's##_", ImGuiTableColumnFlags.WidthAlwaysAutoResize, 100)
                 ImGui.TableSetupColumn("Strings", ImGuiTableColumnFlags.WidthStretch, 150)
@@ -1166,6 +1166,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                 end
                 ImGui.EndTable()
             end
+            ImGui.EndChild()
         end
         lastChan = 0
     end
@@ -1179,7 +1180,8 @@ local function buildConfig()
         if channelID ~= lastID then
             local collapsed, _ = ImGui.CollapsingHeader(channelData.Name)
             -- Check if the header is collapsed
-            if not collapsed then
+            if collapsed then
+                ImGui.BeginChild('Channels##'..channelID, 0.0,0.0,bit32.bor(ImGuiChildFlags.Border, ImGuiChildFlags.AutoResizeY))
                 -- Begin a table for events within this channel
                 if ImGui.BeginTable("ChannelEvents_" .. channelData.Name, 4, bit32.bor(ImGuiTableFlags.Resizable, ImGuiTableFlags.RowBg, ImGuiTableFlags.Borders, ImGui.GetWindowWidth() - 5)) then
                     -- Set up table columns once
@@ -1221,6 +1223,7 @@ local function buildConfig()
                     -- End the table for this channel
                     ImGui.EndTable()
                 end
+                ImGui.EndChild()
             end
         end
         lastID = channelID
