@@ -821,15 +821,13 @@ function ChatWin.GUI()
                 ColorCount = 0
                 StyleCount = 0
                 ImGui.SetNextWindowSize(ImVec2(640, 480), ImGuiCond.FirstUseEver)
-                
 
                     local themeName = tempSettings.LoadTheme
                     ColorCount, StyleCount = DrawTheme(themeName)
 
-                
                 PopOut, show = ImGui.Begin(name.."##"..channelID..name, PopOut, ChatWin.PopOutFlags)
                 if show then
-                    
+
                     local lockedIcon = ChatWin.Settings.Channels[channelID].locked and Icons.FA_LOCK .. '##lockTabButton'..channelID or
                     Icons.FA_UNLOCK .. '##lockTablButton'..channelID
                     if ImGui.Button(lockedIcon) then
@@ -874,20 +872,13 @@ function ChatWin.GUI()
                         ImGui.End()
                     end
                 end
-                
-                ImGui.PopStyleVar()
+
                 if StyleCount > 0  then ImGui.PopStyleVar(StyleCount) end
                 if ColorCount > 0  then ImGui.PopStyleColor(ColorCount) end
                 ImGui.End()
-                -- if ImGui.IsWindowHovered() then
-                --     if not ImGui.IsWindowFocused() then
-                --     ImGui.SetWindowFocus(name.."##"..channelID..name)
-                --     end
-                -- end
             end
         end
     end
-    
 end
 
 -------------------------------- Configure Windows and Events GUI ---------------------------
