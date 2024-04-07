@@ -466,7 +466,7 @@ local function DrawConsole(channelID)
         
         if scrollPos < lastScrollPos then
             ChatWin.Consoles[channelID].txtAutoScroll = false  -- Turn off autoscroll if scrolled up manually
-            elseif scrollPos >= bottomPosition-10 then
+            elseif scrollPos >= bottomPosition-(30 * scale) then
             ChatWin.Consoles[channelID].txtAutoScroll = true
         end
         
@@ -519,6 +519,7 @@ end
 local function DrawChatWindow()
     -- Main menu bar
     if ImGui.BeginMenuBar() then
+        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, 4,7)
         local lockedIcon = ChatWin.Settings.locked and Icons.FA_LOCK .. '##lockTabButton_MyChat' or
         Icons.FA_UNLOCK .. '##lockTablButton_MyChat'
         if ImGui.Button(lockedIcon) then
@@ -612,6 +613,7 @@ local function DrawChatWindow()
         end
         ImGui.EndMenuBar()
     end
+    ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, 4,3)
     ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
     -- End of menu bar
     -- Begin Tabs Bars
@@ -692,7 +694,7 @@ local function DrawChatWindow()
                 
                 if scrollPos < lastScrollPos then
                     AutoScroll = false  -- Turn off autoscroll if scrolled up manually
-                    elseif scrollPos >= bottomPosition-10 then
+                    elseif scrollPos >= bottomPosition - (30 * ChatWin.Settings.Scale) then
                     AutoScroll = true
                 end
                 
@@ -815,7 +817,7 @@ function ChatWin.GUI()
         
         DrawChatWindow()
     end
-    if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) end
+    if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) else ImGui.PopStyleVar(1) end
     if ColorCount > 0 then ImGui.PopStyleColor(ColorCount) end
 
     ImGui.End()
@@ -900,7 +902,7 @@ function ChatWin.GUI()
         end
     end
 end
-
+local hString = nil
 -------------------------------- Configure Windows and Events GUI ---------------------------
 local importFile = 'MyChat_Server_CharName.lua'
 local cleanImport = false
@@ -1067,10 +1069,12 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
     
     ImGui.SeparatorText('Events and Filters')
     ImGui.BeginChild("Details")
+
     ------------------------------ table -------------------------------------
     if not channelData[editChanID] then ImGui.EndChild() return end
     for eventID, eventDetails in pairs(channelData[editChanID].Events) do
-        local collapsed, _ = ImGui.CollapsingHeader(channelData[editChanID].Name .. ' : ' ..eventDetails.eventString)
+        if hString == nil then hString = string.format(channelData[editChanID].Name .. ' : ' ..eventDetails.eventString) end
+        local collapsed, _ = ImGui.CollapsingHeader(hString)
         -- Check if the header is collapsed
         if collapsed then
             ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
@@ -1118,6 +1122,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                 tmpString = tempEventStrings[editChanID][eventID].eventString
                 local bufferKey = editChanID .. "_" .. tostring(eventID)
                 tmpString = ImGui.InputText("Event String##EventString" .. bufferKey, tmpString, 256)
+                hString = hString
                 if tempEventStrings[editChanID][eventID].eventString ~= tmpString then tempEventStrings[editChanID][eventID].eventString = tmpString end
                 ImGui.TableSetColumnIndex(2)
                 if not tempChanColors[editChanID][eventID] then
@@ -1190,6 +1195,8 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                 ImGui.EndTable()
             end
             ImGui.EndChild()
+        else
+            hString = string.format(channelData[editChanID].Name .. ' : ' ..eventDetails.eventString)
         end
         lastChan = 0
     end
