@@ -528,14 +528,18 @@ local function DrawChatWindow()
             ResetEvents()
         end
         if ImGui.IsItemHovered() then
+            ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
             ImGui.BeginTooltip()
             ImGui.Text("Lock Window")
             ImGui.EndTooltip()
+            ImGui.SetWindowFontScale(1)
         end
         if ImGui.Button(gIcon..'##'..windowNum) then
             ChatWin.openConfigGUI = not ChatWin.openConfigGUI
         end
+        
         if ImGui.BeginMenu('Options##'..windowNum) then
+            ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
             _, console.autoScroll = ImGui.MenuItem('Auto-scroll##'..windowNum, nil, console.autoScroll)
             _, LocalEcho = ImGui.MenuItem('Local echo##'..windowNum, nil, LocalEcho)
             _, timeStamps = ImGui.MenuItem('Time Stamps##'..windowNum, nil, timeStamps)
@@ -560,9 +564,11 @@ local function DrawChatWindow()
                 ChatWin.openGUI = false
             end
             ImGui.Spacing()
+            ImGui.SetWindowFontScale(1)
             ImGui.EndMenu()
         end
         if ImGui.BeginMenu('Channels##'..windowNum) then
+            ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
             for channelID, settings in pairs(ChatWin.Settings.Channels) do
                 local enabled = ChatWin.Settings.Channels[channelID].enabled
                 local name = ChatWin.Settings.Channels[channelID].Name
@@ -572,8 +578,10 @@ local function DrawChatWindow()
                 end
             end
             ImGui.EndMenu()
+            ImGui.SetWindowFontScale(1)
         end
         if ImGui.BeginMenu('Zoom##'..windowNum) then
+            ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
             if ImGui.MenuItem('Main##MyChat', '', zoomMain) then
                 zoomMain = not zoomMain
             end
@@ -584,9 +592,11 @@ local function DrawChatWindow()
                     ChatWin.Consoles[channelID].zoom = not zoom
                 end
             end
+            ImGui.SetWindowFontScale(1)
             ImGui.EndMenu()
         end
         if ImGui.BeginMenu('PopOut##'..windowNum) then
+            ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
             for channelID, settings in pairs(ChatWin.Settings.Channels) do
                 local PopOut = ChatWin.Settings.Channels[channelID].PopOut
                 local name = ChatWin.Settings.Channels[channelID].Name
@@ -597,10 +607,12 @@ local function DrawChatWindow()
                     writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
                 end
             end
+            ImGui.SetWindowFontScale(1)
             ImGui.EndMenu()
         end
         ImGui.EndMenuBar()
     end
+    ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
     -- End of menu bar
     -- Begin Tabs Bars
     if ImGui.BeginTabBar('Channels##'..windowNum, ChatWin.tabFlags) then
@@ -612,6 +624,7 @@ local function DrawChatWindow()
             local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
             contentSizeY = contentSizeY - footerHeight
             if ImGui.BeginPopupContextWindow() then
+                ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
                 if ImGui.Selectable('Clear##'..windowNum) then
                     console:Clear()
                     mainBuffer = {}
@@ -621,6 +634,7 @@ local function DrawChatWindow()
                     zoomMain = not zoomMain
                     
                 end
+                ImGui.SetWindowFontScale(1)
                 ImGui.EndPopup()
             end
             if not zoomMain then
@@ -731,7 +745,9 @@ local function DrawChatWindow()
                     if ImGui.BeginTabItem(name) then
                         ActTab = name
                         activeID = channelID
+                        
                         if ImGui.BeginPopupContextWindow() then
+                            ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
                             if ImGui.Selectable('Clear##'..windowNum) then
                                 ChatWin.Consoles[channelID].console:Clear()
                                 ChatWin.Consoles[channelID].txtBuffer = {}
@@ -754,6 +770,7 @@ local function DrawChatWindow()
                                 tempSettings.Channels[channelID].PopOut = PopOut
                                 writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
                             end
+                            ImGui.SetWindowFontScale(1)
                             ImGui.EndPopup()
                         end
                         
@@ -836,9 +853,11 @@ function ChatWin.GUI()
                         ResetEvents()
                     end
                     if ImGui.IsItemHovered() then
+                        ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
                         ImGui.BeginTooltip()
                         ImGui.Text("Lock Window")
                         ImGui.EndTooltip()
+                        ImGui.SetWindowFontScale(1)
                     end
                     if PopOut ~= ChatWin.Settings.Channels[channelID].PopOut then
                         ChatWin.Settings.Channels[channelID].PopOut = PopOut
@@ -855,9 +874,11 @@ function ChatWin.GUI()
                         ChatWin.openConfigGUI = false
                     end
                     if ImGui.IsItemHovered() then
+                        ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
                         ImGui.BeginTooltip()
                         ImGui.Text("Opens the Edit window for this channel")
                         ImGui.EndTooltip()
+                        ImGui.SetWindowFontScale(1)
                     end
                     DrawConsole(channelID)
                     else
@@ -957,6 +978,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
         newEvent = false
     end
     ---------------- Buttons Sliders and Channel Name ------------------------
+    ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
     if lastChan == 0 then
         --print(channelData.Name)
         if not tempEventStrings[editChanID].Name then
@@ -1051,6 +1073,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
         local collapsed, _ = ImGui.CollapsingHeader(channelData[editChanID].Name .. ' : ' ..eventDetails.eventString)
         -- Check if the header is collapsed
         if collapsed then
+            ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
             ImGui.BeginChild('Events##'..eventID, 0.0,0.0,bit32.bor(ImGuiChildFlags.Border, ImGuiChildFlags.AutoResizeY))
             if ImGui.BeginTable("Channel Events##"..editChanID, 4, bit32.bor(ImGuiTableFlags.NoHostExtendX)) then
                 ImGui.TableSetupColumn("ID's##_", ImGuiTableColumnFlags.WidthAlwaysAutoResize, 100)
@@ -1171,6 +1194,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
         lastChan = 0
     end
     ImGui.EndChild()
+    ImGui.SetWindowFontScale(1)
 end
 
 local function buildConfig()
@@ -1181,6 +1205,7 @@ local function buildConfig()
             local collapsed, _ = ImGui.CollapsingHeader(channelData.Name)
             -- Check if the header is collapsed
             if collapsed then
+                ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
                 ImGui.BeginChild('Channels##'..channelID, 0.0,0.0,bit32.bor(ImGuiChildFlags.Border, ImGuiChildFlags.AutoResizeY))
                 -- Begin a table for events within this channel
                 if ImGui.BeginTable("ChannelEvents_" .. channelData.Name, 4, bit32.bor(ImGuiTableFlags.Resizable, ImGuiTableFlags.RowBg, ImGuiTableFlags.Borders, ImGui.GetWindowWidth() - 5)) then
@@ -1224,6 +1249,7 @@ local function buildConfig()
                     ImGui.EndTable()
                 end
                 ImGui.EndChild()
+                ImGui.SetWindowFontScale(1)
             end
         end
         lastID = channelID
@@ -1252,6 +1278,7 @@ function ChatWin.Config_GUI(open)
         ImGui.End()
         return open
     end
+    ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
     -- Add a button to add a new row
     if ImGui.Button("Add Channel") then
         editChanID =  getNextID(ChatWin.Settings.Channels)
@@ -1347,7 +1374,7 @@ function ChatWin.Config_GUI(open)
     buildConfig()
     if ColorCountConf > 0 then ImGui.PopStyleColor(ColorCountConf) end
     if StyleCountConf > 0 then ImGui.PopStyleVar(StyleCountConf) end
-    
+    ImGui.SetWindowFontScale(1)
     ImGui.End()
 end
 
@@ -1370,7 +1397,7 @@ function ChatWin.Edit_GUI(open)
         ImGui.End()
         return open
     end
-    
+    ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
     ChatWin.AddChannel(editChanID, addChannel)
     ImGui.SameLine()
     -- Close Button
@@ -1380,7 +1407,7 @@ function ChatWin.Edit_GUI(open)
         editChanID = 0
         editEventID = 0
     end
-    
+    ImGui.SetWindowFontScale(1)
     if ColorCountEdit > 0 then ImGui.PopStyleColor(ColorCountEdit) end
     if StyleCountEdit > 0 then ImGui.PopStyleVar(StyleCountEdit) end
     ImGui.End()
