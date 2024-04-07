@@ -902,7 +902,7 @@ function ChatWin.GUI()
         end
     end
 end
-local hString = nil
+local hString = {}
 -------------------------------- Configure Windows and Events GUI ---------------------------
 local importFile = 'MyChat_Server_CharName.lua'
 local cleanImport = false
@@ -1073,8 +1073,8 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
     ------------------------------ table -------------------------------------
     if not channelData[editChanID] then ImGui.EndChild() return end
     for eventID, eventDetails in pairs(channelData[editChanID].Events) do
-        if hString == nil then hString = string.format(channelData[editChanID].Name .. ' : ' ..eventDetails.eventString) end
-        local collapsed, _ = ImGui.CollapsingHeader(hString)
+        if hString[eventID] == nil then hString[eventID] = string.format(channelData[editChanID].Name .. ' : ' ..eventDetails.eventString) end
+        local collapsed, _ = ImGui.CollapsingHeader(hString[eventID])
         -- Check if the header is collapsed
         if collapsed then
             ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
@@ -1122,7 +1122,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                 tmpString = tempEventStrings[editChanID][eventID].eventString
                 local bufferKey = editChanID .. "_" .. tostring(eventID)
                 tmpString = ImGui.InputText("Event String##EventString" .. bufferKey, tmpString, 256)
-                hString = hString
+                hString[eventID] = hString[eventID]
                 if tempEventStrings[editChanID][eventID].eventString ~= tmpString then tempEventStrings[editChanID][eventID].eventString = tmpString end
                 ImGui.TableSetColumnIndex(2)
                 if not tempChanColors[editChanID][eventID] then
@@ -1196,7 +1196,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
             end
             ImGui.EndChild()
         else
-            hString = string.format(channelData[editChanID].Name .. ' : ' ..eventDetails.eventString)
+            hString[eventID] = string.format(channelData[editChanID].Name .. ' : ' ..eventDetails.eventString)
         end
         lastChan = 0
     end
