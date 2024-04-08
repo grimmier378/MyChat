@@ -519,7 +519,7 @@ end
 local function DrawChatWindow()
     -- Main menu bar
     if ImGui.BeginMenuBar() then
-        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, 4,7)
+        if ChatWin.Settings.Scale > 1.5 then ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, 4,7) end
         local lockedIcon = ChatWin.Settings.locked and Icons.FA_LOCK .. '##lockTabButton_MyChat' or
         Icons.FA_UNLOCK .. '##lockTablButton_MyChat'
         if ImGui.Button(lockedIcon) then
