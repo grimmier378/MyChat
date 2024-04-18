@@ -147,7 +147,7 @@ local function loadSettings()
         end
         
         if ChatWin.Settings.Scale == nil then
-            ChatWin.Settings.Scale = 1.5
+            ChatWin.Settings.Scale = 1.0
         end
         
         if ChatWin.Settings.locked == nil then
@@ -268,7 +268,7 @@ end
 --[[ Reads in the line, channelID and eventName of the triggered events. Parses the line against the Events and Filters for that channel.
     adjusts coloring for the line based on settings for the matching event / filter and writes to the corresponding console.
     if an event contains filters and the line doesn't match any of them we discard the line and return.
-If there are no filters we use the event default coloring and write to the consoles. ]]
+    If there are no filters we use the event default coloring and write to the consoles. ]]
 ---@param channelID integer @ The ID number of the Channel the triggered event belongs to
 ---@param eventName string @ the name of the event that was triggered
 ---@param line string @ the line of text that triggred the event
@@ -276,17 +276,18 @@ function ChatWin.EventChat(channelID, eventName, line)
     local eventDetails = eventNames[eventName]
     if not eventDetails then return end
     if ChatWin.Consoles[channelID] then
-        local txtBuffer = ChatWin.Consoles[channelID].txtBuffer
-        local colorVec = eventDetails.Filters[0].color or {1,1,1,1}
+        local txtBuffer = ChatWin.Consoles[channelID].txtBuffer -- Text buffer for the channel ID we are working with.
+        local colorVec = eventDetails.Filters[0].color or {1,1,1,1} -- Color Code to change line to, default is white
         local fMatch = false
-        local gSize = mq.TLO.Me.GroupSize()
+        local gSize = mq.TLO.Me.GroupSize() -- size of the group including yourself
         gSize = gSize -1
+
         if txtBuffer then
             local fCount = 0
             for fID, fData in pairs(eventDetails.Filters) do
                 if fID > 0 and not fMatch then
                     fCount = fID
-                    local fString = fData.filterString
+                    local fString = fData.filterString -- String value we are filtering for
                     if string.find(fString, 'M3') then
                         fString = string.gsub(fString,'M3', mq.TLO.Me.Name())
                     elseif string.find(fString, 'PT1') then
@@ -779,6 +780,11 @@ local function DrawChatWindow()
                         DrawConsole(channelID)
                         
                         ImGui.EndTabItem()
+                        if ImGui.IsItemHovered() then
+                            ImGui.BeginTooltip()
+                            ImGui.Text(ChatWin.Settings.Channels[channelID].Echo)
+                            ImGui.EndTooltip()
+                        end
                     end
                 end
                 -- if ImGui.IsItemHovered() then
@@ -798,8 +804,7 @@ end
 
 function ChatWin.GUI()
     if not ChatWin.openGUI then return false end
-    ColorCount = 0
-    StyleCount = 0
+
     local windowName = 'My Chat - Main##'..myName..'_'..windowNum
     ImGui.SetNextWindowSize(ImVec2(640, 480), ImGuiCond.FirstUseEver)
     if useTheme then
@@ -826,7 +831,7 @@ function ChatWin.GUI()
         
         if ChatWin.Settings.Channels[channelID].enabled then
             local name = ChatWin.Settings.Channels[channelID].Name..'##'..windowNum
-            local zoom = ChatWin.Consoles[channelID].zoom
+            -- local zoom = ChatWin.Consoles[channelID].zoom
             -- local scale = ChatWin.Settings.Channels[channelID].Scale
             local PopOut = ChatWin.Settings.Channels[channelID].PopOut
             local ShowPop = ChatWin.Settings.Channels[channelID].PopOut
@@ -930,7 +935,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
             if not tempFiltColors[editChanID][eID] then tempFiltColors[editChanID][eID] = {} end
             for fID, fData in pairs(eData.Filters) do
                 if not tempFiltColors[editChanID][eID][fID] then tempFiltColors[editChanID][eID][fID] = {} end
-                if not tempFiltColors[editChanID][eID][fID] then tempFiltColors[editChanID][eID][fID] = {} end
+                -- if not tempFiltColors[editChanID][eID][fID] then tempFiltColors[editChanID][eID][fID] = {} end
                 tempFiltColors[editChanID][eID][fID] = fData.color or {1,1,1,1}
             end
         end
