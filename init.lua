@@ -233,6 +233,7 @@ local function ResetEvents()
     for eventName, _ in pairs(eventNames) do
         mq.unevent(eventName)
     end
+
     eventNames = {}
     loadSettings()
     BuildEvents()
@@ -1053,22 +1054,29 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
             -- Skip 'Name' key used for the channel name
             if eventId ~= 'Name' then
                 if eventData and eventData.eventString then
+                    local tempEString = eventData.eventString or 'New'
+                    if tempEString == '' then tempEString = 'New' end
                     channelEvents[eventId] = channelEvents[eventId] or {color = {1.0, 1.0, 1.0, 1.0}, Filters = {}}
-                    channelEvents[eventId].eventString = eventData.eventString
+                    channelEvents[eventId].eventString = tempEString --eventData.eventString
                     channelEvents[eventId].color = tempChanColors[editChanID][eventId] or channelEvents[eventId].color
                     channelEvents[eventId].Filters = {}
                     for filterID, filterData in pairs(tempFilterStrings[editChanID][eventId] or {}) do
+                        local tempFString = filterData or 'New'
+                        --print(filterData.." : "..tempFString)
+                        if tempFString == '' or tempFString == nil then tempFString = 'New' end
                         channelEvents[eventId].Filters[filterID] = {
-                            filterString = filterData,
+                            filterString = tempFString,
                             color = tempFiltColors[editChanID][eventId][filterID] or {1.0, 1.0, 1.0, 1.0} -- Default to white with full opacity if color not found
                         }
                     end
                 end
             end
         end
+        tempSettings.Channels[editChanID].Events = channelEvents
         ChatWin.Settings = tempSettings
         ResetEvents()
         ChatWin.openEditGUI = false
+        tempFilterStrings, tempEventStrings, tempChanColors, tempFiltColors, hString, channelData = {}, {}, {}, {}, {}, {}
         if fromConf then ChatWin.openConfigGUI = true end
     end
     ImGui.SameLine()
