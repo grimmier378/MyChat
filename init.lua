@@ -17,7 +17,7 @@ local tempSettings, eventNames = {}, {} -- tables for storing event details
 local useTheme, timeStamps, newEvent, newFilter= false, true, false, false
 local zBuffer = 1000 -- the buffer size for the Zoom chat buffer.
 local editChanID, editEventID, lastID, lastChan = 0, 0, 0, 0
-local tempFilterStrings, tempEventStrings, tempChanColors, tempFiltColors = {}, {}, {}, {} -- Tables to store our strings and color values for editing
+local tempFilterStrings, tempEventStrings, tempChanColors, tempFiltColors, hString = {}, {}, {}, {}, {} -- Tables to store our strings and color values for editing
 local ActTab, activeID = 'Main', 0 -- info about active tab channels
 local theme = {} -- table to hold the themes file into.
 local useThemeName = 'Default' -- Name of the theme we wish to apply
@@ -30,6 +30,9 @@ local zoomMain = false
 local mainLastScrollPos = 0
 local mainBottomPosition = 0
 local mainBuffer = {}
+local importFile = 'MyChat_Server_CharName.lua'
+local cleanImport = false
+local Tokens = {} -- may use this later to hold the tokens and remove a long string of if elseif.
 
 local ChatWin = {
     SHOW = true,
@@ -99,9 +102,9 @@ end
 ---comment Writes settings from the settings table passed to the setting file (full path required)
 -- Uses mq.pickle to serialize the table and write to file
 ---@param file string -- File Name and path
----@param settings table -- Table of settings to write
-local function writeSettings(file, settings)
-    mq.pickle(file, settings)
+---@param table table -- Table of settings to write
+local function writeSettings(file, table)
+    mq.pickle(file, table)
 end
 
 local function loadSettings()
@@ -289,9 +292,9 @@ function ChatWin.EventChat(channelID, eventName, line)
                     fCount = fID
                     local fString = fData.filterString -- String value we are filtering for
                     if string.find(fString, 'M3') then
-                        fString = string.gsub(fString,'M3', mq.TLO.Me.Name())
+                        fString = string.gsub(fString,'M3', myName)
                     elseif string.find(fString, 'PT1') then
-                        fString = string.gsub(fString,'PT1', mq.TLO.Me.Pet.Name() or 'NO PET')
+                        fString = string.gsub(fString,'PT1', mq.TLO.Me.Pet.DisplayName() or 'NO PET')
                     elseif string.find(fString, 'M1') then
                         fString = string.gsub(fString,'M1', mq.TLO.Group.MainAssist.Name() or 'NO MA')
                     elseif string.find(fString, 'TK1') then
@@ -388,13 +391,13 @@ end
 ------------------------------------------ GUI's --------------------------------------------
 
 ---comment
----@param themeName string -- name of the theme to load form table
+---@param tName string -- name of the theme to load form table
 ---@return integer, integer -- returns the new counter values 
-local function DrawTheme(themeName)
+local function DrawTheme(tName)
     local StyleCounter = 0
     local ColorCounter = 0
     for tID, tData in pairs(theme.Theme) do
-        if tData.Name == themeName then
+        if tData.Name == tName then
             for pID, cData in pairs(theme.Theme[tID].Color) do
                 ImGui.PushStyleColor(pID, ImVec4(cData.Color[1], cData.Color[2], cData.Color[3], cData.Color[4]))
                 ColorCounter = ColorCounter + 1
@@ -422,6 +425,7 @@ local function DrawConsole(channelID)
     local name = ChatWin.Settings.Channels[channelID].Name..'##'..channelID
     local zoom = ChatWin.Consoles[channelID].zoom
     local scale = ChatWin.Settings.Channels[channelID].Scale
+    local PopOut = ChatWin.Settings.Channels[channelID].PopOut
     if zoom and ChatWin.Consoles[channelID].txtBuffer ~= '' then
         local footerHeight = 30
         local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
@@ -504,6 +508,16 @@ local function DrawConsole(channelID)
     ImGui.PopFont()
     ImGui.PopStyleColor()
     ImGui.PopItemWidth()
+    if ImGui.IsItemHovered() then
+        ImGui.BeginTooltip()
+        ImGui.Text(ChatWin.Settings.Channels[channelID].Echo)
+        if PopOut then
+            ImGui.Text(ChatWin.Settings.Channels[channelID].Name)
+            local sizeBuff = string.format("Buffer Size: %s lines.",tostring(getNextID(ChatWin.Consoles[channelID].txtBuffer)-1))
+            ImGui.Text(sizeBuff)
+        end
+        ImGui.EndTooltip()
+    end
     if accept then
         ChatWin.ChannelExecCommand(cmdBuffer, channelID)
         cmdBuffer = ''
@@ -621,6 +635,13 @@ local function DrawChatWindow()
     if ImGui.BeginTabBar('Channels##'..windowNum, ChatWin.tabFlags) then
         -- Begin Main tab
         if ImGui.BeginTabItem('Main##'..windowNum) then
+            if ImGui.IsItemHovered() then
+                ImGui.BeginTooltip()
+                ImGui.Text('Main')
+                local sizeBuff = string.format("Buffer Size: %s lines.",tostring(getNextID(mainBuffer)-1))
+                ImGui.Text(sizeBuff)
+                ImGui.EndTooltip()
+            end
             ActTab = 'Main'
             activeID = 0
             local footerHeight = 30
@@ -735,6 +756,13 @@ local function DrawChatWindow()
             end
             ImGui.EndTabItem()
         end
+        if ImGui.IsItemHovered() then
+            ImGui.BeginTooltip()
+            ImGui.Text('Main')
+            local sizeBuff = string.format("Buffer Size: %s lines.",tostring(getNextID(mainBuffer)-1))
+            ImGui.Text(sizeBuff)
+            ImGui.EndTooltip()
+        end
         -- End Main tab
         -- Begin other tabs
         for channelID, data in pairs(ChatWin.Settings.Channels) do
@@ -742,13 +770,21 @@ local function DrawChatWindow()
                 local name = ChatWin.Settings.Channels[channelID].Name..'##'..windowNum
                 local zoom = ChatWin.Consoles[channelID].zoom
                 local scale = ChatWin.Settings.Channels[channelID].Scale
-                
+                local function tabToolTip()
+                    ImGui.BeginTooltip()
+                    ImGui.Text(ChatWin.Settings.Channels[channelID].Name)
+                    local sizeBuff = string.format("Buffer Size: %s lines.",tostring(getNextID(ChatWin.Consoles[channelID].txtBuffer)-1))
+                    ImGui.Text(sizeBuff)
+                    ImGui.EndTooltip()
+                end
                 local PopOut = ChatWin.Settings.Channels[channelID].PopOut
                 if not PopOut then
                     if ImGui.BeginTabItem(name) then
                         ActTab = name
                         activeID = channelID
-                        
+                        if ImGui.IsItemHovered() then
+                            tabToolTip()
+                        end
                         if ImGui.BeginPopupContextWindow() then
                             ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
                             if ImGui.Selectable('Clear##'..windowNum) then
@@ -780,19 +816,12 @@ local function DrawChatWindow()
                         DrawConsole(channelID)
                         
                         ImGui.EndTabItem()
-                        if ImGui.IsItemHovered() then
-                            ImGui.BeginTooltip()
-                            ImGui.Text(ChatWin.Settings.Channels[channelID].Echo)
-                            ImGui.EndTooltip()
-                        end
+                    end
+                    if ImGui.IsItemHovered() then
+                        tabToolTip()
                     end
                 end
-                -- if ImGui.IsItemHovered() then
-                --         ImGui.BeginTooltip()
-                --         local sizeBuff = string.format("Buffer Size: %s lines.",tostring(getNextID(ChatWin.Consoles[channelID].txtBuffer)-1))
-                --         ImGui.Text(sizeBuff)
-                --         ImGui.EndTooltip()
-                -- end
+
             end
         end
         -- End other tabs
@@ -907,10 +936,8 @@ function ChatWin.GUI()
         end
     end
 end
-local hString = {}
+
 -------------------------------- Configure Windows and Events GUI ---------------------------
-local importFile = 'MyChat_Server_CharName.lua'
-local cleanImport = false
 
 ---comment Draws the Channel data for editing. Can be either an exisiting Channel or a New one.
 ---@param editChanID integer -- the channelID we are working with
@@ -1072,6 +1099,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
         end
     end
     
+    ----------------------------- Events and Filters ----------------------------
     ImGui.SeparatorText('Events and Filters')
     ImGui.BeginChild("Details")
 
@@ -1157,8 +1185,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                 --------------- Filters ----------------------
                 for filterID, filterData in pairs(eventDetails.Filters) do
                     
-                    
-                    if filterID > 0 and filterData.filterString ~= '' then
+                    if filterID > 0  then--and filterData.filterString ~= '' then
                         ImGui.TableNextRow()
                         ImGui.TableSetColumnIndex(0)
                         ImGui.Text(string.format("fID: %s", tostring(filterID)))
