@@ -287,10 +287,10 @@ function ChatWin.EventChat(channelID, eventName, line)
         gSize = gSize -1
 
         if txtBuffer then
-            local fCount = 0
+            local haveFilters = false
             for fID, fData in pairs(eventDetails.Filters) do
                 if fID > 0 and not fMatch then
-                    fCount = fID
+                    haveFilters = true
                     local fString = fData.filterString -- String value we are filtering for
                     if string.find(fString, 'M3') then
                         fString = string.gsub(fString,'M3', myName)
@@ -330,7 +330,7 @@ function ChatWin.EventChat(channelID, eventName, line)
                 -- end
             end
             --print(tostring(#eventDetails.Filters))
-            if not fMatch and fCount > 0 then return end -- we had filters and didn't match so leave
+            if not fMatch and haveFilters then return end -- we had filters and didn't match so leave
             local i = getNextID(txtBuffer)
             if timeStamps then
                 local tStamp = mq.TLO.Time.Time24()
@@ -342,7 +342,6 @@ function ChatWin.EventChat(channelID, eventName, line)
                 ChatWin.Consoles[channelID].console:AppendText(colorCode, line)
             end
             -- write main console
-            
             if tempSettings.Channels[channelID].MainEnable then
                 
                 console:AppendText(colorCode,line)
