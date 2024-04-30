@@ -1,6 +1,164 @@
 return {
 	['LoadTheme'] = 'Default',
 	['Channels'] = {
+		[0] = {
+			['look'] = false,
+			['Scale'] = 1.3830000162124634,
+			['Events'] = {
+				[2] = {
+					['enabled'] = true,
+					['Filters'] = {
+						[0] = {
+							['color'] = {
+								[1] = 0.03251487016677856,
+								[2] = 0.37174510955810547,
+								[3] = 0.7767441868782038,
+								[4] = 1,
+							},
+							['filterString'] = '',
+						},
+					},
+					['eventString'] = '#*#appears to be quite formidable#*#',
+				},
+				[5] = {
+					['enabled'] = true,
+					['Filters'] = {
+						[0] = {
+							['color'] = {
+								[1] = 0.18917053937911985,
+								[2] = 0.8418604731559749,
+								[3] = 0.06656573712825774,
+								[4] = 1,
+							},
+							['filterString'] = '',
+						},
+					},
+					['eventString'] = '#*#you would probably win this fight#*#',
+				},
+				[3] = {
+					['enabled'] = true,
+					['Filters'] = {
+						[0] = {
+							['color'] = {
+								[1] = 0.9627907276153559,
+								[2] = 0.04030286520719527,
+								[3] = 0.04030286520719527,
+								[4] = 1,
+							},
+							['filterString'] = '',
+						},
+					},
+					['eventString'] = '#*#what would you like your tombstone to say#*#',
+				},
+				[1] = {
+					['enabled'] = true,
+					['Filters'] = {
+						[0] = {
+							['filterString'] = '',
+							['color'] = {
+								[1] = 1,
+								[2] = 1,
+								[3] = 1,
+								[4] = 1,
+							},
+						},
+						[1] = {
+							['filterString'] = 'looks like a reasonably safe opponent',
+							['color'] = {
+								[1] = 0.07441854476928711,
+								[2] = 1,
+								[3] = 0,
+								[4] = 1,
+							},
+						},
+						[2] = {
+							['filterString'] = 'looks quite risky',
+							['color'] = {
+								[1] = 0,
+								[2] = 0.4918549656867981,
+								[3] = 0.9116278886795044,
+								[4] = 1,
+							},
+						},
+						[9] = {
+							['filterString'] = 'looks kind of dangerous',
+							['color'] = {
+								[1] = 0.07554353028535843,
+								[2] = 0.5216212868690491,
+								[3] = 0.9023255705833434,
+								[4] = 1,
+							},
+						},
+						[3] = {
+							['filterString'] = 'looks like quite a gamble',
+							['color'] = {
+								[1] = 1,
+								[2] = 1,
+								[3] = 1,
+								[4] = 1,
+							},
+						},
+						[7] = {
+							['filterString'] = 'looks like it would wipe the floor with you',
+							['color'] = {
+								[1] = 0.9581395387649535,
+								[2] = 0.8072416782379149,
+								[3] = 0.031195243820548058,
+								[4] = 1,
+							},
+						},
+						[4] = {
+							['filterString'] = 'looks like an even fight',
+							['color'] = {
+								[1] = 1,
+								[2] = 1,
+								[3] = 1,
+								[4] = 1,
+							},
+						},
+						[10] = {
+							['filterString'] = 'looks kind of risky',
+							['color'] = {
+								[1] = 1,
+								[2] = 1,
+								[3] = 1,
+								[4] = 1,
+							},
+						},
+						[6] = {
+							['filterString'] = 'looks like you would have the upper hand',
+							['color'] = {
+								[1] = 0.04711734876036644,
+								[2] = 0.518569827079773,
+								[3] = 0.9209302067756653,
+								[4] = 1,
+							},
+						},
+					},
+					['eventString'] = '#*#-- looks #*#',
+				},
+				[4] = {
+					['enabled'] = true,
+					['Filters'] = {
+						[0] = {
+							['filterString'] = '',
+							['color'] = {
+								[1] = 1,
+								[2] = 1,
+								[3] = 1,
+								[4] = 1,
+							},
+						},
+					},
+					['eventString'] = '#*#this creature could pose problems, you would probably defeat it.#*#',
+				},
+			},
+			['Echo'] = '/dgt',
+			['Name'] = 'Consider',
+			['MainEnable'] = true,
+			['PopOut'] = false,
+			['enabled'] = false,
+		},
 		[2] = {
 			['MainEnable'] = true,
 			['Scale'] = 1.3830000162124634,

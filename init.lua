@@ -59,6 +59,16 @@ local MyColorFlags = bit32.bor(
     ImGuiColorEditFlags.NoLabel
 )
 
+local function GetColorVal(c)
+    if (c=='red') then return {0.9, 0.1, 0.1, 1} end
+    if (c=='yellow') then return {1, 1, 0, 1} end
+    if (c=='yellow2') then return { 0.7, 0.6, 0.1, 0.7} end
+    if (c=='white') then return {1, 1, 1, 1} end
+    if (c=='blue') then return {0, 0.5, 0.9, 1} end
+    if (c=='light blue') then return {0, 1, 1, 1} end
+    if (c=='green') then return {0, 1, 0, 1} end
+    if (c=='grey') then return {0.6, 0.6, 0.6, 1} end
+end
 --Helper Functioons
 
 ---comment Check to see if the file we want to work on exists.
@@ -117,7 +127,10 @@ local function loadSettings()
         -- Load settings from the Lua config file
         ChatWin.Settings = dofile(ChatWin.SettingsFile)
     end
-    
+    if ChatWin.Settings.Channels[0] == nil then
+        ChatWin.Settings.Channels[0] = {}
+        ChatWin.Settings.Channels[0] = defaults['Channels'][0]
+    end
     useThemeName = ChatWin.Settings.LoadTheme
     
     if not File_Exists(ChatWin.ThemesFile) then
@@ -283,9 +296,9 @@ function ChatWin.EventChat(channelID, eventName, line)
         local txtBuffer = ChatWin.Consoles[channelID].txtBuffer -- Text buffer for the channel ID we are working with.
         local colorVec = eventDetails.Filters[0].color or {1,1,1,1} -- Color Code to change line to, default is white
         local fMatch = false
+        local conColorStr = 'white'
         local gSize = mq.TLO.Me.GroupSize() -- size of the group including yourself
         gSize = gSize -1
-
         if txtBuffer then
             local haveFilters = false
             for fID, fData in pairs(eventDetails.Filters) do
@@ -336,7 +349,15 @@ function ChatWin.EventChat(channelID, eventName, line)
                 local tStamp = mq.TLO.Time.Time24()
                 line = string.format("%s %s",tStamp,line)
             end
+            if string.lower(ChatWin.Settings.Channels[channelID].Name) == 'consider' then
+                local conTarg = mq.TLO.Target
+                if conTarg ~= nil then
+                    conColorStr = string.lower(conTarg.ConColor())
+                    colorVec = GetColorVal(conColorStr)
+                end
+            end
             local colorCode = ImVec4(colorVec[1], colorVec[2], colorVec[3], colorVec[4])
+
             -- write channel console
             if ChatWin.Consoles[channelID].console then
                 ChatWin.Consoles[channelID].console:AppendText(colorCode, line)
@@ -497,7 +518,7 @@ local function DrawConsole(channelID)
         -- ImGuiInputTextFlags.CallbackHistory
     )
     local contentSizeX, _ = ImGui.GetContentRegionAvail()
-    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6)
+    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 2)
     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2)
     ImGui.PushItemWidth(contentSizeX)
     ImGui.PushStyleColor(ImGuiCol.FrameBg, ImVec4(0, 0, 0, 0))
@@ -734,7 +755,7 @@ local function DrawChatWindow()
                 -- ImGuiInputTextFlags.CallbackHistory
             )
             local contentSizeX, _ = ImGui.GetContentRegionAvail()
-            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6)
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 2)
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2)
             ImGui.PushItemWidth(contentSizeX)
             ImGui.PushStyleColor(ImGuiCol.FrameBg, ImVec4(0, 0, 0, 0))
