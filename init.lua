@@ -74,9 +74,23 @@ end
 ---comment Check to see if the file we want to work on exists.
 ---@param name string -- Full Path to file
 ---@return boolean -- returns true if the file exists and false otherwise
-function File_Exists(name)
+local function File_Exists(name)
     local f=io.open(name,"r")
     if f~=nil then io.close(f) return true else return false end
+end
+
+local function reindex(table)
+    local newTable = {}
+    local newIdx = 0
+    for k, v in pairs(table) do
+        if k == 0 then
+            newTable[k] = v
+        else
+            newIdx = newIdx + 1
+            newTable[newIdx] = v
+        end
+    end
+    return newTable
 end
 
 ---comment -- Checks for the last ID number in the table passed. returns the NextID
@@ -114,6 +128,24 @@ end
 ---@param file string -- File Name and path
 ---@param table table -- Table of settings to write
 local function writeSettings(file, table)
+    table.Channels = reindex(table.Channels)
+    local tmpTbl = table
+    for cID, data in pairs (table.Channels) do
+        for id, cData in pairs(data) do
+            if id == "Events" then
+                tmpTbl.Channels[cID][id] = reindex(cData)
+                table = tmpTbl
+                for eID, eData in pairs(table.Channels[cID].Events) do
+                    for k,v in pairs(eData) do
+                        if k == "Filters" then
+                            tmpTbl.Channels[cID][id][eID].Filters = reindex(v)
+                        end
+                    end
+                end
+            end
+        end
+    end
+    table = tmpTbl
     mq.pickle(file, table)
 end
 
