@@ -27,6 +27,7 @@ local windowNum = 0 --unused will remove later.
 local fromConf = false -- Did we open the edit channel window from the main config window? if we did we will go back to that window after closing.
 local gIcon = Icons.MD_SETTINGS
 local zoomMain = false
+local firstPass, forceIndex = true, false
 local mainLastScrollPos = 0
 local mainBottomPosition = 0
 local mainBuffer = {}
@@ -123,11 +124,7 @@ local function SetUpConsoles(channelID)
     end
 end
 
----comment Writes settings from the settings table passed to the setting file (full path required)
--- Uses mq.pickle to serialize the table and write to file
----@param file string -- File Name and path
----@param table table -- Table of settings to write
-local function writeSettings(file, table)
+local function reIndexSettings(file, table)
     table.Channels = reindex(table.Channels)
     local tmpTbl = table
     for cID, data in pairs (table.Channels) do
@@ -146,6 +143,14 @@ local function writeSettings(file, table)
         end
     end
     table = tmpTbl
+    mq.pickle(file, table)
+end
+
+---comment Writes settings from the settings table passed to the setting file (full path required)
+-- Uses mq.pickle to serialize the table and write to file
+---@param file string -- File Name and path
+---@param table table -- Table of settings to write
+local function writeSettings(file, table)
     mq.pickle(file, table)
 end
 
@@ -202,6 +207,10 @@ local function loadSettings()
             ChatWin.Settings.locked = false
         end
         
+        if forceIndex then
+            ChatWin.Consoles[channelID].console = nil
+        end
+
         SetUpConsoles(channelID)
         if not ChatWin.Settings.Channels[channelID]['Scale'] then
             ChatWin.Settings.Channels[channelID]['Scale'] = 1.0
@@ -241,7 +250,7 @@ local function loadSettings()
         end
         
     end
-    
+    forceIndex = false
     if not ChatWin.Settings.LoadTheme then
         ChatWin.Settings.LoadTheme = theme.LoadTheme
     end
@@ -249,8 +258,12 @@ local function loadSettings()
     if useThemeName ~= 'Default' then
         useTheme = true
     end
-    
-    writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+    if firstPass then
+        reIndexSettings(ChatWin.SettingsFile, ChatWin.Settings)
+        firstPass = false
+    else
+        writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+    end
     
     tempSettings = ChatWin.Settings
 end
@@ -278,7 +291,6 @@ local function ResetEvents()
     for eventName, _ in pairs(eventNames) do
         mq.unevent(eventName)
     end
-
     eventNames = {}
     loadSettings()
     BuildEvents()
@@ -603,23 +615,38 @@ local function DrawChatWindow()
             ImGui.EndTooltip()
             ImGui.SetWindowFontScale(1)
         end
-        if ImGui.Button(gIcon..'##'..windowNum) then
+        if ImGui.MenuItem(gIcon..'##'..windowNum) then
             ChatWin.openConfigGUI = not ChatWin.openConfigGUI
         end
-        
+        if ImGui.IsItemHovered() then
+            ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
+            ImGui.BeginTooltip()
+            ImGui.Text("Open Main Config")
+            ImGui.EndTooltip()
+            ImGui.SetWindowFontScale(1)
+        end
         if ImGui.BeginMenu('Options##'..windowNum) then
             ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
             _, console.autoScroll = ImGui.MenuItem('Auto-scroll##'..windowNum, nil, console.autoScroll)
             _, LocalEcho = ImGui.MenuItem('Local echo##'..windowNum, nil, LocalEcho)
             _, timeStamps = ImGui.MenuItem('Time Stamps##'..windowNum, nil, timeStamps)
-            -- ImGui.Separator()
-            -- if ImGui.MenuItem('New Window##'..windowNum) then
-            --     print(windowNum)
-            --     windowNum = windowNum + 1
-            --     drawNew = true
-            --     print(windowNum)
-            -- end
-            
+
+            if ImGui.MenuItem('Re-Index Settings##'..windowNum) then
+                forceIndex = true
+                ResetEvents()
+            end
+            if ImGui.IsItemHovered() then
+                ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
+                ImGui.BeginTooltip()
+                ImGui.PushStyleColor(ImGuiCol.Text,ImVec4(1,0,0,1))
+                ImGui.Text("!!! WARNING !!!")
+                ImGui.Text("This will re-Index the ID's in your settings file!!")
+                ImGui.Text("Doing this outside of the initial loading of MyChat may CLEAR your chat windows!!")
+                ImGui.Text("!!! YOU HAVE BEEN WARNED !!!")
+                ImGui.PopStyleColor()
+                ImGui.EndTooltip()
+                ImGui.SetWindowFontScale(1)
+            end
             ImGui.Separator()
             if ImGui.MenuItem('Reset Position##'..windowNum) then
                 resetPosition = true
