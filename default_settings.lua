@@ -18,7 +18,7 @@ return {
 						},
 					},
 					['enabled'] = true,
-					['eventString'] = '#*#-- appears to be quite formidable#*#',
+					['eventString'] = '#*#scowls at you, ready to attack#*#',
 				},
 				[5] = {
 					['Filters'] = {
@@ -33,7 +33,7 @@ return {
 						},
 					},
 					['enabled'] = true,
-					['eventString'] = '#*# -- You would probably win this fight#*#',
+					['eventString'] = '#*#glares at you threateningly#*#',
 				},
 				[3] = {
 					['Filters'] = {
@@ -48,7 +48,7 @@ return {
 						},
 					},
 					['enabled'] = true,
-					['eventString'] = '#*#-- what would you like your tombstone to say#*#',
+					['eventString'] = '#*#glowers at you dubiously#*#',
 				},
 				[1] = {
 					['Filters'] = {
@@ -61,81 +61,9 @@ return {
 							},
 							['filterString'] = '',
 						},
-						[1] = {
-							['color'] = {
-								[1] = 0.07441854476928711,
-								[2] = 1,
-								[3] = 0,
-								[4] = 1,
-							},
-							['filterString'] = 'looks like a reasonably safe opponent',
-						},
-						[2] = {
-							['color'] = {
-								[1] = 0,
-								[2] = 0.4918549656867981,
-								[3] = 0.9116278886795044,
-								[4] = 1,
-							},
-							['filterString'] = 'looks quite risky',
-						},
-						[6] = {
-							['color'] = {
-								[1] = 0.04711734876036644,
-								[2] = 0.518569827079773,
-								[3] = 0.9209302067756653,
-								[4] = 1,
-							},
-							['filterString'] = 'looks like you would have the upper hand',
-						},
-						[3] = {
-							['color'] = {
-								[1] = 1,
-								[2] = 1,
-								[3] = 1,
-								[4] = 1,
-							},
-							['filterString'] = 'looks like quite a gamble',
-						},
-						[7] = {
-							['color'] = {
-								[1] = 0.9581395387649534,
-								[2] = 0.8072416782379147,
-								[3] = 0.031195243820548058,
-								[4] = 1,
-							},
-							['filterString'] = 'looks like it would wipe the floor with you',
-						},
-						[4] = {
-							['color'] = {
-								[1] = 1,
-								[2] = 1,
-								[3] = 1,
-								[4] = 1,
-							},
-							['filterString'] = 'looks like an even fight',
-						},
-						[10] = {
-							['color'] = {
-								[1] = 1,
-								[2] = 1,
-								[3] = 1,
-								[4] = 1,
-							},
-							['filterString'] = 'looks kind of risky',
-						},
-						[9] = {
-							['color'] = {
-								[1] = 0.07554353028535843,
-								[2] = 0.5216212868690491,
-								[3] = 0.9023255705833434,
-								[4] = 1,
-							},
-							['filterString'] = 'looks kind of dangerous',
-						},
 					},
 					['enabled'] = true,
-					['eventString'] = '#*#-- looks #*#',
+					['eventString'] = '#*#looks your way apprehensively#*#',
 				},
 				[4] = {
 					['Filters'] = {
@@ -150,7 +78,7 @@ return {
 						},
 					},
 					['enabled'] = true,
-					['eventString'] = '#*#-- this creature could pose problems, you would probably defeat it.#*#',
+					['eventString'] = '#*#regards you indifferently#*#',
 				},
 				[6] = {
 					['Filters'] = {
@@ -164,7 +92,52 @@ return {
 							},
 						},
 					},
-					['eventString'] = '#*# -- You could probably win this fight#*#',
+					['eventString'] = '#*#judges you amiably#*#',
+					['enabled'] = true,
+				},
+				[7] = {
+					['Filters'] = {
+						[0] = {
+							['filterString'] = '',
+							['color'] = {
+								[1] = 1,
+								[2] = 1,
+								[3] = 1,
+								[4] = 1,
+							},
+						},
+					},
+					['eventString'] = '#*#kindly considers you#*#',
+					['enabled'] = true,
+				},
+				[8] = {
+					['Filters'] = {
+						[0] = {
+							['filterString'] = '',
+							['color'] = {
+								[1] = 1,
+								[2] = 1,
+								[3] = 1,
+								[4] = 1,
+							},
+						},
+					},
+					['eventString'] = '#*#looks upon you warmly#*#',
+					['enabled'] = true,
+				},
+				[9] = {
+					['Filters'] = {
+						[0] = {
+							['filterString'] = '',
+							['color'] = {
+								[1] = 1,
+								[2] = 1,
+								[3] = 1,
+								[4] = 1,
+							},
+						},
+					},
+					['eventString'] = '#*#regards you as an ally#*#',
 					['enabled'] = true,
 				},
 			},
