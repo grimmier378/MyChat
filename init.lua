@@ -317,7 +317,7 @@ local function BuildEvents()
                     if channelID ~= 9000 then
                         mq.event(eventName, eventDetails.eventString, function(line) ChatWin.EventChat(channelID, eventName, line, false) end)
                     elseif channelID == 9000 and enableSpam then
-                        mq.event(eventName, eventDetails.eventString, function(line) ChatWin.EventChatSpam(channelID, eventName, line) end)
+                        mq.event(eventName, eventDetails.eventString, function(line) ChatWin.EventChatSpam(channelID, line) end)
                     end
                     -- Store event details for direct access
                     eventNames[eventName] = eventDetails
@@ -513,7 +513,7 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
     return false
 end
 
-function ChatWin.EventChatSpam(channelID, eventName, line)
+function ChatWin.EventChatSpam(channelID,line)
     local eventDetails = eventNames
     if not eventDetails then return end
     if ChatWin.Consoles[channelID] then
@@ -531,14 +531,16 @@ function ChatWin.EventChatSpam(channelID, eventName, line)
                             if name ~= 'event_9000_1' and name == tmpEname then
                                 local eventPattern = convertEventString(data.eventString)
                                 if string.match(line, eventPattern) then
-                                    fMatch = ChatWin.EventChat(cID, name, line, enableSpam)
+                                    fMatch = ChatWin.EventChat(cID, name, line, true)
                                 end
                                 -- we found a match lets exit this loop.
                                 if fMatch == true then break end
                             end
                         end
+                        if fMatch == true then break end
                     end
                 end
+                if fMatch == true then break end
             end
 
             if fMatch then return end -- we have an event for this already
