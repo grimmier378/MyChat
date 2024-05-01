@@ -310,7 +310,6 @@ end
 local function BuildEvents()
     eventNames = {}
     for channelID, channelData in pairs(ChatWin.Settings.Channels) do
-        
         for eventId, eventDetails in pairs(channelData.Events) do
             if eventDetails.enabled then
                 if eventDetails.eventString then
@@ -325,7 +324,6 @@ local function BuildEvents()
                 end
             end
         end
-
     end
 end
 
@@ -522,33 +520,21 @@ function ChatWin.EventChatSpam(channelID, eventName, line)
         local txtBuffer = ChatWin.Consoles[channelID].txtBuffer -- Text buffer for the channel ID we are working with.
         local colorVec = {1,1,1,1} -- Color Code to change line to, default is white
         local fMatch = false
-        local debugS = ''
         local gSize = mq.TLO.Me.GroupSize() -- size of the group including yourself
         gSize = gSize -1
         if txtBuffer then
             for cID, cData in pairs(ChatWin.Settings.Channels) do
-                debugS = ""
-                if cID ~= 9000 then
-                    debugS = string.format("%s Channel ID %d", debugS, cID)
+                if cID ~= channelID then
                     for eID, eData in pairs(cData.Events) do
                         local tmpEname = string.format("event_%d_%d", cID, eID)
                         for name, data in pairs(eventNames) do
-                            if name ~= 'Spam' and name == tmpEname then
-                                debugS = string.format("%s stored string: %s", debugS, data.eventString)
+                            if name ~= 'event_9000_1' and name == tmpEname then
                                 local eventPattern = convertEventString(data.eventString)
-                                debugS = string.format("%s Pattern %s", debugS, eventPattern)
                                 if string.match(line, eventPattern) then
-                                    debugS = string.format("%s Pattern FOUND", debugS)
                                     fMatch = ChatWin.EventChat(cID, name, line, enableSpam)
-                                    debugS = string.format("%s\neventSpam pattern Match, fMatch: %s", debugS, tostring(fMatch))
-                                else
-                                    debugS = string.format("%s Pattern NOT FOUND", debugS)
-                                    fMatch = false
-                                    debugS = string.format("%s\neventSpam pattern NO Match, fMatch: %s", debugS, tostring(fMatch))
                                 end
-                                -- uncomment to write debug to spam console
-                                -- ChatWin.Consoles[channelID].console:AppendText(ImVec4(1,1,1,1), debugS)
-                                debugS = ""  -- Print debug statement for each pattern check
+                                -- we found a match lets exit this loop.
+                                if fMatch == true then break end
                             end
                         end
                     end
@@ -777,6 +763,9 @@ local function DrawChatWindow()
             _, timeStamps = ImGui.MenuItem('Time Stamps##'..windowNum, nil, timeStamps)
             spamOn, enableSpam = ImGui.MenuItem('Enable Spam##'..windowNum, nil, enableSpam)
             if spamOn then
+                if not enableSpam then
+                    ChatWin.Consoles[9000].console = nil
+                end
                 ResetEvents()
             end
             if ImGui.MenuItem('Re-Index Settings##'..windowNum) then
