@@ -34,6 +34,7 @@ local mainBuffer = {}
 local importFile = 'MyChat_Server_CharName.lua'
 local cleanImport = false
 local Tokens = {} -- may use this later to hold the tokens and remove a long string of if elseif.
+local enableSpam = false
 
 local ChatWin = {
     SHOW = true,
@@ -60,19 +61,26 @@ local MyColorFlags = bit32.bor(
     ImGuiColorEditFlags.NoLabel
 )
 
-local function GetColorVal(c)
-    if (c=='red') then return {0.9, 0.1, 0.1, 1} end
-    if (c=='yellow') then return {1, 1, 0, 1} end
-    if (c=='yellow2') then return { 0.7, 0.6, 0.1, 0.7} end
-    if (c=='white') then return {1, 1, 1, 1} end
-    if (c=='blue') then return {0, 0.5, 0.9, 1} end
-    if (c=='light blue') then return {0, 1, 1, 1} end
-    if (c=='green') then return {0, 1, 0, 1} end
-    if (c=='grey') then return {0.6, 0.6, 0.6, 1} end
-end
---Helper Functioons
+--- Helper Functions ---
 
----comment Check to see if the file we want to work on exists.
+---Converts ConColor String to ColorVec Table
+---@param colorString string @string value for color 
+---@return table @Table of R,G,B,A Color Values
+local function GetColorVal(colorString)
+    colorString = string.lower(colorString)
+    if (colorString=='red') then return {0.9, 0.1, 0.1, 1} end
+    if (colorString=='yellow') then return {1, 1, 0, 1} end
+    if (colorString=='yellow2') then return { 0.7, 0.6, 0.1, 0.7} end
+    if (colorString=='white') then return {1, 1, 1, 1} end
+    if (colorString=='blue') then return {0, 0.5, 0.9, 1} end
+    if (colorString=='light blue') then return {0, 1, 1, 1} end
+    if (colorString=='green') then return {0, 1, 0, 1} end
+    if (colorString=='grey') then return {0.6, 0.6, 0.6, 1} end
+    -- return White as default if bad string
+    return {1, 1, 1, 1}
+end
+
+---Check to see if the file we want to work on exists.
 ---@param name string -- Full Path to file
 ---@return boolean -- returns true if the file exists and false otherwise
 local function File_Exists(name)
@@ -80,21 +88,7 @@ local function File_Exists(name)
     if f~=nil then io.close(f) return true else return false end
 end
 
-local function reindex(table)
-    local newTable = {}
-    local newIdx = 0
-    for k, v in pairs(table) do
-        if k == 0 then
-            newTable[k] = v
-        else
-            newIdx = newIdx + 1
-            newTable[newIdx] = v
-        end
-    end
-    return newTable
-end
-
----comment -- Checks for the last ID number in the table passed. returns the NextID
+---Checks for the last ID number in the table passed. returns the NextID
 ---@param table table -- the table we want to look up ID's in
 ---@return number -- returns the NextID that doesn't exist in the table yet.
 local function getNextID(table)
@@ -108,7 +102,7 @@ local function getNextID(table)
     return maxChannelId + 1
 end
 
----comment Build the consoles for each channel based on ChannelID
+---Build the consoles for each channel based on ChannelID
 ---@param channelID integer -- the channel ID number for the console we are setting up
 local function SetUpConsoles(channelID)
     if ChatWin.Consoles[channelID].console == nil then
@@ -124,6 +118,27 @@ local function SetUpConsoles(channelID)
     end
 end
 
+---Takes in a table and re-numbers the Indicies to be concurrent
+---@param table any @Table to reindex
+---@return table @ Returns the table with the Indicies in order with no gaps.
+local function reindex(table)
+    local newTable = {}
+    local newIdx = 0
+    for k, v in pairs(table) do
+        if k == 0 or k >= 9000 then
+            newTable[k] = v
+        else
+            newIdx = newIdx + 1
+            newTable[newIdx] = v
+        end
+    end
+    return newTable
+end
+
+---Process ChatWin.Settings and reindex the Channel, Events, and Filter ID's 
+---Runs each table through the reindex function and updates the settings file when done
+---@param file any @ Full File path to config file
+---@param table any @ Returns the table with the Indicies in order with no gaps.
 local function reIndexSettings(file, table)
     table.Channels = reindex(table.Channels)
     local tmpTbl = table
@@ -146,7 +161,25 @@ local function reIndexSettings(file, table)
     mq.pickle(file, table)
 end
 
----comment Writes settings from the settings table passed to the setting file (full path required)
+---Convert MQ event Strings from #*#blah #1# formats to a lua parsable pattern
+local function convertEventString(oldFormat)
+    -- Convert #*# to Lua's wildcard .*
+    local pattern = oldFormat:gsub("#%*#", ".*")
+
+    -- Convert #n# (where n is any number) to Lua's wildcard .*
+    pattern = pattern:gsub("#%d+#", ".*")
+
+    -- Escape special characters that are not part of the wildcard transformation and should be literal
+    -- Specifically targeting parentheses, plus, minus, and other special characters not typically part of text.
+    pattern = pattern:gsub("([%^%$%(%)%.%+%?])", "%%%1") -- Escaping special characters that might disrupt the pattern matching
+
+    -- Do not escape brackets if they form part of the control structure of the pattern
+    pattern = pattern:gsub("%[", "%%%[")
+    pattern = pattern:gsub("%]", "%%%]") 
+    return pattern
+end
+
+---Writes settings from the settings table passed to the setting file (full path required)
 -- Uses mq.pickle to serialize the table and write to file
 ---@param file string -- File Name and path
 ---@param table table -- Table of settings to write
@@ -164,10 +197,16 @@ local function loadSettings()
         -- Load settings from the Lua config file
         ChatWin.Settings = dofile(ChatWin.SettingsFile)
     end
+
     if ChatWin.Settings.Channels[0] == nil then
         ChatWin.Settings.Channels[0] = {}
         ChatWin.Settings.Channels[0] = defaults['Channels'][0]
     end
+    if ChatWin.Settings.Channels[9000] == nil then
+        ChatWin.Settings.Channels[9000] = {}
+        ChatWin.Settings.Channels[9000] = defaults['Channels'][9000]
+    end
+    ChatWin.Settings.Channels[9000].enabled = enableSpam
     useThemeName = ChatWin.Settings.LoadTheme
     
     if not File_Exists(ChatWin.ThemesFile) then
@@ -271,16 +310,22 @@ end
 local function BuildEvents()
     eventNames = {}
     for channelID, channelData in pairs(ChatWin.Settings.Channels) do
+        
         for eventId, eventDetails in pairs(channelData.Events) do
             if eventDetails.enabled then
                 if eventDetails.eventString then
                     local eventName = string.format("event_%s_%d", channelID, eventId)
-                    mq.event(eventName, eventDetails.eventString, function(line) ChatWin.EventChat(channelID, eventName, line) end)
+                    if channelID ~= 9000 then
+                        mq.event(eventName, eventDetails.eventString, function(line) ChatWin.EventChat(channelID, eventName, line, false) end)
+                    elseif channelID == 9000 and enableSpam then
+                        mq.event(eventName, eventDetails.eventString, function(line) ChatWin.EventChatSpam(channelID, eventName, line) end)
+                    end
                     -- Store event details for direct access
                     eventNames[eventName] = eventDetails
                 end
             end
         end
+
     end
 end
 
@@ -296,7 +341,6 @@ local function ResetEvents()
     BuildEvents()
 end
 
----comment
 ---@param string string @ the filter string we are parsing
 ---@param line string @ the line captured by the event
 ---@param type string @ the type either 'healer' or 'group' for tokens H1 and GP1 respectivly.
@@ -333,9 +377,12 @@ end
 ---@param channelID integer @ The ID number of the Channel the triggered event belongs to
 ---@param eventName string @ the name of the event that was triggered
 ---@param line string @ the line of text that triggred the event
-function ChatWin.EventChat(channelID, eventName, line)
+---@param spam boolean @ are we parsing this from the spam channel?
+---@return boolean
+function ChatWin.EventChat(channelID, eventName, line, spam)
+    -- if spam then print('Called from Spam') end
     local eventDetails = eventNames[eventName]
-    if not eventDetails then return end
+    if not eventDetails then return false end
     if ChatWin.Consoles[channelID] then
         local txtBuffer = ChatWin.Consoles[channelID].txtBuffer -- Text buffer for the channel ID we are working with.
         local colorVec = eventDetails.Filters[0].color or {1,1,1,1} -- Color Code to change line to, default is white
@@ -387,46 +434,142 @@ function ChatWin.EventChat(channelID, eventName, line)
                 -- end
             end
             --print(tostring(#eventDetails.Filters))
-            if not fMatch and haveFilters then return end -- we had filters and didn't match so leave
+            if not fMatch and haveFilters then return fMatch end -- we had filters and didn't match so leave
+            if not spam then
+                -- printf("Spam Value %s",tostring(spam))
+                local i = getNextID(txtBuffer)
+                if timeStamps then
+                    local tStamp = mq.TLO.Time.Time24()
+                    line = string.format("%s %s",tStamp,line)
+                end
+
+                if string.lower(ChatWin.Settings.Channels[channelID].Name) == 'consider' then
+                    local conTarg = mq.TLO.Target
+                    if conTarg ~= nil then
+                        conColorStr = string.lower(conTarg.ConColor())
+                        colorVec = GetColorVal(conColorStr)
+                    end
+                end
+
+                local colorCode = ImVec4(colorVec[1], colorVec[2], colorVec[3], colorVec[4])
+
+                -- write channel console
+                if ChatWin.Consoles[channelID].console then
+                    ChatWin.Consoles[channelID].console:AppendText(colorCode, line)
+                end
+
+                -- write main console
+                if tempSettings.Channels[channelID].MainEnable then
+                    
+                    console:AppendText(colorCode,line)
+                    local z = getNextID(mainBuffer)
+                    
+                    if z > 1 then
+                        if mainBuffer[z-1].text == '' then z = z-1 end
+                    end
+                    mainBuffer[z] = {
+                        color = colorVec,
+                        text = line
+                    }
+                    local bufferLength = #mainBuffer
+                    if bufferLength > zBuffer then
+                        -- Remove excess lines
+                        for j = 1, bufferLength - zBuffer do
+                            table.remove(mainBuffer, 1)
+                        end
+                    end
+                end
+
+                -- ZOOM Console hack
+                if i > 1 then
+                    if txtBuffer[i-1].text == '' then i = i-1 end
+                end
+
+                -- Add the new line to the buffer
+                txtBuffer[i] = {
+                    color = colorVec,
+                    text = line
+                }
+                -- cleanup zoom buffer
+                -- Check if the buffer exceeds 1000 lines
+                local bufferLength = #txtBuffer
+                if bufferLength > zBuffer then
+                    -- Remove excess lines
+                    for j = 1, bufferLength - zBuffer do
+                        table.remove(txtBuffer, 1)
+                    end
+                end
+            end
+            return fMatch
+
+        else
+
+            print("Error: txtBuffer is nil for channelID " .. channelID)
+            return fMatch
+
+        end
+        else
+        print("Error: ChatWin.Consoles[channelID] is nil for channelID " .. channelID)
+        return false
+    end
+    return false
+end
+
+function ChatWin.EventChatSpam(channelID, eventName, line)
+    local eventDetails = eventNames
+    if not eventDetails then return end
+    if ChatWin.Consoles[channelID] then
+        local txtBuffer = ChatWin.Consoles[channelID].txtBuffer -- Text buffer for the channel ID we are working with.
+        local colorVec = {1,1,1,1} -- Color Code to change line to, default is white
+        local fMatch = false
+        local debugS = ''
+        local gSize = mq.TLO.Me.GroupSize() -- size of the group including yourself
+        gSize = gSize -1
+        if txtBuffer then
+            for cID, cData in pairs(ChatWin.Settings.Channels) do
+                debugS = ""
+                if cID ~= 9000 then
+                    debugS = string.format("%s Channel ID %d", debugS, cID)
+                    for eID, eData in pairs(cData.Events) do
+                        local tmpEname = string.format("event_%d_%d", cID, eID)
+                        for name, data in pairs(eventNames) do
+                            if name ~= 'Spam' and name == tmpEname then
+                                debugS = string.format("%s stored string: %s", debugS, data.eventString)
+                                local eventPattern = convertEventString(data.eventString)
+                                debugS = string.format("%s Pattern %s", debugS, eventPattern)
+                                if string.match(line, eventPattern) then
+                                    debugS = string.format("%s Pattern FOUND", debugS)
+                                    fMatch = ChatWin.EventChat(cID, name, line, enableSpam)
+                                    debugS = string.format("%s\neventSpam pattern Match, fMatch: %s", debugS, tostring(fMatch))
+                                else
+                                    debugS = string.format("%s Pattern NOT FOUND", debugS)
+                                    fMatch = false
+                                    debugS = string.format("%s\neventSpam pattern NO Match, fMatch: %s", debugS, tostring(fMatch))
+                                end
+                                -- uncomment to write debug to spam console
+                                -- ChatWin.Consoles[channelID].console:AppendText(ImVec4(1,1,1,1), debugS)
+                                debugS = ""  -- Print debug statement for each pattern check
+                            end
+                        end
+                    end
+                end
+            end
+
+            if fMatch then return end -- we have an event for this already
+
             local i = getNextID(txtBuffer)
             if timeStamps then
                 local tStamp = mq.TLO.Time.Time24()
                 line = string.format("%s %s",tStamp,line)
             end
-            if string.lower(ChatWin.Settings.Channels[channelID].Name) == 'consider' then
-                local conTarg = mq.TLO.Target
-                if conTarg ~= nil then
-                    conColorStr = string.lower(conTarg.ConColor())
-                    colorVec = GetColorVal(conColorStr)
-                end
-            end
+
             local colorCode = ImVec4(colorVec[1], colorVec[2], colorVec[3], colorVec[4])
 
             -- write channel console
             if ChatWin.Consoles[channelID].console then
                 ChatWin.Consoles[channelID].console:AppendText(colorCode, line)
             end
-            -- write main console
-            if tempSettings.Channels[channelID].MainEnable then
-                
-                console:AppendText(colorCode,line)
-                local z = getNextID(mainBuffer)
-                
-                if z > 1 then
-                    if mainBuffer[z-1].text == '' then z = z-1 end
-                end
-                mainBuffer[z] = {
-                    color = colorVec,
-                    text = line
-                }
-                local bufferLength = #mainBuffer
-                if bufferLength > zBuffer then
-                    -- Remove excess lines
-                    for j = 1, bufferLength - zBuffer do
-                        table.remove(mainBuffer, 1)
-                    end
-                end
-            end
+
             -- ZOOM Console hack
             if i > 1 then
                 if txtBuffer[i-1].text == '' then i = i-1 end
@@ -445,14 +588,15 @@ function ChatWin.EventChat(channelID, eventName, line)
                     table.remove(txtBuffer, 1)
                 end
             end
+
             else
             print("Error: txtBuffer is nil for channelID " .. channelID)
         end
+
         else
         print("Error: ChatWin.Consoles[channelID] is nil for channelID " .. channelID)
     end
 end
-
 ------------------------------------------ GUI's --------------------------------------------
 
 ---comment
@@ -626,11 +770,15 @@ local function DrawChatWindow()
             ImGui.SetWindowFontScale(1)
         end
         if ImGui.BeginMenu('Options##'..windowNum) then
+            local spamOn
             ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
             _, console.autoScroll = ImGui.MenuItem('Auto-scroll##'..windowNum, nil, console.autoScroll)
             _, LocalEcho = ImGui.MenuItem('Local echo##'..windowNum, nil, LocalEcho)
             _, timeStamps = ImGui.MenuItem('Time Stamps##'..windowNum, nil, timeStamps)
-
+            spamOn, enableSpam = ImGui.MenuItem('Enable Spam##'..windowNum, nil, enableSpam)
+            if spamOn then
+                ResetEvents()
+            end
             if ImGui.MenuItem('Re-Index Settings##'..windowNum) then
                 forceIndex = true
                 ResetEvents()
@@ -668,9 +816,11 @@ local function DrawChatWindow()
             for channelID, settings in pairs(ChatWin.Settings.Channels) do
                 local enabled = ChatWin.Settings.Channels[channelID].enabled
                 local name = ChatWin.Settings.Channels[channelID].Name
-                if ImGui.MenuItem(name, '', enabled) then
-                    ChatWin.Settings.Channels[channelID].enabled = not enabled
-                    writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+                if channelID ~= 9000 or enableSpam then 
+                    if ImGui.MenuItem(name, '', enabled) then
+                        ChatWin.Settings.Channels[channelID].enabled = not enabled
+                        writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+                    end
                 end
             end
             ImGui.EndMenu()
@@ -682,10 +832,12 @@ local function DrawChatWindow()
                 zoomMain = not zoomMain
             end
             for channelID, settings in pairs(ChatWin.Settings.Channels) do
-                local zoom = ChatWin.Consoles[channelID].zoom
-                local name = ChatWin.Settings.Channels[channelID].Name
-                if ImGui.MenuItem(name, '', zoom) then
-                    ChatWin.Consoles[channelID].zoom = not zoom
+                if channelID ~= 9000 or enableSpam then 
+                    local zoom = ChatWin.Consoles[channelID].zoom
+                    local name = ChatWin.Settings.Channels[channelID].Name
+                    if ImGui.MenuItem(name, '', zoom) then
+                        ChatWin.Consoles[channelID].zoom = not zoom
+                    end
                 end
             end
             ImGui.SetWindowFontScale(1)
@@ -694,13 +846,15 @@ local function DrawChatWindow()
         if ImGui.BeginMenu('PopOut##'..windowNum) then
             ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
             for channelID, settings in pairs(ChatWin.Settings.Channels) do
-                local PopOut = ChatWin.Settings.Channels[channelID].PopOut
-                local name = ChatWin.Settings.Channels[channelID].Name
-                if ImGui.MenuItem(name, '', PopOut) then
-                    PopOut = not PopOut
-                    ChatWin.Settings.Channels[channelID].PopOut = PopOut
-                    tempSettings.Channels[channelID].PopOut = PopOut
-                    writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+                if channelID ~= 9000 or enableSpam then 
+                    local PopOut = ChatWin.Settings.Channels[channelID].PopOut
+                    local name = ChatWin.Settings.Channels[channelID].Name
+                    if ImGui.MenuItem(name, '', PopOut) then
+                        PopOut = not PopOut
+                        ChatWin.Settings.Channels[channelID].PopOut = PopOut
+                        tempSettings.Channels[channelID].PopOut = PopOut
+                        writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+                    end
                 end
             end
             ImGui.SetWindowFontScale(1)
@@ -915,6 +1069,7 @@ function ChatWin.GUI()
     if not ChatWin.openGUI then return false end
 
     local windowName = 'My Chat - Main##'..myName..'_'..windowNum
+    ImGui.SetWindowPos(windowName,ImVec2(20, 20), ImGuiCond.FirstUseEver)
     ImGui.SetNextWindowSize(ImVec2(640, 480), ImGuiCond.FirstUseEver)
     if useTheme then
         local themeName = tempSettings.LoadTheme
@@ -1019,7 +1174,7 @@ end
 
 -------------------------------- Configure Windows and Events GUI ---------------------------
 
----comment Draws the Channel data for editing. Can be either an exisiting Channel or a New one.
+---Draws the Channel data for editing. Can be either an exisiting Channel or a New one.
 ---@param editChanID integer -- the channelID we are working with
 ---@param isNewChannel boolean -- is this a new channel or are we editing an old one.
 function ChatWin.AddChannel(editChanID, isNewChannel)
@@ -1443,14 +1598,14 @@ function ChatWin.Config_GUI(open)
             -- Load settings from the Lua config file
             local date = os.date("%m_%d_%Y_%H_%M")
             
-            print(date)
+            -- print(date)
             local backup = string.format('%s/MyChat_%s_%s_BAK_%s.lua', mq.configDir, serverName, myName, date)
             mq.pickle(backup, ChatWin.Settings)
             local newSettings = {}
             local newID = getNextID(tempSettings.Channels)
             
             newSettings = dofile(tmp)
-            print(tostring(cleanImport))
+            -- print(tostring(cleanImport))
             if not cleanImport and lastImport ~= tmp then
                 for cID, cData in pairs(newSettings.Channels) do
                     for existingCID, existingCData in pairs(tempSettings.Channels) do

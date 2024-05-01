@@ -1271,5 +1271,31 @@ return {
 			['Name'] = 'Auction',
 			['Echo'] = '/auc',
 		},
+		[9000] = {
+			['enabled'] = true,
+			['MainEnable'] = true,
+			['PopOut'] = false,
+			['Name'] = 'Spam',
+			['look'] = false,
+			['Scale'] = 1,
+			['Events'] = {
+				[1] = {
+					['Filters'] = {
+						[0] = {
+							['filterString'] = '',
+							['color'] = {
+								[1] = 1,
+								[2] = 1,
+								[3] = 1,
+								[4] = 1,
+							},
+						},
+					},
+					['eventString'] = '#*#',
+					['enabled'] = true,
+				},
+			},
+			['Echo'] = '/say',
+		},
 	},
 }
