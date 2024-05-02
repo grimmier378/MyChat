@@ -239,8 +239,8 @@ local function loadSettings()
         if ChatWin.Settings.Channels[channelID].PopOut == nil then
             ChatWin.Settings.Channels[channelID].PopOut = false
         end
-        if ChatWin.Settings.Channels[channelID].locled == nil then
-            ChatWin.Settings.Channels[channelID].look = false
+        if ChatWin.Settings.Channels[channelID].locked == nil then
+            ChatWin.Settings.Channels[channelID].locked = false
         end
         
         if ChatWin.Settings.Scale == nil then

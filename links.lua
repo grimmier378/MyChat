@@ -2,16 +2,17 @@
 local mq = require('mq')
 local PackageMan = require('mq/PackageMan')
 local sqlite3 = PackageMan.Require('lsqlite3')
-local sqlItemsDB = mq.TLO.MacroQuest.Path('resources')() .."/MQ2LinkDB.db"
-local localDBPath = mq.configDir..'/ItemsDB/ItemsDB.db'
-local db = sqlite3.open(sqlItemsDB, sqlite3.OPEN_READONLY)  -- Open in read-only mode
-local itemsInfo = {}
+local pathDB = mq.TLO.MacroQuest.Path('resources')() .."/MQ2LinkDB.db"
+-- local localDBPath = mq.configDir..'/ItemsDB/ItemsDB.db'
+local db = sqlite3.open(pathDB, sqlite3.OPEN_READONLY)  -- Open in read-only mode
+-- local itemsInfo = {}
 local sortedTable = {}
-local searchExact = false
-local newDB = false
-local dbLocal = sqlite3.open(localDBPath)  -- Open the local database
+-- local searchExact = false
+-- local newDB = false
+-- local db = sqlite3.open(localDBPath)  -- Open the local database
 local msgOut = ''
 local links = {
+	enabled = true,
 	---@type ConsoleWidget
 	Console = nil, -- this catches a console passed to it for writing to.
 }
@@ -40,14 +41,20 @@ function links.escapeBack(str)
 	-- return str
 end
 
-local function loadSortedItems(dbLocal)
-	local tmpDB = {}
+local function loadSortedItems(db)
+	-- local tmpDB = {}
 	sortedTable = {}
-	for row in dbLocal:nrows("SELECT * FROM Items ORDER BY sort_order") do
+	local fetchQuery = [[
+		SELECT a.name, a.id, b.link
+		FROM raw_item_data_315 AS a
+		JOIN item_links AS b ON a.id = b.item_id
+		ORDER BY LENGTH(a.name) DESC, a.name
+	]]
+	for row in db:nrows(fetchQuery) do
 		-- table.insert(sortedTable,  {item_name = escapeSQL(row.item_name), item_id = row.item_id, item_link = escapeSQL(row.item_link)})
 		-- sortedTable[escapeLuaPattern(row.item_name)] = row.item_link
-		local name = links.escapeSQL(row.item_name)
-		sortedTable[name] = row.item_link
+		local name = links.escapeSQL(row.name)
+		sortedTable[name] = row.link
 
 	end
 	msgOut = string.format("\ay[\aw%s\ay]\at All Items \agloaded\ax, \ayScanning Chat for Items...",mq.TLO.Time())
@@ -60,68 +67,59 @@ end
 
 function links.initDB()
 
-	-- Attach the source MQ2LinkDB database to the local database connection
-	local attachQuery = string.format("ATTACH DATABASE '%s' AS sourceDB", sqlItemsDB)
-	if dbLocal:exec(attachQuery) ~= sqlite3.OK then
-		print("Failed to attach database:", dbLocal:errmsg())
+	-- -- Attach the source MQ2LinkDB database to the local database connection
+	-- local attachQuery = string.format("ATTACH DATABASE '%s' AS sourceDB", sqlItemsDB)
+	-- if dbLocal:exec(attachQuery) ~= sqlite3.OK then
+	-- 	print("Failed to attach database:", dbLocal:errmsg())
+	-- 	return
+	-- end
+	msgOut = string.format("\ay[\aw%s\ay]\ar Links are Disabled, \atEnable and try again.",mq.TLO.Time())
+	if not links.enabled then
+		if links.Console ~= nil then
+			links.Console:AppendText(msgOut)
+		else
+			print(msgOut)
+		end
 		return
 	end
 
 	-- Check if the local table exists, create if not
-	if not tableExists(dbLocal, "Items") then
+	if not tableExists(pathDB, "raw_item_data_315") or not tableExists(pathDB, "item_links")  then
 
-		msgOut = string.format("\ay[\aw%s\ay]\at Creating Local \agItemsDB",mq.TLO.Time())
+		msgOut = string.format("\ay[\aw%s\ay]\at MQ2LinkDB Missing run \ao/link /update \agto create.",mq.TLO.Time())
 
 		if links.Console ~= nil then
 			links.Console:AppendText(msgOut)
 		else
 			print(msgOut)
 		end
-		dbLocal:exec([[
-			CREATE TABLE "Items" (
-				"sort_order" INTEGER PRIMARY KEY AUTOINCREMENT,
-				"item_name" TEXT NOT NULL,
-				"item_id" INTEGER NOT NULL,
-				"item_link" TEXT NOT NULL UNIQUE
-			)
-		]])
+		return
 	end
 
 	-- Perform a direct insert from the attached source table
 	
-	msgOut = string.format("\ay[\aw%s\ay]\at Updating \agItemsDB\ax from \aoMQ2LinkDB...",mq.TLO.Time())
+	msgOut = string.format("\ay[\aw%s\ay]\at Fetching \agItems\ax from \aoMQ2LinkDB...",mq.TLO.Time())
 	if links.Console ~= nil then
 		links.Console:AppendText(msgOut)
 	else
 		print(msgOut)
 	end
-	--clear local table and insert the data its faster. 
-	dbLocal:exec([[
-		DELETE * FROM Items
-	]])
-	local migrationQuery = [[
-		INSERT or REPLACE INTO Items (item_name, item_id, item_link)
-		SELECT a.name, a.id, b.link
-		FROM sourceDB.raw_item_data_315 AS a
-		JOIN sourceDB.item_links AS b ON a.id = b.item_id
-		ORDER BY LENGTH(a.name) DESC, a.name
-	]]
-
-	if dbLocal:exec(migrationQuery) ~= sqlite3.OK then
-		msgOut = string.format("\ay[\aw%s\ay]\arMigration failed:",mq.TLO.Time(),dbLocal:errmsg())
-	else
-		msgOut = string.format("\ay[\aw%s\ay]\at Migration Successfull! \agLoading Items...",mq.TLO.Time())
-	end
-	if links.Console ~= nil then
-		links.Console:AppendText(msgOut)
-	else
-		print(msgOut)
-	end
-	loadSortedItems(dbLocal)
+	
+	-- if dbLocal:exec(migrationQuery) ~= sqlite3.OK then
+	-- 	msgOut = string.format("\ay[\aw%s\ay]\arMigration failed:",mq.TLO.Time(),dbLocal:errmsg())
+	-- else
+	-- 	msgOut = string.format("\ay[\aw%s\ay]\at Migration Successfull! \agLoading Items...",mq.TLO.Time())
+	-- end
+	-- if links.Console ~= nil then
+	-- 	links.Console:AppendText(msgOut)
+	-- else
+	-- 	print(msgOut)
+	-- end
+	loadSortedItems(db)
 	-- Detach the source database
-	dbLocal:exec("DETACH DATABASE sourceDB")
+	-- dbLocal:exec("DETACH DATABASE sourceDB")
 
-	dbLocal:close()
+	db:close()
 end
 
 --- Table Stuff ---
