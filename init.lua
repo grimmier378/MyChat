@@ -35,6 +35,9 @@ local importFile = 'MyChat_Server_CharName.lua'
 local cleanImport = false
 local Tokens = {} -- may use this later to hold the tokens and remove a long string of if elseif.
 local enableSpam = false
+local links = require('links')
+
+
 
 local ChatWin = {
     SHOW = true,
@@ -434,6 +437,7 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
             --print(tostring(#eventDetails.Filters))
             if not fMatch and haveFilters then return fMatch end -- we had filters and didn't match so leave
             if not spam then
+                
                 -- printf("Spam Value %s",tostring(spam))
                 local i = getNextID(txtBuffer)
                 if timeStamps then
@@ -450,16 +454,17 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
                 end
 
                 local colorCode = ImVec4(colorVec[1], colorVec[2], colorVec[3], colorVec[4])
-
+                local conLine = links.collectItemLinks(line)
                 -- write channel console
                 if ChatWin.Consoles[channelID].console then
-                    ChatWin.Consoles[channelID].console:AppendText(colorCode, line)
+                    
+                    ChatWin.Consoles[channelID].console:AppendText(colorCode, conLine)
                 end
 
                 -- write main console
                 if tempSettings.Channels[channelID].MainEnable then
                     
-                    console:AppendText(colorCode,line)
+                    console:AppendText(colorCode,conLine)
                     local z = getNextID(mainBuffer)
                     
                     if z > 1 then
@@ -1767,6 +1772,7 @@ local function init()
             }
         }
     end
+    links.initDB()
 end
 
 local function loop()
