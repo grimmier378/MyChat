@@ -31,6 +31,11 @@ end
 
 function links.escapeSQL(str)
 	if not str then return " " end  -- Return an empty string if the input is nil
+	return str:gsub("Di`zok", "Di`Zok"):gsub("-", ""):gsub("'", ""):gsub("`", "")--:gsub(":", "_")  -- Escape backticks and -
+	-- return str
+end
+function links.escapeBack(str)
+	if not str then return " " end  -- Return an empty string if the input is nil
 	return str:gsub("Di`zok", "Di`Zok"):gsub("-", ""):gsub(":", ""):gsub("'", ""):gsub("`", "")   -- Escape backticks and -
 	-- return str
 end
@@ -45,7 +50,7 @@ local function loadSortedItems(dbLocal)
 		sortedTable[name] = row.item_link
 
 	end
-	msgOut = string.format("\ay[\aw%s\ay]\atAll Items \agloaded\ax, \ayScanning Chat for Items...",mq.TLO.Time())
+	msgOut = string.format("\ay[\aw%s\ay]\at All Items \agloaded\ax, \ayScanning Chat for Items...",mq.TLO.Time())
 	if links.Console ~= nil then
 		links.Console:AppendText(msgOut)
 	else
@@ -65,7 +70,7 @@ function links.initDB()
 	-- Check if the local table exists, create if not
 	if not tableExists(dbLocal, "Items") then
 
-		msgOut = string.format("\ay[\aw%s\ay]\atCreating Local \agItemsDB",mq.TLO.Time())
+		msgOut = string.format("\ay[\aw%s\ay]\at Creating Local \agItemsDB",mq.TLO.Time())
 
 		if links.Console ~= nil then
 			links.Console:AppendText(msgOut)
@@ -84,7 +89,7 @@ function links.initDB()
 
 	-- Perform a direct insert from the attached source table
 	
-	msgOut = string.format("\ay[\aw%s\ay]\atUpdating \agItemsDB\ax from \aoMQ2LinkDB...",mq.TLO.Time())
+	msgOut = string.format("\ay[\aw%s\ay]\at Updating \agItemsDB\ax from \aoMQ2LinkDB...",mq.TLO.Time())
 	if links.Console ~= nil then
 		links.Console:AppendText(msgOut)
 	else
@@ -105,7 +110,7 @@ function links.initDB()
 	if dbLocal:exec(migrationQuery) ~= sqlite3.OK then
 		msgOut = string.format("\ay[\aw%s\ay]\arMigration failed:",mq.TLO.Time(),dbLocal:errmsg())
 	else
-		msgOut = string.format("\ay[\aw%s\ay]\atMigration Successfull! \agLoading Items...",mq.TLO.Time())
+		msgOut = string.format("\ay[\aw%s\ay]\at Migration Successfull! \agLoading Items...",mq.TLO.Time())
 	end
 	if links.Console ~= nil then
 		links.Console:AppendText(msgOut)

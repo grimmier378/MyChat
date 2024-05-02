@@ -3,8 +3,7 @@ local ImGui = require('ImGui')
 local defaults =  require('default_settings')
 local Icons = require('mq.ICONS')
 
----@type ConsoleWidget
-local console = nil
+
 local resetPosition = false
 local setFocus = false
 local commandBuffer = ''
@@ -49,6 +48,9 @@ local ChatWin = {
         -- Channels
         Channels = {},
     },
+    ---@type ConsoleWidget
+    console = nil,
+    commandBuffer = '',
     -- Consoles
     Consoles = {},
     -- Flags
@@ -371,6 +373,21 @@ local function CheckGroup(string, line, type)
         return string
 end
 
+-- Function to append colored text segments
+local function appendColoredTimestamp(console, timestamp, text, textColor)
+
+    if timeStamps then
+        -- Define TimeStamp colors
+        local yellowColor = ImVec4(1, 1, 0, 1)
+        local whiteColor = ImVec4(1, 1, 1, 1)
+        console:AppendTextUnformatted(yellowColor, "[")
+        console:AppendTextUnformatted(whiteColor, timestamp)
+        console:AppendTextUnformatted(yellowColor, "] ")
+    end
+    console:AppendTextUnformatted(textColor, text)
+    console:AppendText("") -- Move to the next line after the entry
+end
+
 --[[ Reads in the line, channelID and eventName of the triggered events. Parses the line against the Events and Filters for that channel.
     adjusts coloring for the line based on settings for the matching event / filter and writes to the corresponding console.
     if an event contains filters and the line doesn't match any of them we discard the line and return.
@@ -438,14 +455,9 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
             --print(tostring(#eventDetails.Filters))
             if not fMatch and haveFilters then return fMatch end -- we had filters and didn't match so leave
             if not spam then
-                conLine = links.collectItemLinks(line)
+                
                 -- printf("Spam Value %s",tostring(spam))
                 local i = getNextID(txtBuffer)
-                if timeStamps then
-                    local tStamp = mq.TLO.Time.Time24()
-                    line = string.format("%s %s",tStamp,line)
-                    conLine = string.format("%s %s",tStamp,conLine)
-                end
 
                 if string.lower(ChatWin.Settings.Channels[channelID].Name) == 'consider' then
                     local conTarg = mq.TLO.Target
@@ -454,19 +466,27 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
                         colorVec = GetColorVal(conColorStr)
                     end
                 end
+                -----------------------------------------
 
-                local colorCode = ImVec4(colorVec[1], colorVec[2], colorVec[3], colorVec[4])
-                
-                -- write channel console
-                if ChatWin.Consoles[channelID].console then
-                    
-                    ChatWin.Consoles[channelID].console:AppendText(colorCode, conLine)
+conLine = links.collectItemLinks(line)
+local tStamp = mq.TLO.Time.Time24() -- Get the current timestamp
+local colorCode = ImVec4(colorVec[1], colorVec[2], colorVec[3], colorVec[4])
+
+if ChatWin.Consoles[channelID].console then
+    appendColoredTimestamp(ChatWin.Consoles[channelID].console, tStamp, conLine, colorCode)
+end
+
+                -- -- write channel console
+                if timeStamps then
+                    tStamp = mq.TLO.Time.Time24()
+                    line = string.format("[%s] %s",tStamp,line) -- fake zome use drawn text
+
                 end
 
                 -- write main console
                 if tempSettings.Channels[channelID].MainEnable then
-                    
-                    console:AppendText(colorCode,conLine)
+                    appendColoredTimestamp(ChatWin.console, tStamp, conLine, colorCode)
+                    -- ChatWin.console:AppendText(colorCode,conLine)
                     local z = getNextID(mainBuffer)
                     
                     if z > 1 then
@@ -552,18 +572,19 @@ function ChatWin.EventChatSpam(channelID,line)
             end
 
             if fMatch then return end -- we have an event for this already
-
+            local tStamp = mq.TLO.Time.Time24()
             local i = getNextID(txtBuffer)
-            if timeStamps then
-                local tStamp = mq.TLO.Time.Time24()
-                line = string.format("%s %s",tStamp,line)
-            end
 
             local colorCode = ImVec4(colorVec[1], colorVec[2], colorVec[3], colorVec[4])
             conLine = links.collectItemLinks(line)
+            if timeStamps then
+                line = string.format("%s %s",tStamp,line)
+            end
             -- write channel console
             if ChatWin.Consoles[channelID].console then
-                ChatWin.Consoles[channelID].console:AppendText(colorCode, conLine)
+                appendColoredTimestamp(ChatWin.Consoles[channelID].console, tStamp, conLine, colorCode)
+
+                -- ChatWin.Consoles[channelID].console:AppendText(colorCode, conLine)
             end
 
             -- ZOOM Console hack
@@ -768,7 +789,7 @@ local function DrawChatWindow()
         if ImGui.BeginMenu('Options##'..windowNum) then
             local spamOn
             ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
-            _, console.autoScroll = ImGui.MenuItem('Auto-scroll##'..windowNum, nil, console.autoScroll)
+            _,  ChatWin.console.autoScroll = ImGui.MenuItem('Auto-scroll##'..windowNum, nil,  ChatWin.console.autoScroll)
             _, LocalEcho = ImGui.MenuItem('Local echo##'..windowNum, nil, LocalEcho)
             _, timeStamps = ImGui.MenuItem('Time Stamps##'..windowNum, nil, timeStamps)
             spamOn, enableSpam = ImGui.MenuItem('Enable Spam##'..windowNum, nil, enableSpam)
@@ -800,7 +821,7 @@ local function DrawChatWindow()
             end
             ImGui.Separator()
             if ImGui.MenuItem('Clear Main Console##'..windowNum) then
-                console:Clear()
+                ChatWin.console:Clear()
             end
             if ImGui.MenuItem('Exit##'..windowNum) then
                 ChatWin.SHOW = false
@@ -883,7 +904,7 @@ local function DrawChatWindow()
             if ImGui.BeginPopupContextWindow() then
                 ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
                 if ImGui.Selectable('Clear##'..windowNum) then
-                    console:Clear()
+                    ChatWin.console:Clear()
                     mainBuffer = {}
                 end
                 
@@ -895,7 +916,7 @@ local function DrawChatWindow()
                 ImGui.EndPopup()
             end
             if not zoomMain then
-                console:Render(ImVec2(contentSizeX,contentSizeY))
+                ChatWin.console:Render(ImVec2(contentSizeX,contentSizeY))
                 --Command Line
                 ImGui.Separator()
                 local textFlags = bit32.bor(0,
@@ -973,13 +994,13 @@ local function DrawChatWindow()
             ImGui.PushStyleColor(ImGuiCol.FrameBg, ImVec4(0, 0, 0, 0))
             ImGui.PushFont(ImGui.ConsoleFont)
             local accept = false
-            commandBuffer, accept = ImGui.InputText('##Input##'..windowNum, commandBuffer, textFlags)
+            ChatWin.commandBuffer, accept = ImGui.InputText('##Input##'..windowNum, ChatWin.commandBuffer, textFlags)
             ImGui.PopFont()
             ImGui.PopStyleColor()
             ImGui.PopItemWidth()
             if accept then
-                ChatWin.ExecCommand(commandBuffer)
-                commandBuffer = ''
+                ChatWin.ExecCommand(ChatWin.commandBuffer)
+                ChatWin.commandBuffer = ''
                 setFocus = true
             end
             ImGui.SetItemDefaultFocus()
@@ -1701,7 +1722,7 @@ end
 ---@param text string -- the incomming line of text from the command prompt
 function ChatWin.ExecCommand(text)
     if LocalEcho then
-        console:AppendText(IM_COL32(128, 128, 128), "> %s", text)
+        ChatWin.console:AppendText(IM_COL32(128, 128, 128), "> %s", text)
     end
     
     local eChan = '/say'
@@ -1709,7 +1730,7 @@ function ChatWin.ExecCommand(text)
     if string.len(text) > 0 then
         text = ChatWin.StringTrim(text)
         if text == 'clear' then
-            console:Clear()
+            ChatWin.console:Clear()
             elseif string.sub(text, 1, 1) ~= '/' then
             if activeID > 0 then
                 eChan = ChatWin.Settings.Channels[activeID].Echo or '/say'
@@ -1724,7 +1745,7 @@ function ChatWin.ExecCommand(text)
         if string.sub(text, 1, 1) == '/' then
             mq.cmdf("%s", text)
             else
-            console:AppendText(IM_COL32(255, 0, 0), "Unknown command: '%s'", text)
+                ChatWin.console:AppendText(IM_COL32(255, 0, 0), "Unknown command: '%s'", text)
         end
     end
 end
@@ -1733,7 +1754,7 @@ end
 ---@param text string -- the incomming line of text from the command prompt
 function ChatWin.ChannelExecCommand(text, channelID)
     if LocalEcho then
-        console:AppendText(IM_COL32(128, 128, 128), "> %s", text)
+        ChatWin.console:AppendText(IM_COL32(128, 128, 128), "> %s", text)
     end
     
     local eChan = '/say'
@@ -1741,7 +1762,7 @@ function ChatWin.ChannelExecCommand(text, channelID)
     if string.len(text) > 0 then
         text = ChatWin.StringTrim(text)
         if text == 'clear' then
-            console:Clear()
+            ChatWin.console:Clear()
             elseif string.sub(text, 1, 1) ~= '/' then
             if channelID > 0 then
                 eChan = ChatWin.Settings.Channels[channelID].Echo or '/say'
@@ -1756,7 +1777,7 @@ function ChatWin.ChannelExecCommand(text, channelID)
         if string.sub(text, 1, 1) == '/' then
             mq.cmdf("%s", text)
             else
-            console:AppendText(IM_COL32(255, 0, 0), "Unknown command: '%s'", text)
+            ChatWin.console:AppendText(IM_COL32(255, 0, 0), "Unknown command: '%s'", text)
         end
     end
 end
@@ -1766,17 +1787,17 @@ local function init()
     mq.imgui.init('ChatConfigGUI', ChatWin.Config_GUI)
     mq.imgui.init('EditGUI', ChatWin.Edit_GUI)
     -- initialize the console
-    if console == nil then
-        console = ImGui.ConsoleWidget.new("Chat##Console")
+    if ChatWin.console == nil then
+        ChatWin.console = ImGui.ConsoleWidget.new("Chat##Console")
         mainBuffer = {
             [1] = {
                 color ={[1]=1,[2]=1,[3]=1,[4]=1},
                 text = '',
             }
         }
-        links.Console = console
+        links.Console = ChatWin.console
     end
-    console:AppendText("\ay[\aw%s\ay]\atLoading \agMyChat...",mq.TLO.Time())
+    ChatWin.console:AppendText("\ay[\aw%s\ay]\at Loading \agMyChat...",mq.TLO.Time())
     links.initDB()
 end
 
