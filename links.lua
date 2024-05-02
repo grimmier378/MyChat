@@ -10,7 +10,11 @@ local sortedTable = {}
 local searchExact = false
 local newDB = false
 local dbLocal = sqlite3.open(localDBPath)  -- Open the local database
-local links = {}
+local msgOut = ''
+local links = {
+	---@type ConsoleWidget
+	Console = nil, -- this catches a console passed to it for writing to.
+}
 
 --- SQL Stuff ---
 local function tableExists(db, tableName)
@@ -27,7 +31,7 @@ end
 
 function links.escapeSQL(str)
 	if not str then return " " end  -- Return an empty string if the input is nil
-	return str:gsub("`", ""):gsub("-", ""):gsub(":", ""):gsub("'", "")  -- Escape backticks and -
+	return str:gsub("Di`zok", "Di`Zok"):gsub("-", ""):gsub(":", ""):gsub("'", ""):gsub("`", "")   -- Escape backticks and -
 	-- return str
 end
 
@@ -41,8 +45,12 @@ local function loadSortedItems(dbLocal)
 		sortedTable[name] = row.item_link
 
 	end
-	printf("\ay[\aw%s\ay]\atAll Items \agloaded\ax, \ayScanning Chat for Items...",mq.TLO.Time())
-
+	msgOut = string.format("\ay[\aw%s\ay]\atAll Items \agloaded\ax, \ayScanning Chat for Items...",mq.TLO.Time())
+	if links.Console ~= nil then
+		links.Console:AppendText(msgOut)
+	else
+		print(msgOut)
+	end
 end
 
 function links.initDB()
@@ -56,7 +64,14 @@ function links.initDB()
 
 	-- Check if the local table exists, create if not
 	if not tableExists(dbLocal, "Items") then
-		printf("\ay[\aw%s\ay]\atCreating Local \agItemsDB",mq.TLO.Time())
+
+		msgOut = string.format("\ay[\aw%s\ay]\atCreating Local \agItemsDB",mq.TLO.Time())
+
+		if links.Console ~= nil then
+			links.Console:AppendText(msgOut)
+		else
+			print(msgOut)
+		end
 		dbLocal:exec([[
 			CREATE TABLE "Items" (
 				"sort_order" INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,8 +81,15 @@ function links.initDB()
 			)
 		]])
 	end
+
 	-- Perform a direct insert from the attached source table
-	printf("\ay[\aw%s\ay]\atUpdating \agItemsDB\ax from \aoMQ2LinkDB...",mq.TLO.Time())
+	
+	msgOut = string.format("\ay[\aw%s\ay]\atUpdating \agItemsDB\ax from \aoMQ2LinkDB...",mq.TLO.Time())
+	if links.Console ~= nil then
+		links.Console:AppendText(msgOut)
+	else
+		print(msgOut)
+	end
 	--clear local table and insert the data its faster. 
 	dbLocal:exec([[
 		DELETE * FROM Items
@@ -81,9 +103,14 @@ function links.initDB()
 	]]
 
 	if dbLocal:exec(migrationQuery) ~= sqlite3.OK then
-		printf("\ay[\aw%s\ay]\arMigration failed:",mq.TLO.Time(),dbLocal:errmsg())
+		msgOut = string.format("\ay[\aw%s\ay]\arMigration failed:",mq.TLO.Time(),dbLocal:errmsg())
 	else
-		printf("\ay[\aw%s\ay]\atMigration Successfull! \agLoading Items...",mq.TLO.Time())
+		msgOut = string.format("\ay[\aw%s\ay]\atMigration Successfull! \agLoading Items...",mq.TLO.Time())
+	end
+	if links.Console ~= nil then
+		links.Console:AppendText(msgOut)
+	else
+		print(msgOut)
 	end
 	loadSortedItems(dbLocal)
 	-- Detach the source database
@@ -94,7 +121,7 @@ end
 
 --- Table Stuff ---
 function links.collectItemLinks(text)
-	-- printf("%s'", text)
+	-- links.Console:AppendText("%s'", text)
 	local linksFound = {}
 	local uniqueLinks = {}
 	local matchedIndices = {}
@@ -110,7 +137,7 @@ function links.collectItemLinks(text)
 		table.insert(words, word)
 	end
 
-	-- printf("\ay[\aw%s\ay]\agStarting Item Lookup...", mq.TLO.Time())
+	-- links.Console:AppendText("\ay[\aw%s\ay]\agStarting Item Lookup...", mq.TLO.Time())
 	-- print("Debug: Words extracted ->", table.concat(words, ", "))
 	local maxWords = 13
 	for numWords = maxWords, 1, -1 do
@@ -134,7 +161,7 @@ function links.collectItemLinks(text)
 	for k, v in pairs(replacements) do
 		text = text:gsub(k,v)
 	end
-	-- printf("%s'", text)
+	-- links.Console:AppendText("%s'", text)
 	return text --string.format("Output String: %s", text) --"Links Found: " .. table.concat(linksFound, ", ")
 end
 

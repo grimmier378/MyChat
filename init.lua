@@ -381,6 +381,7 @@ end
 ---@param spam boolean @ are we parsing this from the spam channel?
 ---@return boolean
 function ChatWin.EventChat(channelID, eventName, line, spam)
+    local conLine = line
     -- if spam then print('Called from Spam') end
     local eventDetails = eventNames[eventName]
     if not eventDetails then return false end
@@ -437,12 +438,13 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
             --print(tostring(#eventDetails.Filters))
             if not fMatch and haveFilters then return fMatch end -- we had filters and didn't match so leave
             if not spam then
-                
+                conLine = links.collectItemLinks(line)
                 -- printf("Spam Value %s",tostring(spam))
                 local i = getNextID(txtBuffer)
                 if timeStamps then
                     local tStamp = mq.TLO.Time.Time24()
                     line = string.format("%s %s",tStamp,line)
+                    conLine = string.format("%s %s",tStamp,conLine)
                 end
 
                 if string.lower(ChatWin.Settings.Channels[channelID].Name) == 'consider' then
@@ -454,7 +456,7 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
                 end
 
                 local colorCode = ImVec4(colorVec[1], colorVec[2], colorVec[3], colorVec[4])
-                local conLine = links.collectItemLinks(line)
+                
                 -- write channel console
                 if ChatWin.Consoles[channelID].console then
                     
@@ -520,6 +522,7 @@ end
 
 function ChatWin.EventChatSpam(channelID,line)
     local eventDetails = eventNames
+    local conLine = line
     if not eventDetails then return end
     if ChatWin.Consoles[channelID] then
         local txtBuffer = ChatWin.Consoles[channelID].txtBuffer -- Text buffer for the channel ID we are working with.
@@ -557,10 +560,10 @@ function ChatWin.EventChatSpam(channelID,line)
             end
 
             local colorCode = ImVec4(colorVec[1], colorVec[2], colorVec[3], colorVec[4])
-
+            conLine = links.collectItemLinks(line)
             -- write channel console
             if ChatWin.Consoles[channelID].console then
-                ChatWin.Consoles[channelID].console:AppendText(colorCode, line)
+                ChatWin.Consoles[channelID].console:AppendText(colorCode, conLine)
             end
 
             -- ZOOM Console hack
@@ -1771,7 +1774,9 @@ local function init()
                 text = '',
             }
         }
+        links.Console = console
     end
+    console:AppendText("\ay[\aw%s\ay]\atLoading \agMyChat...",mq.TLO.Time())
     links.initDB()
 end
 
