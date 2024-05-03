@@ -36,6 +36,8 @@ local Tokens = {} -- may use this later to hold the tokens and remove a long str
 local enableSpam = false
 local links = require('links')
 if links ~= nil then links.addOn = true end
+local running = true
+
 local ChatWin = {
     SHOW = true,
     openGUI = true,
@@ -548,7 +550,6 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
         print("Error: ChatWin.Consoles[channelID] is nil for channelID " .. channelID)
         return false
     end
-    return false
 end
 
 function ChatWin.EventChatSpam(channelID,line)
@@ -1119,12 +1120,18 @@ function ChatWin.GUI()
         winFlags = bit32.bor(ImGuiWindowFlags.MenuBar,ImGuiWindowFlags.NoMove, ImGuiWindowFlags.NoScrollbar)
     end
     
-    ChatWin.openGUI, ChatWin.SHOW = ImGui.Begin(windowName, ChatWin.openGUI, winFlags)
+    ChatWin.openGUI,ChatWin.SHOW  = ImGui.Begin(windowName, ChatWin.openGUI, winFlags)
     
-    if ChatWin.openGUI then
-        
-        DrawChatWindow()
+    if not ChatWin.SHOW then
+        if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) else ImGui.PopStyleVar(1) end
+        if ColorCount > 0 then ImGui.PopStyleColor(ColorCount) end
+    
+        ImGui.End()
+        ChatWin.openGUI = false
+        return ChatWin.openGUI
     end
+    DrawChatWindow()
+
     if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) else ImGui.PopStyleVar(1) end
     if ColorCount > 0 then ImGui.PopStyleColor(ColorCount) end
 
