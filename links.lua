@@ -3,17 +3,13 @@ local mq = require('mq')
 local PackageMan = require('mq/PackageMan')
 local sqlite3 = PackageMan.Require('lsqlite3')
 local pathDB = mq.TLO.MacroQuest.Path('resources')() .."/MQ2LinkDB.db"
--- local localDBPath = mq.configDir..'/ItemsDB/ItemsDB.db'
-local db = sqlite3.open(pathDB, sqlite3.OPEN_READONLY)  -- Open in read-only mode
--- local itemsInfo = {}
+local db = sqlite3.open(pathDB, sqlite3.OPEN_READONLY)  -- Open in read-only mode for fetching data
 local sortedTable = {}
--- local searchExact = false
--- local newDB = false
--- local db = sqlite3.open(localDBPath)  -- Open the local database
 local msgOut = ''
 local links = {
 	running = false,
 	enabled = true,
+	addOn = false,
 	---@type ConsoleWidget
 	Console = nil, -- this catches a console passed to it for writing to.
 }
@@ -44,14 +40,7 @@ end
 
 function links.escapeSQL(str)
 	if not str then return " " end  -- Return an empty string if the input is nil
-	return str:gsub("Di`zok", "Di`Zok"):gsub("-", ""):gsub("'", ""):gsub("`", ""):gsub("#", "")  -- Escape backticks and -
-	-- return str
-end
-
-function links.escapeBack(str)
-	if not str then return " " end  -- Return an empty string if the input is nil
-	return str:gsub("Di`zok", "Di`Zok"):gsub("-", ""):gsub(":", ""):gsub("'", ""):gsub("`", "")   -- Escape backticks and -
-	-- return str
+	return str:gsub("Di`zok", "Di`Zok"):gsub("-", ""):gsub("'", ""):gsub("`", ""):gsub("#", "")
 end
 
 local function loadSortedItems(db)
@@ -61,7 +50,7 @@ local function loadSortedItems(db)
 	else
 		print(msgOut)
 	end
-	-- local tmpDB = {}
+
 	sortedTable = {}
 	local fetchQuery = [[
 		SELECT a.name, a.id, b.link
@@ -70,11 +59,8 @@ local function loadSortedItems(db)
 		ORDER BY LENGTH(a.name) DESC, a.name
 	]]
 	for row in db:nrows(fetchQuery) do
-		-- table.insert(sortedTable,  {item_name = escapeSQL(row.item_name), item_id = row.item_id, item_link = escapeSQL(row.item_link)})
-		-- sortedTable[escapeLuaPattern(row.item_name)] = row.item_link
 		local name = links.escapeSQL(row.name)
 		sortedTable[name] = links.escapeSQL(row.link)
-
 	end
 	msgOut = string.format("\ay[\aw%s\ay]\at All Items \agloaded\ax, \ayScanning Chat for Items...",mq.TLO.Time())
 	if links.Console ~= nil then
@@ -117,44 +103,6 @@ function links.initDB()
 	db:close()
 end
 
--- local function addItem()
--- 	local newName = mq.TLO.Cursor.Name() or ''
--- 	local newLink = mq.TLO.Cursor.ItemLink('CLICKABLE')() or ''
--- 	local newID = mq.TLO.Cursor.ID() or 0
-    
--- 	-- open DB
--- 	db = sqlite3.open(pathDB)
--- 	db:exec("BEGIN TRANSACTION;")
-
--- 	local function executeStatement(stmt)
--- 		if db:exec(stmt) ~= sqlite3.OK then
--- 			print("Failed to execute statement: ", db:errmsg())
--- 			db:exec("ROLLBACK;") -- Roll back on error
--- 			return false
--- 		end
--- 		return true
--- 	end
-
--- 	if not executeStatement(string.format("REPLACE INTO raw_item_data_315 (id, name) VALUES (%d, '%s')", newID, sqlite3.quote_sql(newName))) or
--- 	   not executeStatement(string.format("REPLACE INTO item_links (link, item_id) VALUES ('%s', %d)", sqlite3.quote_sql(newLink), newID)) then
--- 		print("Transaction failed")
--- 		db:close()
--- 		return
--- 	end
-
--- 	db:exec("COMMIT;")
--- 	db:close()
-
--- 	sortedTable[newName] = newLink
-
--- 	local msgOut = string.format("\ay[\aw%s\ay]\at %s \agADDED\ax, \ay!", mq.TLO.Time(), newName)
--- 	if links.Console ~= nil then
--- 		links.Console:AppendText(msgOut)
--- 	else
--- 		print(msgOut)
--- 	end
--- end
-
 local function addItem()
 	local newName = links.escapeSQL(mq.TLO.Cursor.Name()) or ''
 	local newLink = links.escapeSQL(mq.TLO.Cursor.ItemLink('CLICKABLE')()) or ''
@@ -196,14 +144,12 @@ end
 
 --- Table Stuff ---
 function links.collectItemLinks(text)
-	links.Console:AppendText("Searching for %s'", text)
 	local linksFound = {}
 	local uniqueLinks = {}
 	local matchedIndices = {}
 	local replacements = {}
 	local words = {}
 
- 
 	-- Check and strip trailing apostrophe
 	if text:sub(-1) == "'" then
 		text = text:sub(1, -2)
@@ -288,32 +234,29 @@ local function loopDloop()
 	mq.unbind('/lootlink')
 end
 
-local function init()
-
-	links.initDB()
-	loopDloop()
-end
-
 local args = {...}
 local function checkArgs(args)
 	if args[1] == nil then
 		links.running = true
-		init()
 	else
 		return
+	end
+end
+checkArgs(args)
+
+local function init()
+	if not links.addOn then
+		links.running = true
+		print(printHelp())
+		links.initDB()
+		loopDloop()
 	end
 end
 
 mq.bind('/lootlink', links.bind)
 
-if links.Console ~= nil then
-	links.Console:AppendText(printHelp())
-else
-	print(printHelp())
-end
-
 if links.running then
-	checkArgs(args)
+	init()
 end
 
 return links
