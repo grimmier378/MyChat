@@ -479,8 +479,7 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
                     end
                 end
                 -----------------------------------------
-
-                conLine = links.collectItemLinks(line)
+                if doLinks and links ~= nil then conLine = links.collectItemLinks(line) end
                 local tStamp = mq.TLO.Time.Time24() -- Get the current timestamp
                 local colorCode = ImVec4(colorVec[1], colorVec[2], colorVec[3], colorVec[4])
 
@@ -588,7 +587,7 @@ function ChatWin.EventChatSpam(channelID,line)
             local i = getNextID(txtBuffer)
 
             local colorCode = ImVec4(colorVec[1], colorVec[2], colorVec[3], colorVec[4])
-            conLine = links.collectItemLinks(line)
+            if doLinks and links ~= nil then conLine = links.collectItemLinks(line) end
             if timeStamps then
                 line = string.format("%s %s",tStamp,line)
             end
@@ -836,6 +835,9 @@ local function DrawChatWindow()
             end
             if linksOn then
                 ChatWin.Settings.doLinks = doLinks
+                links.enabled = ChatWin.Settings.doLinks
+                local msgOut = string.format("\ay[\aw%s\ay]\at Link Lookups setting:\aw %s \ax",mq.TLO.Time(),tostring(doLinks))
+                ChatWin.console:AppendText(msgOut)
                 ResetEvents()
             end
             if spamOn then
