@@ -75,21 +75,15 @@ function links.initDB()
 	
 	msgOut = string.format("\ay[\aw%s\ay]\ar Links are Disabled, \atEnable and try again.",mq.TLO.Time())
 	if not links.enabled then
-		if links.Console ~= nil then
-			return links.Console:AppendText(msgOut)
-		else
-			return print(msgOut)
-		end
+		return (links.Console and links.Console:AppendText(msgOut) or print(msgOut))
+
 	end
 
 	-- Check if the local table exists
 	if not tableExists(db, "raw_item_data_315") or not tableExists(db, "item_links")  then
 		msgOut = string.format("\ay[\aw%s\ay]\at %s \arMissing \axrun \ao/link /update \agto create.",mq.TLO.Time(), dbname)
-		if links.Console ~= nil then
-			return links.Console:AppendText(msgOut)
-		else
-			return print(msgOut)
-		end
+		return (links.Console and links.Console:AppendText(msgOut) or print(msgOut))
+
 	end
 
 	msgOut = string.format("\ay[\aw%s\ay]\at Fetching \agItems\ax from \ao%s...",mq.TLO.Time(),dbname)
@@ -103,45 +97,6 @@ function links.initDB()
 
 	db:close()
 end
-
--- local function addItem()
--- 	local newName = links.escapeSQL(mq.TLO.Cursor.Name()) or ''
--- 	local newLink = links.escapeSQL(mq.TLO.Cursor.ItemLink('CLICKABLE')()) or ''
--- 	local newID = mq.TLO.Cursor.ID() or 0
-    
--- 	-- open DB
--- 	db = sqlite3.open(pathDB)
--- 	db:exec("BEGIN TRANSACTION;")
-
--- 	local function executeStatement(stmt)
--- 		if db:exec(stmt) ~= sqlite3.OK then
--- 			print("Failed to execute statement: ", db:errmsg())
--- 			db:exec("ROLLBACK;") -- Roll back on error
--- 			return false
--- 		end
--- 		return true
--- 	end
-
--- 	-- Prepare and execute SQL statements using the escapeSQL function
--- 	if not executeStatement(string.format("REPLACE INTO raw_item_data_315 (id, name) VALUES (%d, '%s')", newID, newName)) or
--- 	   not executeStatement(string.format("REPLACE INTO item_links (link, item_id) VALUES ('%s', %d)", newLink, newID)) then
--- 		print("Transaction failed")
--- 		db:close()
--- 		return
--- 	end
-
--- 	db:exec("COMMIT;")
--- 	db:close()
-
--- 	sortedTable[newName] = newLink
-
--- 	local msgOut = string.format("\ay[\aw%s\ay]\at %s \agADDED\ax, \ay!", mq.TLO.Time(), newName)
--- 	if links.Console ~= nil then
--- 		links.Console:AppendText(msgOut)
--- 	else
--- 		print(msgOut)
--- 	end
--- end
 
 --- Table Stuff ---
 function links.collectItemLinks(text)
@@ -207,12 +162,6 @@ function links.bind(...)
 		else
 			msgOut = string.format("\ay[\aw%s\ay]\ao No string supplied!! \atTry Again\ax!", mq.TLO.Time())
 		end
-	-- elseif string.lower(key) == 'add' then
-	-- 	if curItem ~= nil then
-	-- 		addItem()
-	-- 	else
-	-- 		msgOut = string.format("\ay[\aw%s\ay]\ao Nothing on Cursor!! \atTry Again\ax!", mq.TLO.Time())
-	-- 	end
 	elseif string.lower(key) == 'refresh' then
 		db = sqlite3.open(pathDB, sqlite3.OPEN_READONLY)
 		links.initDB()	
