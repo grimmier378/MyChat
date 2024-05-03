@@ -35,7 +35,7 @@ local cleanImport = false
 local Tokens = {} -- may use this later to hold the tokens and remove a long string of if elseif.
 local enableSpam = false
 local links = require('links')
-
+if links ~= nil then links.addOn = true end
 local ChatWin = {
     SHOW = true,
     openGUI = true,
