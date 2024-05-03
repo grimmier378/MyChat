@@ -26,7 +26,7 @@ local windowNum = 0 --unused will remove later.
 local fromConf = false -- Did we open the edit channel window from the main config window? if we did we will go back to that window after closing.
 local gIcon = Icons.MD_SETTINGS
 local zoomMain = false
-local firstPass, forceIndex = true, false
+local firstPass, forceIndex, doLinks = true, false, false
 local mainLastScrollPos = 0
 local mainBottomPosition = 0
 local mainBuffer = {}
@@ -35,8 +35,6 @@ local cleanImport = false
 local Tokens = {} -- may use this later to hold the tokens and remove a long string of if elseif.
 local enableSpam = false
 local links = require('links')
-
-
 
 local ChatWin = {
     SHOW = true,
@@ -51,6 +49,8 @@ local ChatWin = {
     ---@type ConsoleWidget
     console = nil,
     commandBuffer = '',
+    timeStamps = true,
+    doLinks = false,
     -- Consoles
     Consoles = {},
     -- Flags
@@ -100,8 +100,10 @@ local function getNextID(table)
     local maxChannelId = 0
     for channelId, _ in pairs(table) do
         local numericId = tonumber(channelId)
-        if numericId and numericId > maxChannelId then
-            maxChannelId = numericId
+        if numericId < 9000 then
+            if numericId and numericId > maxChannelId then
+                maxChannelId = numericId
+            end
         end
     end
     return maxChannelId + 1
@@ -201,6 +203,10 @@ local function loadSettings()
         -- ChatWin.Settings = defaults
         -- Load settings from the Lua config file
         ChatWin.Settings = dofile(ChatWin.SettingsFile)
+        if firstPass then
+            reIndexSettings(ChatWin.SettingsFile, ChatWin.Settings)
+            firstPass = false
+        end
     end
 
     if ChatWin.Settings.Channels[0] == nil then
@@ -239,8 +245,8 @@ local function loadSettings()
         if ChatWin.Settings.Channels[channelID].PopOut == nil then
             ChatWin.Settings.Channels[channelID].PopOut = false
         end
-        if ChatWin.Settings.Channels[channelID].locled == nil then
-            ChatWin.Settings.Channels[channelID].look = false
+        if ChatWin.Settings.Channels[channelID].locked == nil then
+            ChatWin.Settings.Channels[channelID].locked = false
         end
         
         if ChatWin.Settings.Scale == nil then
@@ -251,6 +257,10 @@ local function loadSettings()
             ChatWin.Settings.locked = false
         end
         
+        if ChatWin.Settings.timeStamps == nil then
+            ChatWin.Settings.timeStamps = timeStamps 
+        end
+        timeStamps =ChatWin.Settings.timeStamps
         if forceIndex then
             ChatWin.Consoles[channelID].console = nil
         end
@@ -299,15 +309,17 @@ local function loadSettings()
         ChatWin.Settings.LoadTheme = theme.LoadTheme
     end
     
+    if ChatWin.Settings.doLinks == nil then
+        ChatWin.Settings.doLinks = false
+    end
+    doLinks = ChatWin.Settings.doLinks
+    links.enabled = ChatWin.Settings.doLinks
+
     if useThemeName ~= 'Default' then
         useTheme = true
     end
-    if firstPass then
-        reIndexSettings(ChatWin.SettingsFile, ChatWin.Settings)
-        firstPass = false
-    else
-        writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
-    end
+
+    writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
     
     tempSettings = ChatWin.Settings
 end
@@ -457,7 +469,7 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
             if not spam then
                 
                 -- printf("Spam Value %s",tostring(spam))
-                local i = getNextID(txtBuffer)
+                
 
                 if string.lower(ChatWin.Settings.Channels[channelID].Name) == 'consider' then
                     local conTarg = mq.TLO.Target
@@ -468,21 +480,21 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
                 end
                 -----------------------------------------
 
-conLine = links.collectItemLinks(line)
-local tStamp = mq.TLO.Time.Time24() -- Get the current timestamp
-local colorCode = ImVec4(colorVec[1], colorVec[2], colorVec[3], colorVec[4])
+                conLine = links.collectItemLinks(line)
+                local tStamp = mq.TLO.Time.Time24() -- Get the current timestamp
+                local colorCode = ImVec4(colorVec[1], colorVec[2], colorVec[3], colorVec[4])
 
-if ChatWin.Consoles[channelID].console then
-    appendColoredTimestamp(ChatWin.Consoles[channelID].console, tStamp, conLine, colorCode)
-end
-
+                if ChatWin.Consoles[channelID].console then
+                    appendColoredTimestamp(ChatWin.Consoles[channelID].console, tStamp, conLine, colorCode)
+                end
+                
                 -- -- write channel console
                 if timeStamps then
                     tStamp = mq.TLO.Time.Time24()
                     line = string.format("[%s] %s",tStamp,line) -- fake zome use drawn text
 
                 end
-
+                local i = getNextID(txtBuffer)
                 -- write main console
                 if tempSettings.Channels[channelID].MainEnable then
                     appendColoredTimestamp(ChatWin.console, tStamp, conLine, colorCode)
@@ -787,18 +799,13 @@ local function DrawChatWindow()
             ImGui.SetWindowFontScale(1)
         end
         if ImGui.BeginMenu('Options##'..windowNum) then
-            local spamOn
+            local spamOn, linksOn
             ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
             _,  ChatWin.console.autoScroll = ImGui.MenuItem('Auto-scroll##'..windowNum, nil,  ChatWin.console.autoScroll)
             _, LocalEcho = ImGui.MenuItem('Local echo##'..windowNum, nil, LocalEcho)
             _, timeStamps = ImGui.MenuItem('Time Stamps##'..windowNum, nil, timeStamps)
             spamOn, enableSpam = ImGui.MenuItem('Enable Spam##'..windowNum, nil, enableSpam)
-            if spamOn then
-                if not enableSpam then
-                    ChatWin.Consoles[9000].console = nil
-                end
-                ResetEvents()
-            end
+            linksOn, doLinks = ImGui.MenuItem('Find Links##'..windowNum, nil, doLinks)
             if ImGui.MenuItem('Re-Index Settings##'..windowNum) then
                 forceIndex = true
                 ResetEvents()
@@ -826,6 +833,16 @@ local function DrawChatWindow()
             if ImGui.MenuItem('Exit##'..windowNum) then
                 ChatWin.SHOW = false
                 ChatWin.openGUI = false
+            end
+            if linksOn then
+                ChatWin.Settings.doLinks = doLinks
+                ResetEvents()
+            end
+            if spamOn then
+                if not enableSpam then
+                    ChatWin.Consoles[9000].console = nil
+                end
+                ResetEvents()
             end
             ImGui.Spacing()
             ImGui.SetWindowFontScale(1)
@@ -1240,6 +1257,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                         ['eventString'] = 'new',
                         ['Filters'] = {
                             [0] = {
+                                ['filter_enabled'] = true,
                                 ['filterString'] = '',
                                 ['color']={[1]=1,[2]=1,[3]=1,[4]=1,},
                             },
@@ -1795,9 +1813,11 @@ local function init()
                 text = '',
             }
         }
-        links.Console = ChatWin.console
+        
     end
     ChatWin.console:AppendText("\ay[\aw%s\ay]\at Loading \agMyChat...",mq.TLO.Time())
+    mq.delay(2000)
+    links.Console = ChatWin.console
     links.initDB()
 end
 
