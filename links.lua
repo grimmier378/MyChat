@@ -2,7 +2,9 @@
 local mq = require('mq')
 local PackageMan = require('mq/PackageMan')
 local sqlite3 = PackageMan.Require('lsqlite3')
-local pathDB = mq.TLO.MacroQuest.Path('resources')() .."/MQ2LinkDB.db"
+local dbname = 'MQ2LinkDB'
+dbname = string.format("%s%s.db", dbname, mq.TLO.MacroQuest.BuildName() == 'Emu' and '_Emu' or '')
+local pathDB = mq.TLO.MacroQuest.Path('resources')() .."/"..dbname 
 local db = sqlite3.open(pathDB, sqlite3.OPEN_READONLY)  -- Open in read-only mode for fetching data
 local sortedTable = {}
 local msgOut = ''
@@ -19,7 +21,6 @@ local function printHelp()
 	msgOut = string.format("%s\n\ay[\aw%s\ay]\am A lua interface to MQ2LinkDB!!!\ax!",msgOut, mq.TLO.Time())
 	msgOut = string.format("%s\n\ay[\aw%s\ay]\aw LootLink Commands!\ax!",msgOut, mq.TLO.Time())
 	msgOut = string.format("%s\n\ay[\aw%s\ay]\ag /lootlink find [item name]\at Will search for item name supplied, or item on cursor\ax!!",msgOut, mq.TLO.Time())
-	msgOut = string.format("%s\n\ay[\aw%s\ay]\ag /lootlink add \at Will ADD item on cursor to MQ2LinkDB\ax!!",msgOut, mq.TLO.Time())
 	msgOut = string.format("%s\n\ay[\aw%s\ay]\ag /lootlink refresh \at Refresh Local table from MQ2LinkDB\ax!!",msgOut, mq.TLO.Time())
 	msgOut = string.format("%s\n\ay[\aw%s\ay]\ag /lootlink quit \at Exits!\ax!!",msgOut, mq.TLO.Time())
 	return msgOut
@@ -83,7 +84,7 @@ function links.initDB()
 
 	-- Check if the local table exists
 	if not tableExists(db, "raw_item_data_315") or not tableExists(db, "item_links")  then
-		msgOut = string.format("\ay[\aw%s\ay]\at MQ2LinkDB Missing run \ao/link /update \agto create.",mq.TLO.Time())
+		msgOut = string.format("\ay[\aw%s\ay]\at %s \arMissing \axrun \ao/link /update \agto create.",mq.TLO.Time(), dbname)
 		if links.Console ~= nil then
 			return links.Console:AppendText(msgOut)
 		else
@@ -91,7 +92,7 @@ function links.initDB()
 		end
 	end
 
-	msgOut = string.format("\ay[\aw%s\ay]\at Fetching \agItems\ax from \aoMQ2LinkDB...",mq.TLO.Time())
+	msgOut = string.format("\ay[\aw%s\ay]\at Fetching \agItems\ax from \ao%s...",mq.TLO.Time(),dbname)
 	if links.Console ~= nil then
 		links.Console:AppendText(msgOut)
 	else
@@ -103,44 +104,44 @@ function links.initDB()
 	db:close()
 end
 
-local function addItem()
-	local newName = links.escapeSQL(mq.TLO.Cursor.Name()) or ''
-	local newLink = links.escapeSQL(mq.TLO.Cursor.ItemLink('CLICKABLE')()) or ''
-	local newID = mq.TLO.Cursor.ID() or 0
+-- local function addItem()
+-- 	local newName = links.escapeSQL(mq.TLO.Cursor.Name()) or ''
+-- 	local newLink = links.escapeSQL(mq.TLO.Cursor.ItemLink('CLICKABLE')()) or ''
+-- 	local newID = mq.TLO.Cursor.ID() or 0
     
-	-- open DB
-	db = sqlite3.open(pathDB)
-	db:exec("BEGIN TRANSACTION;")
+-- 	-- open DB
+-- 	db = sqlite3.open(pathDB)
+-- 	db:exec("BEGIN TRANSACTION;")
 
-	local function executeStatement(stmt)
-		if db:exec(stmt) ~= sqlite3.OK then
-			print("Failed to execute statement: ", db:errmsg())
-			db:exec("ROLLBACK;") -- Roll back on error
-			return false
-		end
-		return true
-	end
+-- 	local function executeStatement(stmt)
+-- 		if db:exec(stmt) ~= sqlite3.OK then
+-- 			print("Failed to execute statement: ", db:errmsg())
+-- 			db:exec("ROLLBACK;") -- Roll back on error
+-- 			return false
+-- 		end
+-- 		return true
+-- 	end
 
-	-- Prepare and execute SQL statements using the escapeSQL function
-	if not executeStatement(string.format("REPLACE INTO raw_item_data_315 (id, name) VALUES (%d, '%s')", newID, newName)) or
-	   not executeStatement(string.format("REPLACE INTO item_links (link, item_id) VALUES ('%s', %d)", newLink, newID)) then
-		print("Transaction failed")
-		db:close()
-		return
-	end
+-- 	-- Prepare and execute SQL statements using the escapeSQL function
+-- 	if not executeStatement(string.format("REPLACE INTO raw_item_data_315 (id, name) VALUES (%d, '%s')", newID, newName)) or
+-- 	   not executeStatement(string.format("REPLACE INTO item_links (link, item_id) VALUES ('%s', %d)", newLink, newID)) then
+-- 		print("Transaction failed")
+-- 		db:close()
+-- 		return
+-- 	end
 
-	db:exec("COMMIT;")
-	db:close()
+-- 	db:exec("COMMIT;")
+-- 	db:close()
 
-	sortedTable[newName] = newLink
+-- 	sortedTable[newName] = newLink
 
-	local msgOut = string.format("\ay[\aw%s\ay]\at %s \agADDED\ax, \ay!", mq.TLO.Time(), newName)
-	if links.Console ~= nil then
-		links.Console:AppendText(msgOut)
-	else
-		print(msgOut)
-	end
-end
+-- 	local msgOut = string.format("\ay[\aw%s\ay]\at %s \agADDED\ax, \ay!", mq.TLO.Time(), newName)
+-- 	if links.Console ~= nil then
+-- 		links.Console:AppendText(msgOut)
+-- 	else
+-- 		print(msgOut)
+-- 	end
+-- end
 
 --- Table Stuff ---
 function links.collectItemLinks(text)
@@ -191,7 +192,7 @@ function links.bind(...)
 	local key = args[1] or nil
 	local value = nil
 	local msgOut = ''
-	local curItem = mq.TLO.Cursor() or nil
+	-- local curItem = mq.TLO.Cursor() or nil
 	if #args > 1 then
 		value = table.concat(args, " ", 2)
 	end
@@ -204,14 +205,14 @@ function links.bind(...)
 			ItemToFind = value
 			msgOut = links.collectItemLinks(ItemToFind)
 		else
-			msgOut = string.format("\ay[\aw%s\ay]\ao No Name supplied!! \atTry Again\ax!", mq.TLO.Time())
+			msgOut = string.format("\ay[\aw%s\ay]\ao No string supplied!! \atTry Again\ax!", mq.TLO.Time())
 		end
-	elseif string.lower(key) == 'add' then
-		if curItem ~= nil then
-			addItem()
-		else
-			msgOut = string.format("\ay[\aw%s\ay]\ao Nothing on Cursor!! \atTry Again\ax!", mq.TLO.Time())
-		end
+	-- elseif string.lower(key) == 'add' then
+	-- 	if curItem ~= nil then
+	-- 		addItem()
+	-- 	else
+	-- 		msgOut = string.format("\ay[\aw%s\ay]\ao Nothing on Cursor!! \atTry Again\ax!", mq.TLO.Time())
+	-- 	end
 	elseif string.lower(key) == 'refresh' then
 		db = sqlite3.open(pathDB, sqlite3.OPEN_READONLY)
 		links.initDB()	
