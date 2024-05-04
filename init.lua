@@ -3,7 +3,6 @@ local ImGui = require('ImGui')
 local defaults =  require('default_settings')
 local Icons = require('mq.ICONS')
 
-
 local resetPosition = false
 local setFocus = false
 local commandBuffer = ''
@@ -35,7 +34,8 @@ local cleanImport = false
 local Tokens = {} -- may use this later to hold the tokens and remove a long string of if elseif.
 local enableSpam, LinksReady = false, false
 local links = require('links')
-if links ~= nil then links.addOn = true end 
+if links ~= nil then links.addOn = true end
+
 local ChatWin = {
     SHOW = true,
     openGUI = true,
@@ -171,11 +171,13 @@ end
 
 ---Convert MQ event Strings from #*#blah #1# formats to a lua parsable pattern
 local function convertEventString(oldFormat)
-    -- Convert #*# to Lua's wildcard .*
-    local pattern = oldFormat:gsub("#", "")
-    pattern = pattern:gsub("%*", ".*")
-    -- Convert #n# (where n is any number) to Lua's wildcard .*
-    pattern = pattern:gsub("%d", ".*")
+
+    -- local pattern = oldFormat:gsub("#", "")
+    local pattern = oldFormat:gsub("#%*#", ".*")
+    -- Convert * to Lua's wildcard .*
+    -- pattern = pattern:gsub("#%*#", ".*")
+    -- Convert n (where n is any number) to Lua's wildcard .*
+    pattern = pattern:gsub("#%d#", ".*")
 
     -- Escape special characters that are not part of the wildcard transformation and should be literal
     -- Specifically targeting parentheses, plus, minus, and other special characters not typically part of text.
