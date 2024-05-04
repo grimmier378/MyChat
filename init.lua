@@ -172,18 +172,19 @@ end
 ---Convert MQ event Strings from #*#blah #1# formats to a lua parsable pattern
 local function convertEventString(oldFormat)
     -- Convert #*# to Lua's wildcard .*
-    local pattern = oldFormat:gsub("#%*#", ".*")
-
+    local pattern = oldFormat:gsub("#", "")
+    pattern = pattern:gsub("%*", ".*")
     -- Convert #n# (where n is any number) to Lua's wildcard .*
-    pattern = pattern:gsub("#%d+#", ".*")
+    pattern = pattern:gsub("%d", ".*")
 
     -- Escape special characters that are not part of the wildcard transformation and should be literal
     -- Specifically targeting parentheses, plus, minus, and other special characters not typically part of text.
-    pattern = pattern:gsub("([%^%$%(%)%.%+%?])", "%%%1") -- Escaping special characters that might disrupt the pattern matching
+    pattern = pattern:gsub("([%^%[%$%(%)%.%]]%+%?])", "%%%1") -- Escaping special characters that might disrupt the pattern matching
 
     -- Do not escape brackets if they form part of the control structure of the pattern
     pattern = pattern:gsub("%[", "%%%[")
     pattern = pattern:gsub("%]", "%%%]") 
+    -- print(pattern)
     return pattern
 end
 
@@ -574,6 +575,7 @@ function ChatWin.EventChatSpam(channelID,line)
                                 local eventPattern = convertEventString(data.eventString)
                                 if string.match(line, eventPattern) then
                                     fMatch = ChatWin.EventChat(cID, name, line, true)
+                                    -- print(tostring(fMatch))
                                 end
                                 -- we found a match lets exit this loop.
                                 if fMatch == true then break end
