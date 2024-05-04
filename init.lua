@@ -33,11 +33,9 @@ local mainBuffer = {}
 local importFile = 'MyChat_Server_CharName.lua'
 local cleanImport = false
 local Tokens = {} -- may use this later to hold the tokens and remove a long string of if elseif.
-local enableSpam = false
+local enableSpam, LinksReady = false, false
 local links = require('links')
-if links ~= nil then links.addOn = true end
-local running = true
-
+if links ~= nil then links.addOn = true end 
 local ChatWin = {
     SHOW = true,
     openGUI = true,
@@ -123,6 +121,7 @@ local function SetUpConsoles(channelID)
         }
         ChatWin.Consoles[channelID].CommandBuffer = ''
         ChatWin.Consoles[channelID].txtAutoScroll = true
+        -- ChatWin.Consoles[channelID].enableLinks = ChatWin.Settings[channelID].enableLinks
         ChatWin.Consoles[channelID].console = ImGui.ConsoleWidget.new(channelID.."##Console")
     end
 end
@@ -134,7 +133,7 @@ local function reindex(table)
     local newTable = {}
     local newIdx = 0
     for k, v in pairs(table) do
-        if k == 0 or k >= 9000 then
+        if k == 0 or k == 9000 then
             newTable[k] = v
         else
             newIdx = newIdx + 1
@@ -243,7 +242,9 @@ local function loadSettings()
         if ChatWin.Settings.Channels[channelID].MainEnable == nil then
             ChatWin.Settings.Channels[channelID].MainEnable = true
         end
-        
+        if ChatWin.Settings.Channels[channelID].enableLinks == nil then
+            ChatWin.Settings.Channels[channelID].enableLinks = false
+        end
         if ChatWin.Settings.Channels[channelID].PopOut == nil then
             ChatWin.Settings.Channels[channelID].PopOut = false
         end
@@ -310,7 +311,7 @@ local function loadSettings()
     if not ChatWin.Settings.LoadTheme then
         ChatWin.Settings.LoadTheme = theme.LoadTheme
     end
-    
+
     if ChatWin.Settings.doLinks == nil then
         ChatWin.Settings.doLinks = false
     end
@@ -481,7 +482,9 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
                     end
                 end
                 -----------------------------------------
-                if doLinks and links ~= nil then conLine = links.collectItemLinks(line) end
+                if ChatWin.Settings.Channels[channelID].enableLinks and links ~= nil then
+                    if links.ready then conLine = links.collectItemLinks(line) end
+                end
                 local tStamp = mq.TLO.Time.Time24() -- Get the current timestamp
                 local colorCode = ImVec4(colorVec[1], colorVec[2], colorVec[3], colorVec[4])
 
@@ -493,7 +496,6 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
                 if timeStamps then
                     tStamp = mq.TLO.Time.Time24()
                     line = string.format("[%s] %s",tStamp,line) -- fake zome use drawn text
-
                 end
                 local i = getNextID(txtBuffer)
                 -- write main console
@@ -588,7 +590,9 @@ function ChatWin.EventChatSpam(channelID,line)
             local i = getNextID(txtBuffer)
 
             local colorCode = ImVec4(colorVec[1], colorVec[2], colorVec[3], colorVec[4])
-            if doLinks and links ~= nil then conLine = links.collectItemLinks(line) end
+            if ChatWin.Settings.Channels[channelID].enableLinks and links ~= nil then
+                if links.ready then conLine = links.collectItemLinks(line) end
+            end
             if timeStamps then
                 line = string.format("%s %s",tStamp,line)
             end
@@ -805,7 +809,6 @@ local function DrawChatWindow()
             _, LocalEcho = ImGui.MenuItem('Local echo##'..windowNum, nil, LocalEcho)
             _, timeStamps = ImGui.MenuItem('Time Stamps##'..windowNum, nil, timeStamps)
             spamOn, enableSpam = ImGui.MenuItem('Enable Spam##'..windowNum, nil, enableSpam)
-            linksOn, doLinks = ImGui.MenuItem('Find Links##'..windowNum, nil, doLinks)
             if ImGui.MenuItem('Re-Index Settings##'..windowNum) then
                 forceIndex = true
                 ResetEvents()
@@ -833,13 +836,6 @@ local function DrawChatWindow()
             if ImGui.MenuItem('Exit##'..windowNum) then
                 ChatWin.SHOW = false
                 ChatWin.openGUI = false
-            end
-            if linksOn then
-                ChatWin.Settings.doLinks = doLinks
-                links.enabled = ChatWin.Settings.doLinks
-                local msgOut = string.format("\ay[\aw%s\ay]\at Link Lookups setting:\aw %s \ax",mq.TLO.Time(),tostring(doLinks))
-                ChatWin.console:AppendText(msgOut)
-                ResetEvents()
             end
             if spamOn then
                 if not enableSpam then
@@ -882,6 +878,21 @@ local function DrawChatWindow()
             end
             ImGui.SetWindowFontScale(1)
             ImGui.EndMenu()
+        end
+        if ImGui.BeginMenu('Links##'..windowNum) then
+            ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
+            for channelID, _ in pairs(ChatWin.Settings.Channels) do
+                local enableLinks = ChatWin.Settings.Channels[channelID].enableLinks
+                local name = ChatWin.Settings.Channels[channelID].Name
+                if channelID ~= 9000 then 
+                    if ImGui.MenuItem(name, '', enableLinks) then
+                        ChatWin.Settings.Channels[channelID].enableLinks = not enableLinks
+                        writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+                    end
+                end
+            end
+            ImGui.EndMenu()
+            ImGui.SetWindowFontScale(1)
         end
         if ImGui.BeginMenu('PopOut##'..windowNum) then
             ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
@@ -927,7 +938,7 @@ local function DrawChatWindow()
                     ChatWin.console:Clear()
                     mainBuffer = {}
                 end
-                
+                ImGui.Separator()
                 if ImGui.Selectable('Zoom##Main'..windowNum) then
                     zoomMain = not zoomMain
                     
@@ -1044,6 +1055,7 @@ local function DrawChatWindow()
                 local name = ChatWin.Settings.Channels[channelID].Name..'##'..windowNum
                 local zoom = ChatWin.Consoles[channelID].zoom
                 local scale = ChatWin.Settings.Channels[channelID].Scale
+                local links =  ChatWin.Settings.Channels[channelID].enableLinks
                 local function tabToolTip()
                     ImGui.BeginTooltip()
                     ImGui.Text(ChatWin.Settings.Channels[channelID].Name)
@@ -1061,10 +1073,6 @@ local function DrawChatWindow()
                         end
                         if ImGui.BeginPopupContextWindow() then
                             ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
-                            if ImGui.Selectable('Clear##'..windowNum) then
-                                ChatWin.Consoles[channelID].console:Clear()
-                                ChatWin.Consoles[channelID].txtBuffer = {}
-                            end
                             if ImGui.Selectable('Configure##'..windowNum) then
                                 editChanID =  channelID
                                 addChannel = false
@@ -1082,6 +1090,26 @@ local function DrawChatWindow()
                                 ChatWin.Settings.Channels[channelID].PopOut = PopOut
                                 tempSettings.Channels[channelID].PopOut = PopOut
                                 writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+                            end
+                            if channelID < 9000 then
+                                if ImGui.Selectable('Enable Links##'..windowNum) then
+                                    links = not links
+                                    ChatWin.Settings.Channels[channelID].enableLinks = links
+                                    tempSettings.Channels[channelID].enableLinks = links
+                                    -- ChatWin.Consoles[channelID].enableLinks = links
+                                    writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+                                end
+                            else
+                                if ImGui.Selectable('Spam Off##'..windowNum) then
+                                    enableSpam = false
+                                    ChatWin.Consoles[9000].console = nil
+                                    ResetEvents()
+                                end
+                            end
+                            ImGui.Separator()
+                            if ImGui.Selectable('Clear##'..windowNum) then
+                                ChatWin.Consoles[channelID].console:Clear()
+                                ChatWin.Consoles[channelID].txtBuffer = {}
                             end
                             ImGui.SetWindowFontScale(1)
                             ImGui.EndPopup()
@@ -1127,7 +1155,7 @@ function ChatWin.GUI()
         if ColorCount > 0 then ImGui.PopStyleColor(ColorCount) end
     
         ImGui.End()
-        ChatWin.openGUI = false
+        
         return ChatWin.openGUI
     end
     DrawChatWindow()
@@ -1824,10 +1852,11 @@ local function init()
         }
         
     end
-    ChatWin.console:AppendText("\ay[\aw%s\ay]\at Loading \agMyChat...",mq.TLO.Time())
-    mq.delay(2000)
-    links.Console = ChatWin.console
-    links.initDB()
+    ChatWin.console:AppendText("\ay[\aw%s\ay]\at Welcome to \agMyChat!",mq.TLO.Time())
+    mq.delay(500)
+    if links ~= nil then
+        links.Console = ChatWin.console
+    end
 end
 
 local function loop()
