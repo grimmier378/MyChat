@@ -2,14 +2,15 @@
 local mq = require('mq')
 local PackageMan = require('mq/PackageMan')
 local sqlite3 = PackageMan.Require('lsqlite3')
-local dbname = 'MQ2LinkDB'
-dbname = string.format("%s%s.db", dbname, mq.TLO.MacroQuest.BuildName() == 'Emu' and '_Emu' or '')
+local dbname = 'MQ2LinkDB.db'
+dbname = string.format("%s", mq.TLO.MacroQuest.BuildName() == 'Emu' and 'MQ2LinkDB_Emu.db' or 'MQ2LinkDB.db')
 local pathDB = mq.TLO.MacroQuest.Path('resources')() .."/"..dbname 
 local db = sqlite3.open(pathDB, sqlite3.OPEN_READONLY)  -- Open in read-only mode for fetching data
 local sortedTable = {}
 local msgOut = ''
 local links = {
 	running = false,
+	ready = false,
 	enabled = true,
 	addOn = false,
 	---@type ConsoleWidget
@@ -20,7 +21,7 @@ local function printHelp()
 	local msgOut = string.format("\ay[\aw%s\ay]\at -- LootLink -- \ax", mq.TLO.Time())
 	msgOut = string.format("%s\n\ay[\aw%s\ay]\am A lua interface to MQ2LinkDB!!!\ax!",msgOut, mq.TLO.Time())
 	msgOut = string.format("%s\n\ay[\aw%s\ay]\aw LootLink Commands!\ax!",msgOut, mq.TLO.Time())
-	msgOut = string.format("%s\n\ay[\aw%s\ay]\ag /lootlink find [item name]\at Will search for item name supplied, or item on cursor\ax!!",msgOut, mq.TLO.Time())
+	msgOut = string.format("%s\n\ay[\aw%s\ay]\ag /lootlink find [string]\at Will search for links in entire String supplied, and return it with the links inserted\ax!!",msgOut, mq.TLO.Time())
 	msgOut = string.format("%s\n\ay[\aw%s\ay]\ag /lootlink refresh \at Refresh Local table from MQ2LinkDB\ax!!",msgOut, mq.TLO.Time())
 	msgOut = string.format("%s\n\ay[\aw%s\ay]\ag /lootlink quit \at Exits!\ax!!",msgOut, mq.TLO.Time())
 	return msgOut
@@ -44,14 +45,7 @@ function links.escapeSQL(str)
 	return str:gsub("Di`zok", "Di`Zok"):gsub("-", ""):gsub("'", ""):gsub("`", ""):gsub("#", "")
 end
 
-local function loadSortedItems(db)
-	msgOut = string.format("\ay[\aw%s\ay]\ao This may take few minutes...",mq.TLO.Time())
-	if links.Console ~= nil then
-		links.Console:AppendText(msgOut)
-	else
-		print(msgOut)
-	end
-
+local function loadSortedItems(dbname)
 	sortedTable = {}
 	local fetchQuery = [[
 		SELECT a.name, a.id, b.link
@@ -64,8 +58,9 @@ local function loadSortedItems(db)
 		sortedTable[name] = links.escapeSQL(row.link)
 	end
 	msgOut = string.format("\ay[\aw%s\ay]\at All Items \agloaded\ax, \ayScanning Chat for Items...",mq.TLO.Time())
-	if links.Console ~= nil then
-		links.Console:AppendText(msgOut)
+	
+	if links.running  then
+		return (links.Console and links.Console:AppendText(msgOut) or print(msgOut))
 	else
 		print(msgOut)
 	end
@@ -74,27 +69,29 @@ end
 function links.initDB()
 	
 	msgOut = string.format("\ay[\aw%s\ay]\ar Links are Disabled, \atEnable and try again.",mq.TLO.Time())
-	if not links.enabled then
+	if links.running and not links.enabled then
 		return (links.Console and links.Console:AppendText(msgOut) or print(msgOut))
-
 	end
-
+	-- print(db)
 	-- Check if the local table exists
 	if not tableExists(db, "raw_item_data_315") or not tableExists(db, "item_links")  then
 		msgOut = string.format("\ay[\aw%s\ay]\at %s \arMissing \axrun \ao/link /update \agto create.",mq.TLO.Time(), dbname)
-		return (links.Console and links.Console:AppendText(msgOut) or print(msgOut))
-
+		if links.running  then
+			return (links.Console and links.Console:AppendText(msgOut) or print(msgOut))
+		else
+			print(msgOut)
+		end
 	end
 
 	msgOut = string.format("\ay[\aw%s\ay]\at Fetching \agItems\ax from \ao%s...",mq.TLO.Time(),dbname)
-	if links.Console ~= nil then
-		links.Console:AppendText(msgOut)
+	if links.running  then
+		return (links.Console and links.Console:AppendText(msgOut) or print(msgOut))
 	else
 		print(msgOut)
 	end
 
 	loadSortedItems(db)
-
+	links.ready = true
 	db:close()
 end
 
@@ -158,7 +155,7 @@ function links.bind(...)
 		if value ~= nil then
 			-- printf("Value: %s", value)
 			ItemToFind = value
-			msgOut = links.collectItemLinks(ItemToFind)
+			msgOut = string.format("\ay[\aw%s\ay]\ax %s", mq.TLO.Time(), links.collectItemLinks(ItemToFind))
 		else
 			msgOut = string.format("\ay[\aw%s\ay]\ao No string supplied!! \atTry Again\ax!", mq.TLO.Time())
 		end
@@ -169,11 +166,7 @@ function links.bind(...)
 		links.running = false
 	end
 	if msgOut ~= '' then
-		if links.Console ~= nil then
-			links.Console:AppendText(msgOut)
-		else
-			print(msgOut)
-		end
+		return (links.Console and links.Console:AppendText(msgOut) or print(msgOut))
 	end
 end
 
@@ -195,18 +188,18 @@ end
 checkArgs(args)
 
 local function init()
-	if not links.addOn then
-		links.running = true
-		print(printHelp())
-		links.initDB()
-		loopDloop()
-	end
+	print(printHelp())
+	links.initDB()
+	loopDloop()
 end
 
 mq.bind('/lootlink', links.bind)
 
 if links.running then
 	init()
+else
+	print(printHelp())
+	links.initDB()
 end
 
 return links
