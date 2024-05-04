@@ -35,6 +35,7 @@ local Tokens = {} -- may use this later to hold the tokens and remove a long str
 local enableSpam, LinksReady = false, false
 local links = require('links')
 if links ~= nil then links.addOn = true end
+local running = false
 
 local ChatWin = {
     SHOW = true,
@@ -838,8 +839,9 @@ local function DrawChatWindow()
                 ChatWin.console:Clear()
             end
             if ImGui.MenuItem('Exit##'..windowNum) then
-                ChatWin.SHOW = false
-                ChatWin.openGUI = false
+                -- ChatWin.SHOW = false
+                -- ChatWin.openGUI = false
+                running = false
             end
             if spamOn then
                 if not enableSpam then
@@ -1138,7 +1140,7 @@ local function DrawChatWindow()
 end
 
 function ChatWin.GUI()
-    if not ChatWin.openGUI then return false end
+    if not running then return false end
 
     local windowName = 'My Chat - Main##'..myName..'_'..windowNum
     ImGui.SetWindowPos(windowName,ImVec2(20, 20), ImGuiCond.FirstUseEver)
@@ -1154,21 +1156,23 @@ function ChatWin.GUI()
     
     ChatWin.openGUI,ChatWin.SHOW  = ImGui.Begin(windowName, ChatWin.openGUI, winFlags)
     
-    if not ChatWin.SHOW then
+    if ChatWin.SHOW then
+
+        DrawChatWindow()
+    
+        if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) else ImGui.PopStyleVar(1) end
+        if ColorCount > 0 then ImGui.PopStyleColor(ColorCount) end
+
+        ImGui.End()
+    else
+        -- ChatWin.openGUI = false
         if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) else ImGui.PopStyleVar(1) end
         if ColorCount > 0 then ImGui.PopStyleColor(ColorCount) end
     
         ImGui.End()
-        
-        return ChatWin.openGUI
     end
-    DrawChatWindow()
 
-    if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) else ImGui.PopStyleVar(1) end
-    if ColorCount > 0 then ImGui.PopStyleColor(ColorCount) end
 
-    ImGui.End()
-    
     for channelID, data in pairs(ChatWin.Settings.Channels) do
         
         if ChatWin.Settings.Channels[channelID].enabled then
@@ -1183,6 +1187,7 @@ function ChatWin.GUI()
                 ChatWin.PopOutFlags = bit32.bor(ImGuiWindowFlags.NoScrollbar)
             end
             if PopOut then
+                
                 ColorCount = 0
                 StyleCount = 0
                 ImGui.SetNextWindowSize(ImVec2(640, 480), ImGuiCond.FirstUseEver)
@@ -1230,8 +1235,9 @@ function ChatWin.GUI()
                         ImGui.SetWindowFontScale(1)
                     end
                     DrawConsole(channelID)
-                    else
+                else
                     if not ShowPop then
+                        
                         ChatWin.Settings.Channels[channelID].PopOut = ShowPop
                         tempSettings.Channels[channelID].PopOut = ShowPop
                         ResetEvents()
@@ -1248,6 +1254,7 @@ function ChatWin.GUI()
             end
         end
     end
+    if not ChatWin.openGUI and not ChatWin.SHOW then running = false end
 end
 
 -------------------------------- Configure Windows and Events GUI ---------------------------
@@ -1509,7 +1516,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                     if filterID > 0  then--and filterData.filterString ~= '' then
                         ImGui.TableNextRow()
                         ImGui.TableSetColumnIndex(0)
-                        ImGui.Text(string.format("fID: %s", tostring(filterID)))
+                        ImGui.Text("fID: %s", tostring(filterID))
                         ImGui.TableSetColumnIndex(1)
                         if not tempFilterStrings[editChanID][eventID] then
                             tempFilterStrings[editChanID][eventID] = {}
@@ -1842,6 +1849,7 @@ function ChatWin.ChannelExecCommand(text, channelID)
 end
 
 local function init()
+    running = true
     mq.imgui.init('MyChatGUI', ChatWin.GUI)
     mq.imgui.init('ChatConfigGUI', ChatWin.Config_GUI)
     mq.imgui.init('EditGUI', ChatWin.Edit_GUI)
@@ -1864,7 +1872,7 @@ local function init()
 end
 
 local function loop()
-    while ChatWin.openGUI do
+    while running do
         mq.delay(100)
         mq.doevents()
     end
