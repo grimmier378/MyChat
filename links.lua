@@ -13,6 +13,7 @@ local links = {
 	ready = false,
 	enabled = true,
 	addOn = false,
+
 	---@type ConsoleWidget
 	Console = nil, -- this catches a console passed to it for writing to.
 }
@@ -81,8 +82,8 @@ function links.initDB()
 		return (links.Console and links.Console:AppendText(msgOut) or print(msgOut))
 	end
 	-- print(db)
-	-- Check if the local table exists
-	if not tableHasData(db, "raw_item_data_315") or not tableHasData(db, "item_links")  then
+	-- Check if the local table has Data
+	if not tableHasData(db, "item_links")  then
 		msgOut = string.format("\ay[\aw%s\ay]\at %s \arMissing \axrun \ao/link /update \agto create.",mq.TLO.Time(), dbname)
 		if links.running  then
 			return (links.Console and links.Console:AppendText(msgOut) or print(msgOut))
@@ -102,6 +103,8 @@ function links.initDB()
 	links.ready = true
 	db:close()
 end
+
+
 
 --- Table Stuff ---
 function links.collectItemLinks(text)

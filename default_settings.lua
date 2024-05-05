@@ -1324,4 +1324,5 @@ return {
 	['timeStamps'] = true,
 	['LoadTheme'] = 'Default',
 	['Scale'] = 1,
+	['refreshLinkDB'] = 10,
 }

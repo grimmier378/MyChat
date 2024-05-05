@@ -31,6 +31,7 @@ local zoomMain = false
 local firstPass, forceIndex, doLinks = true, false, false
 local mainLastScrollPos = 0
 local mainBottomPosition = 0
+local timeA = os.time()
 local mainBuffer = {}
 local importFile = 'MyChat_Server_CharName.lua'
 local cleanImport = false
@@ -44,6 +45,7 @@ local ChatWin = {
     SHOW = true,
     openGUI = true,
     openConfigGUI = false,
+    refreshLinkDB = 10,
     SettingsFile = string.format('%s/MyChat_%s_%s.lua', mq.configDir, serverName, myName),
     ThemesFile = string.format('%s/MyThemeZ.lua', mq.configDir, serverName, myName),
     Settings = {
@@ -71,6 +73,13 @@ local MyColorFlags = bit32.bor(
 )
 
 --- Helper Functions ---
+local function ReLoadDB()
+    if links ~= nil then
+        ChatWin.console:AppendText("\ay[\aw%s\ay]\at Refreshing \aoLinksDB",mq.TLO.Time())
+        printf("\ay[\aw%s\ay]\at Refreshing \aoLinksDB",mq.TLO.Time())
+        links.initDB()
+    end
+end
 
 ---Converts ConColor String to ColorVec Table
 ---@param colorString string @string value for color 
@@ -228,17 +237,13 @@ local function loadSettings()
         ChatWin.Settings.Channels[9000] = {}
         ChatWin.Settings.Channels[9000] = defaults['Channels'][9000]
     end
+
     ChatWin.Settings.Channels[9000].enabled = enableSpam
-    useThemeName = ChatWin.Settings.LoadTheme
     
-    if not File_Exists(ChatWin.ThemesFile) then
-        local defaultThemes = require('themes')
-        theme = defaultThemes
-        else
-        -- Load settings from the Lua config file
-        theme = dofile(ChatWin.ThemesFile)
+    if ChatWin.Settings.refreshLinkDB == nil then
+        ChatWin.Settings.refreshLinkDB = defaults.refreshLinkDB
     end
-    
+
     for channelID, channelData in pairs(ChatWin.Settings.Channels) do
         -- setup default Echo command channels.
         if not channelData.Echo then
@@ -317,20 +322,31 @@ local function loadSettings()
         end
         
     end
-    forceIndex = false
+
+    useThemeName = ChatWin.Settings.LoadTheme
+    if not File_Exists(ChatWin.ThemesFile) then
+        local defaultThemes = require('themes')
+        theme = defaultThemes
+        else
+        -- Load settings from the Lua config file
+        theme = dofile(ChatWin.ThemesFile)
+    end
+    
     if not ChatWin.Settings.LoadTheme then
         ChatWin.Settings.LoadTheme = theme.LoadTheme
     end
 
-    if ChatWin.Settings.doLinks == nil then
-        ChatWin.Settings.doLinks = false
-    end
-    doLinks = ChatWin.Settings.doLinks
-    links.enabled = ChatWin.Settings.doLinks
-
     if useThemeName ~= 'Default' then
         useTheme = true
     end
+
+    if ChatWin.Settings.doLinks == nil then
+        ChatWin.Settings.doLinks = true
+    end
+
+    ChatWin.Settings.doLinks = true
+    links.enabled = ChatWin.Settings.doLinks
+    forceIndex = false
 
     writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
     
@@ -825,8 +841,16 @@ local function DrawChatWindow()
                 ResetEvents()
             end
             ImGui.Separator()
+            -- if linksOn then 
+            --     ChatWin.Settings.doLinks = doLinks 
+            --     links.enabled = ChatWin.Settings.doLinks 
+            --     local msgOut = string.format("\ay[\aw%s\ay]\at Link Lookups setting:\aw %s \ax",mq.TLO.Time(),tostring(doLinks)) 
+            --     ChatWin.console:AppendText(msgOut) 
+            --     ResetEvents() 
+            -- end 
+
             if ImGui.MenuItem('Refresh LinksDB##Options_Links'..windowNum) then
-                if links ~= nil then links.initDB() end
+                ReLoadDB()
             end
             if ImGui.IsItemHovered() then
                 ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
@@ -908,7 +932,7 @@ local function DrawChatWindow()
             end
             ImGui.Separator()
             if ImGui.MenuItem('RefreshDB##Links'..windowNum) then
-                if links ~= nil then links.initDB() end
+                ReLoadDB()
             end
             ImGui.EndMenu()
             ImGui.SetWindowFontScale(1)
@@ -1446,9 +1470,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
     if not channelData[editChanID] then ImGui.EndChild() return end
     for eventID, eventDetails in pairs(channelData[editChanID].Events) do
         if hString[eventID] == nil then hString[eventID] = string.format(channelData[editChanID].Name .. ' : ' ..eventDetails.eventString) end
-        local collapsed, _ = ImGui.CollapsingHeader(hString[eventID])
-        -- Check if the header is collapsed
-        if collapsed then
+        if ImGui.CollapsingHeader(hString[eventID]) then
             local contentSizeX = ImGui.GetWindowContentRegionWidth()
             ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
             ImGui.BeginChild('Events##'..eventID, contentSizeX,0.0,bit32.bor(ImGuiChildFlags.Border, ImGuiChildFlags.AutoResizeY))
@@ -1581,9 +1603,8 @@ local function buildConfig()
     ImGui.BeginChild("Channels##")
     for channelID, channelData in pairs(tempSettings.Channels) do
         if channelID ~= lastID then
-            local collapsed, _ = ImGui.CollapsingHeader(channelData.Name)
             -- Check if the header is collapsed
-            if collapsed then
+            if ImGui.CollapsingHeader(channelData.Name) then
                 local contentSizeX = ImGui.GetWindowContentRegionWidth()
                 ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
                 ImGui.BeginChild('Channels##'..channelID,contentSizeX,0.0,bit32.bor(ImGuiChildFlags.Border, ImGuiChildFlags.AutoResizeY, ImGuiChildFlags.AlwaysAutoResize))
@@ -1638,7 +1659,7 @@ local function buildConfig()
 end
 
 function ChatWin.Config_GUI(open)
-
+    
     local themeName = tempSettings.LoadTheme or 'notheme'
     if themeName ~= 'notheme' then useTheme = true end
     -- Push Theme Colors
@@ -1721,23 +1742,24 @@ function ChatWin.Config_GUI(open)
                 ResetEvents()
             end
         end
-
-        ImGui.SeparatorText('Theme')
-        ImGui.Text("Cur Theme: %s", themeName)
-        -- Combo Box Load Theme
-        if ImGui.BeginCombo("Load Theme", themeName) then
-            for k, data in pairs(theme.Theme) do
-                local isSelected = data['Name'] == themeName
-                if ImGui.Selectable(data['Name'], isSelected) then
-                    tempSettings['LoadTheme'] = data['Name']
-                    themeName = tempSettings['LoadTheme']
-                    ChatWin.Settings = tempSettings
-                    writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+        if ImGui.CollapsingHeader("Theme Settings##Header") then
+        -- if vis then
+            ImGui.SeparatorText('Theme')
+            ImGui.Text("Cur Theme: %s", themeName)
+            -- Combo Box Load Theme
+            if ImGui.BeginCombo("Load Theme", themeName) then
+                for k, data in pairs(theme.Theme) do
+                    local isSelected = data['Name'] == themeName
+                    if ImGui.Selectable(data['Name'], isSelected) then
+                        tempSettings['LoadTheme'] = data['Name']
+                        themeName = tempSettings['LoadTheme']
+                        ChatWin.Settings = tempSettings
+                        writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+                    end
                 end
+                ImGui.EndCombo()
             end
-            ImGui.EndCombo()
         end
-
         ImGui.SeparatorText('Main Tab Zoom')
         -- Slider for adjusting zoom level
         local tmpZoom = ChatWin.Settings.Scale
@@ -1749,6 +1771,13 @@ function ChatWin.Config_GUI(open)
             ChatWin.Settings.Scale = tmpZoom
             tempSettings.Scale = tmpZoom
         end
+
+        local tmpRefLink = ChatWin.Settings.refreshLinkDB or 5
+        tmpRefLink = ImGui.InputInt("Refresh Delay##LinkRefresh",tmpRefLink, 5, 5)
+        if tmpRefLink ~= ChatWin.Settings.refreshLinkDB then
+            ChatWin.Settings.refreshLinkDB = tmpRefLink
+        end
+        if tmpRefLink < 5 then ImGui.SameLine() ImGui.Text("OFF") end
 
         ImGui.SeparatorText('Channels and Events Overview')
         buildConfig()
@@ -1885,8 +1914,17 @@ end
 
 local function loop()
     while running do
-        mq.delay(100)
+        if ChatWin.Settings.refreshLinkDB >= 5 then
+            local timeB = os.time()
+            if timeB - timeA >= ChatWin.Settings.refreshLinkDB * 60 then
+                if links ~= nil then
+                    ReLoadDB()
+                end
+                timeA = timeB
+            end
+        end
         mq.doevents()
+        mq.delay(100)
     end
 end
 
