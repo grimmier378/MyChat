@@ -5,7 +5,7 @@ local sqlite3 = PackageMan.Require('lsqlite3')
 local dbname = 'MQ2LinkDB.db'
 dbname = string.format("%s", mq.TLO.MacroQuest.BuildName() == 'Emu' and 'MQ2LinkDB_Emu.db' or 'MQ2LinkDB.db')
 local pathDB = mq.TLO.MacroQuest.Path('resources')() .."/"..dbname 
-local db = sqlite3.open(pathDB, sqlite3.OPEN_READONLY)  -- Open in read-only mode for fetching data
+local db   -- Open in read-only mode for fetching data
 local sortedTable = {}
 local msgOut = ''
 local links = {
@@ -33,9 +33,9 @@ local function printHelp()
 end
 
 --- SQL Stuff ---
-local function tableHasData(db, tableName)
+local function tableHasData(dbCheck, tableName)
 	local query = string.format("SELECT name FROM sqlite_master WHERE type='table' AND name='%s';", tableName)
-	for row in db:nrows(query) do
+	for row in dbCheck:nrows(query) do
 		return true -- The table exists if we can fetch at least one row
 	end
 	return false -- No rows fetched means the table does not exist
@@ -50,17 +50,24 @@ function links.escapeSQL(str)
 	return str:gsub("Di`zok", "Di`Zok"):gsub("-", ""):gsub("'", ""):gsub("`", ""):gsub("#", "")
 end
 
-local function loadSortedItems(dbname)
+local function getName(line)
+
+	local name = line:sub(58, -3)
+
+	return name
+end
+
+local function loadSortedItems()
 	sortedTable = {}
 	sortedTable = nonLinks
 	local fetchQuery = [[
-		SELECT a.name, a.id, b.link
-		FROM raw_item_data_315 AS a
-		JOIN item_links AS b ON a.id = b.item_id
-		ORDER BY LENGTH(a.name) DESC, a.name
+		SELECT *
+		FROM item_links 
+		ORDER BY LENGTH(link) DESC, link
 	]]
 	for row in db:nrows(fetchQuery) do
-		local name = links.escapeSQL(row.name)
+		local name = getName(links.escapeSQL(row.link))
+		-- printf("Name: %s  ", name)
 		sortedTable[name] = links.escapeSQL(row.link)
 	end
 	msgOut = string.format("\ay[\aw%s\ay]\at All Items \agloaded\ax, \ayScanning Chat for Items...",mq.TLO.Time())
@@ -73,7 +80,9 @@ local function loadSortedItems(dbname)
 end
 
 function links.initDB()
-	
+
+	links.ready = false
+	db = sqlite3.open(pathDB, sqlite3.OPEN_READONLY)
 	msgOut = string.format("\ay[\aw%s\ay]\ar Links are Disabled, \atEnable and try again.",mq.TLO.Time())
 	if links.running and not links.enabled then
 		return (links.Console and links.Console:AppendText(msgOut) or print(msgOut))
@@ -96,7 +105,7 @@ function links.initDB()
 		print(msgOut)
 	end
 
-	loadSortedItems(db)
+	loadSortedItems()
 	links.ready = true
 	db:close()
 end

@@ -824,6 +824,10 @@ local function DrawChatWindow()
                 forceIndex = true
                 ResetEvents()
             end
+            ImGui.Separator()
+            if ImGui.MenuItem('Refresh LinksDB##Options_Links'..windowNum) then
+                if links ~= nil then links.initDB() end
+            end
             if ImGui.IsItemHovered() then
                 ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
                 ImGui.BeginTooltip()
@@ -840,7 +844,6 @@ local function DrawChatWindow()
             if ImGui.MenuItem('Reset Position##'..windowNum) then
                 resetPosition = true
             end
-            ImGui.Separator()
             if ImGui.MenuItem('Clear Main Console##'..windowNum) then
                 ChatWin.console:Clear()
             end
@@ -902,6 +905,10 @@ local function DrawChatWindow()
                         writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
                     end
                 end
+            end
+            ImGui.Separator()
+            if ImGui.MenuItem('RefreshDB##Links'..windowNum) then
+                if links ~= nil then links.initDB() end
             end
             ImGui.EndMenu()
             ImGui.SetWindowFontScale(1)
@@ -1258,6 +1265,7 @@ function ChatWin.GUI()
     if ChatWin.openConfigGUI then ChatWin.Config_GUI() end
 
     if not openMain then running = false end
+    
 end
 
 -------------------------------- Configure Windows and Events GUI ---------------------------
@@ -1871,6 +1879,7 @@ local function init()
     mq.delay(500)
     if links ~= nil then
         links.Console = ChatWin.console
+        -- links.setupDB()
     end
 end
 
