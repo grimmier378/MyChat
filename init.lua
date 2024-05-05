@@ -1166,29 +1166,21 @@ function ChatWin.GUI()
     
     openMain,ChatWin.SHOW  = ImGui.Begin(windowName, openMain, winFlags)
     
-    if ChatWin.SHOW then
-
-        DrawChatWindow()
-    
+    if not ChatWin.SHOW then
         if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) else ImGui.PopStyleVar(1) end
         if ColorCount > 0 then ImGui.PopStyleColor(ColorCount) end
-
         ImGui.End()
     else
-        -- ChatWin.openGUI = false
+
+        DrawChatWindow()
+
         if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) else ImGui.PopStyleVar(1) end
         if ColorCount > 0 then ImGui.PopStyleColor(ColorCount) end
-        
         ImGui.End()
     end
-
-
     for channelID, data in pairs(ChatWin.Settings.Channels) do
-        
         if ChatWin.Settings.Channels[channelID].enabled then
             local name = ChatWin.Settings.Channels[channelID].Name..'##'..windowNum
-            -- local zoom = ChatWin.Consoles[channelID].zoom
-            -- local scale = ChatWin.Settings.Channels[channelID].Scale
             local PopOut = ChatWin.Settings.Channels[channelID].PopOut
             local ShowPop = ChatWin.Settings.Channels[channelID].PopOut
             if ChatWin.Settings.Channels[channelID].locked then
@@ -1197,13 +1189,11 @@ function ChatWin.GUI()
                 ChatWin.PopOutFlags = bit32.bor(ImGuiWindowFlags.NoScrollbar)
             end
             if PopOut then
-                
-                ColorCount = 0
-                StyleCount = 0
+
                 ImGui.SetNextWindowSize(ImVec2(640, 480), ImGuiCond.FirstUseEver)
 
-                    local themeName = tempSettings.LoadTheme
-                    ColorCount, StyleCount = DrawTheme(themeName)
+                local themeName = tempSettings.LoadTheme
+                local PopoutColorCount,PopoutStyleCount = DrawTheme(themeName)
                 local show
                 PopOut, show = ImGui.Begin(name.."##"..channelID..name, PopOut, ChatWin.PopOutFlags)
                 if show then
@@ -1244,26 +1234,29 @@ function ChatWin.GUI()
                         ImGui.EndTooltip()
                         ImGui.SetWindowFontScale(1)
                     end
+
                     DrawConsole(channelID)
+
                 else
                     if not ShowPop then
-                        
                         ChatWin.Settings.Channels[channelID].PopOut = ShowPop
                         tempSettings.Channels[channelID].PopOut = ShowPop
                         ResetEvents()
-                        if StyleCount > 0  then ImGui.PopStyleVar(StyleCount) end
-                        if ColorCount > 0  then ImGui.PopStyleColor(ColorCount) end
-
+                        if PopoutStyleCount > 0  then ImGui.PopStyleVar(PopoutStyleCount) end
+                        if PopoutColorCount > 0  then ImGui.PopStyleColor(PopoutColorCount) end
                         ImGui.End()
                     end
                 end
 
-                if StyleCount > 0  then ImGui.PopStyleVar(StyleCount) end
-                if ColorCount > 0  then ImGui.PopStyleColor(ColorCount) end
+                if PopoutStyleCount > 0  then ImGui.PopStyleVar(PopoutStyleCount) end
+                if PopoutColorCount > 0  then ImGui.PopStyleColor(PopoutColorCount) end
                 ImGui.End()
             end
         end
     end
+    if ChatWin.openEditGUI then ChatWin.Edit_GUI() end
+    if ChatWin.openConfigGUI then ChatWin.Config_GUI() end
+
     if not openMain then running = false end
 end
 
@@ -1637,9 +1630,7 @@ local function buildConfig()
 end
 
 function ChatWin.Config_GUI(open)
-    if not ChatWin.openConfigGUI then return end
-    ColorCountConf = 0
-    StyleCountConf = 0
+
     local themeName = tempSettings.LoadTheme or 'notheme'
     if themeName ~= 'notheme' then useTheme = true end
     -- Push Theme Colors
@@ -1648,118 +1639,121 @@ function ChatWin.Config_GUI(open)
         ColorCountConf, StyleCountConf = DrawTheme(themeName)
     end
     
-    open, ChatWin.openConfigGUI = ImGui.Begin("Event Configuration", open, bit32.bor(ImGuiWindowFlags.None, ImGuiWindowFlags.NoCollapse))
-    if not ChatWin.openConfigGUI then
-        ChatWin.openConfigGUI = false
-        open = false
+    open, show = ImGui.Begin("Event Configuration", open, bit32.bor(ImGuiWindowFlags.None))
+    
+    if not show then
         if ColorCountConf > 0 then ImGui.PopStyleColor(ColorCountConf) end
         if StyleCountConf > 0 then ImGui.PopStyleVar(StyleCountConf) end
         ImGui.End()
-        return open
-    end
-    ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
-    -- Add a button to add a new row
-    if ImGui.Button("Add Channel") then
-        editChanID =  getNextID(ChatWin.Settings.Channels)
-        addChannel = true
-        fromConf = true
-        tempSettings = ChatWin.Settings
-        ChatWin.openEditGUI = true
-        ChatWin.openConfigGUI = false
-    end
-    
-    ImGui.SameLine()
-    if ImGui.Button("Reload Theme File") then
-        loadSettings()
-    end
-    
-    ImGui.SameLine()
-    -- Close Button
-    if ImGui.Button('Close') then
-        ChatWin.openConfigGUI = false
-        editChanID = 0
-        editEventID = 0
-        ChatWin.Settings = tempSettings
-        ResetEvents()
-    end
-    
-    ImGui.SeparatorText('Import Settings')
-    importFile = ImGui.InputTextWithHint('Import##FileName', importFile,importFile, 256)
-    ImGui.SameLine()
-    cleanImport = ImGui.Checkbox('Clean Import##clean', cleanImport)
-    
-    if ImGui.Button('Import Channels') then
-        local tmp = mq.configDir..'/'..importFile
-        if not File_Exists(tmp) then
-            mq.cmd("/msgbox 'No File Found!")
-            else
-            -- Load settings from the Lua config file
-            local date = os.date("%m_%d_%Y_%H_%M")
-            
-            -- print(date)
-            local backup = string.format('%s/MyChat/Backups/%s/%s_BAK_%s.lua', mq.configDir, serverName, myName, date)
-            mq.pickle(backup, ChatWin.Settings)
-            local newSettings = {}
-            local newID = getNextID(tempSettings.Channels)
-            
-            newSettings = dofile(tmp)
-            -- print(tostring(cleanImport))
-            if not cleanImport and lastImport ~= tmp then
-                for cID, cData in pairs(newSettings.Channels) do
-                    for existingCID, existingCData in pairs(tempSettings.Channels) do
-                        if existingCData.Name == cData.Name then
-                            local newName = cData.Name.. '_NEW'
-                            cData.Name = newName
-                        end
-                    end
-                    tempSettings.Channels[newID] = cData
-                    newID = newID + 1
-                end
-                else
-                tempSettings = {}
-                tempSettings = newSettings
-            end
-            lastImport = tmp
+        if not open then ChatWin.openConfigGUI = false end
+    else
+        ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
+        -- Add a button to add a new row
+        if ImGui.Button("Add Channel") then
+            editChanID =  getNextID(ChatWin.Settings.Channels)
+            addChannel = true
+            fromConf = true
+            tempSettings = ChatWin.Settings
+            ChatWin.openEditGUI = true
+            ChatWin.openConfigGUI = false
+        end
+        
+        ImGui.SameLine()
+        if ImGui.Button("Reload Theme File") then
+            loadSettings()
+        end
+        
+        ImGui.SameLine()
+        -- Close Button
+        if ImGui.Button('Close') then
+            ChatWin.openConfigGUI = false
+            editChanID = 0
+            editEventID = 0
+            ChatWin.Settings = tempSettings
             ResetEvents()
         end
-    end
-    ImGui.SeparatorText('Theme')
-    local themeName = tempSettings.LoadTheme
-    ImGui.Text("Cur Theme: %s", themeName)
-    -- Combo Box Load Theme
-    if ImGui.BeginCombo("Load Theme", themeName) then
-        for k, data in pairs(theme.Theme) do
-            local isSelected = data['Name'] == themeName
-            if ImGui.Selectable(data['Name'], isSelected) then
-                tempSettings['LoadTheme'] = data['Name']
-                themeName = tempSettings['LoadTheme']
-                ChatWin.Settings = tempSettings
-                writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+        
+        ImGui.SeparatorText('Import Settings')
+        importFile = ImGui.InputTextWithHint('Import##FileName', importFile,importFile, 256)
+        ImGui.SameLine()
+        cleanImport = ImGui.Checkbox('Clean Import##clean', cleanImport)
+        
+        if ImGui.Button('Import Channels') then
+            local tmp = mq.configDir..'/'..importFile
+            if not File_Exists(tmp) then
+                mq.cmd("/msgbox 'No File Found!")
+                else
+                -- Load settings from the Lua config file
+                local date = os.date("%m_%d_%Y_%H_%M")
+                
+                -- print(date)
+                local backup = string.format('%s/MyChat/Backups/%s/%s_BAK_%s.lua', mq.configDir, serverName, myName, date)
+                mq.pickle(backup, ChatWin.Settings)
+                local newSettings = {}
+                local newID = getNextID(tempSettings.Channels)
+                
+                newSettings = dofile(tmp)
+                -- print(tostring(cleanImport))
+                if not cleanImport and lastImport ~= tmp then
+                    for cID, cData in pairs(newSettings.Channels) do
+                        for existingCID, existingCData in pairs(tempSettings.Channels) do
+                            if existingCData.Name == cData.Name then
+                                local newName = cData.Name.. '_NEW'
+                                cData.Name = newName
+                            end
+                        end
+                        tempSettings.Channels[newID] = cData
+                        newID = newID + 1
+                    end
+                    else
+                    tempSettings = {}
+                    tempSettings = newSettings
+                end
+                lastImport = tmp
+                ResetEvents()
             end
         end
-        ImGui.EndCombo()
+
+        ImGui.SeparatorText('Theme')
+        ImGui.Text("Cur Theme: %s", themeName)
+        -- Combo Box Load Theme
+        if ImGui.BeginCombo("Load Theme", themeName) then
+            for k, data in pairs(theme.Theme) do
+                local isSelected = data['Name'] == themeName
+                if ImGui.Selectable(data['Name'], isSelected) then
+                    tempSettings['LoadTheme'] = data['Name']
+                    themeName = tempSettings['LoadTheme']
+                    ChatWin.Settings = tempSettings
+                    writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+                end
+            end
+            ImGui.EndCombo()
+        end
+
+        ImGui.SeparatorText('Main Tab Zoom')
+        -- Slider for adjusting zoom level
+        local tmpZoom = ChatWin.Settings.Scale
+        if ChatWin.Settings.Scale then
+            tmpZoom = ImGui.SliderFloat("Zoom Level##MyBuffs", tmpZoom, 0.5, 2.0)
+        end
+
+        if ChatWin.Settings.Scale ~= tmpZoom then
+            ChatWin.Settings.Scale = tmpZoom
+            tempSettings.Scale = tmpZoom
+        end
+
+        ImGui.SeparatorText('Channels and Events Overview')
+        buildConfig()
+        if ColorCountConf > 0 then ImGui.PopStyleColor(ColorCountConf) end
+        if StyleCountConf > 0 then ImGui.PopStyleVar(StyleCountConf) end
+        ImGui.SetWindowFontScale(1)
+        ImGui.End()
     end
-    ImGui.SeparatorText('Main Tab Zoom')
-    -- Slider for adjusting zoom level
-    local tmpZoom = ChatWin.Settings.Scale
-    if ChatWin.Settings.Scale then
-        tmpZoom = ImGui.SliderFloat("Zoom Level##MyBuffs", tmpZoom, 0.5, 2.0)
-    end
-    if ChatWin.Settings.Scale ~= tmpZoom then
-        ChatWin.Settings.Scale = tmpZoom
-        tempSettings.Scale = tmpZoom
-    end
-    ImGui.SeparatorText('Channels and Events Overview')
-    buildConfig()
-    if ColorCountConf > 0 then ImGui.PopStyleColor(ColorCountConf) end
-    if StyleCountConf > 0 then ImGui.PopStyleVar(StyleCountConf) end
-    ImGui.SetWindowFontScale(1)
-    ImGui.End()
+    
 end
 
 function ChatWin.Edit_GUI(open)
-    ColorCountEdit = 0
-    StyleCountEdit = 0
+
     if not ChatWin.openEditGUI then return end
     
     if useTheme then
@@ -1767,29 +1761,28 @@ function ChatWin.Edit_GUI(open)
         ColorCountEdit, StyleCountEdit = DrawTheme(themeName)
     end
     
-    open, ChatWin.openEditGUI = ImGui.Begin("Channel Editor", open, bit32.bor(ImGuiWindowFlags.None, ImGuiWindowFlags.NoCollapse))
-    if not ChatWin.openEditGUI then
-        ChatWin.openEditGUI = false
-        open = false
+    open, showEdit = ImGui.Begin("Channel Editor", open, bit32.bor(ImGuiWindowFlags.None))
+    if not showEdit then
         if ColorCountEdit > 0 then ImGui.PopStyleColor(ColorCountEdit) end
         if StyleCountEdit > 0 then ImGui.PopStyleVar(StyleCountEdit) end
         ImGui.End()
-        return open
+    else
+        ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
+        ChatWin.AddChannel(editChanID, addChannel)
+        ImGui.SameLine()
+        -- Close Button
+        if ImGui.Button('Close') then
+            ChatWin.openEditGUI = false
+            addChannel = false
+            editChanID = 0
+            editEventID = 0
+        end
+        ImGui.SetWindowFontScale(1)
+        if ColorCountEdit > 0 then ImGui.PopStyleColor(ColorCountEdit) end
+        if StyleCountEdit > 0 then ImGui.PopStyleVar(StyleCountEdit) end
+        ImGui.End()
     end
-    ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
-    ChatWin.AddChannel(editChanID, addChannel)
-    ImGui.SameLine()
-    -- Close Button
-    if ImGui.Button('Close') then
-        ChatWin.openEditGUI = false
-        addChannel = false
-        editChanID = 0
-        editEventID = 0
-    end
-    ImGui.SetWindowFontScale(1)
-    if ColorCountEdit > 0 then ImGui.PopStyleColor(ColorCountEdit) end
-    if StyleCountEdit > 0 then ImGui.PopStyleVar(StyleCountEdit) end
-    ImGui.End()
+    if not open then ChatWin.openEditGUI = false end
 end
 
 function ChatWin.StringTrim(s)
@@ -1863,8 +1856,6 @@ end
 local function init()
     running = true
     mq.imgui.init('MyChatGUI', ChatWin.GUI)
-    mq.imgui.init('ChatConfigGUI', ChatWin.Config_GUI)
-    mq.imgui.init('EditGUI', ChatWin.Edit_GUI)
     -- initialize the console
     if ChatWin.console == nil then
         ChatWin.console = ImGui.ConsoleWidget.new("Chat##Console")
