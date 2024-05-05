@@ -50,24 +50,17 @@ function links.escapeSQL(str)
 	return str:gsub("Di`zok", "Di`Zok"):gsub("-", ""):gsub("'", ""):gsub("`", ""):gsub("#", "")
 end
 
-local function getName(line)
-
-	local name = line:sub(58, -3)
-
-	return name
-end
-
 local function loadSortedItems()
 	sortedTable = {}
 	sortedTable = nonLinks
 	local fetchQuery = [[
-		SELECT *
-		FROM item_links 
-		ORDER BY LENGTH(link) DESC, link
+		SELECT link, SUBSTR(link, 58, LENGTH(link) - 58 - 3) AS name
+		FROM item_links
+		ORDER BY LENGTH(name) DESC, name;
 	]]
 	for row in db:nrows(fetchQuery) do
-		local name = getName(links.escapeSQL(row.link))
-		-- printf("Name: %s  ", name)
+		local name =links.escapeSQL(row.name)
+
 		sortedTable[name] = links.escapeSQL(row.link)
 	end
 	msgOut = string.format("\ay[\aw%s\ay]\at All Items \agloaded\ax, \ayScanning Chat for Items...",mq.TLO.Time())
