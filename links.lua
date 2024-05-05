@@ -88,55 +88,63 @@ function links.initDB()
 	links.ready = false
 	dbname = liveDb
 	pathDB = path..liveDb
+local GoodToGo = false
 	if Build == 'Emu' then
+		-- set path to Emu db
 		pathDB = path..emuDb
 		if not File_Exists(pathDB) then -- check for EMU Db
+			-- emu db doesn't exist chedk for alive
 			pathDB = path..liveDb
-			if File_Exists(pathDB) then	-- check for live db EMU was missing
+			-- check for live db EMU was missing
+			if File_Exists(pathDB) then
+				-- Live DB Exists
 				Build = 'Live'			-- change local build var so we don't have to dbl check next cycle
 				msgOut = string.format("\ay[\aw%s\ay]\atYou are using a \arLive server DB\aw on\ay EMU\at You may recieve false links!.",mq.TLO.Time())
 				if links.Console then
 					links.Console:AppendText(msgOut)
 				else print(msgOut) end
 				dbname = liveDb
+				GoodToGo = true
 			end
 		else
 			dbname = emuDb
+			GoodToGo = true
 		end
-	end
-
-	if not File_Exists(pathDB) then
+	
+	elseif not File_Exists(pathDB) then
 		msgOut = string.format("\ay[\aw%s\ay]\arNO DB's Found Links are Disabled, \atRun MQ2LindDB /link /import and try again.",mq.TLO.Time())
 		links.enabled = false
 		return (links.Console and links.Console:AppendText(msgOut) or print(msgOut))
+	
+	else
+		GoodToGo = true
+		links.enabled = true
 	end
 
-	db = sqlite3.open(pathDB, sqlite3.OPEN_READONLY)
-	msgOut = string.format("\ay[\aw%s\ay]\ar Links are Disabled, \atEnable and try again.",mq.TLO.Time())
-	if links.running and not links.enabled then
-		
-	end
-	-- print(db)
-	-- Check if the local table has Data
-	if not tableHasData(db, "item_links")  then
-		msgOut = string.format("\ay[\aw%s\ay]\at %s \arMissing \axrun \ao/link /update \agto create.",mq.TLO.Time(), dbname)
+	if GoodToGo then
+		db = sqlite3.open(pathDB, sqlite3.OPEN_READONLY)
+		-- print(db)
+		-- Check if the local table has Data
+		if not tableHasData(db, "item_links")  then
+			msgOut = string.format("\ay[\aw%s\ay]\at %s \arMissing \axrun \ao/link /update \agto create.",mq.TLO.Time(), dbname)
+			if links.running  then
+				return (links.Console and links.Console:AppendText(msgOut) or print(msgOut))
+			else
+				print(msgOut)
+			end
+		end
+
+		msgOut = string.format("\ay[\aw%s\ay]\at Fetching \agItems\ax from \ao%s...",mq.TLO.Time(),dbname)
 		if links.running  then
 			return (links.Console and links.Console:AppendText(msgOut) or print(msgOut))
 		else
 			print(msgOut)
 		end
-	end
 
-	msgOut = string.format("\ay[\aw%s\ay]\at Fetching \agItems\ax from \ao%s...",mq.TLO.Time(),dbname)
-	if links.running  then
-		return (links.Console and links.Console:AppendText(msgOut) or print(msgOut))
-	else
-		print(msgOut)
+		loadSortedItems()
+		links.ready = true
+		db:close()
 	end
-
-	loadSortedItems()
-	links.ready = true
-	db:close()
 end
 
 
