@@ -16,6 +16,11 @@ local links = {
 	---@type ConsoleWidget
 	Console = nil, -- this catches a console passed to it for writing to.
 }
+local nonLinks = {
+	['Shadow Knight'] 		= 'Shadow Knight',
+	['Scourge Knight'] 		= 'Scourge Knight',
+	['Stone Fist'] 			= 'Stone Fist',
+}
 
 local function printHelp()
 	local msgOut = string.format("\ay[\aw%s\ay]\at -- LootLink -- \ax", mq.TLO.Time())
@@ -28,7 +33,7 @@ local function printHelp()
 end
 
 --- SQL Stuff ---
-local function tableExists(db, tableName)
+local function tableHasData(db, tableName)
 	local query = string.format("SELECT name FROM sqlite_master WHERE type='table' AND name='%s';", tableName)
 	for row in db:nrows(query) do
 		return true -- The table exists if we can fetch at least one row
@@ -47,6 +52,7 @@ end
 
 local function loadSortedItems(dbname)
 	sortedTable = {}
+	sortedTable = nonLinks
 	local fetchQuery = [[
 		SELECT a.name, a.id, b.link
 		FROM raw_item_data_315 AS a
@@ -74,7 +80,7 @@ function links.initDB()
 	end
 	-- print(db)
 	-- Check if the local table exists
-	if not tableExists(db, "raw_item_data_315") or not tableExists(db, "item_links")  then
+	if not tableHasData(db, "raw_item_data_315") or not tableHasData(db, "item_links")  then
 		msgOut = string.format("\ay[\aw%s\ay]\at %s \arMissing \axrun \ao/link /update \agto create.",mq.TLO.Time(), dbname)
 		if links.running  then
 			return (links.Console and links.Console:AppendText(msgOut) or print(msgOut))

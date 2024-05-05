@@ -3,6 +3,9 @@ local ImGui = require('ImGui')
 local defaults =  require('default_settings')
 local Icons = require('mq.ICONS')
 
+local PackageMan = require('mq/PackageMan')
+PackageMan.Require('lsqlite3')
+
 local resetPosition = false
 local setFocus = false
 local commandBuffer = ''
@@ -209,6 +212,9 @@ local function loadSettings()
         -- Load settings from the Lua config file
         ChatWin.Settings = dofile(ChatWin.SettingsFile)
         if firstPass then
+            local date = os.date("%m_%d_%Y_%H_%M")
+            local backup = string.format('%s/MyChat/Backups/%s/%s_BAK_%s.lua', mq.configDir, serverName, myName, date)
+            if not File_Exists(backup) then mq.pickle(backup, ChatWin.Settings) end
             reIndexSettings(ChatWin.SettingsFile, ChatWin.Settings)
             firstPass = false
         end
@@ -678,7 +684,7 @@ local function DrawConsole(channelID)
         local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
         contentSizeY = contentSizeY - footerHeight
         
-        ImGui.BeginChild("ZoomScrollRegion##"..channelID, ImVec2(contentSizeX, contentSizeY), ImGuiWindowFlags.HorizontalScrollbar)
+        ImGui.BeginChild("ZoomScrollRegion##"..channelID, contentSizeX, contentSizeY, ImGuiWindowFlags.HorizontalScrollbar)
         ImGui.BeginTable('##channelID_'..channelID, 1, bit32.bor(ImGuiTableFlags.NoBordersInBody, ImGuiTableFlags.RowBg))
         ImGui.TableSetupColumn("##txt"..channelID, ImGuiTableColumnFlags.NoHeaderLabel)
         --- draw rows ---
@@ -917,6 +923,10 @@ local function DrawChatWindow()
             ImGui.SetWindowFontScale(1)
             ImGui.EndMenu()
         end
+        ImGui.SetCursorPosX(ImGui.GetWindowContentRegionWidth() - 10)
+        if ImGui.MenuItem('X##Close'..windowNum) then
+            running = false
+        end
         ImGui.EndMenuBar()
     end
     ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, 4,3)
@@ -967,7 +977,7 @@ local function DrawChatWindow()
                 local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
                 contentSizeY = contentSizeY - footerHeight
                 
-                ImGui.BeginChild("ZoomScrollRegion##"..windowNum, ImVec2(contentSizeX, contentSizeY), ImGuiWindowFlags.HorizontalScrollbar)
+                ImGui.BeginChild("ZoomScrollRegion##"..windowNum,contentSizeX, contentSizeY, ImGuiWindowFlags.HorizontalScrollbar)
                 ImGui.BeginTable('##channelID_'..windowNum, 1, bit32.bor(ImGuiTableFlags.NoBordersInBody, ImGuiTableFlags.RowBg))
                 ImGui.TableSetupColumn("##txt"..windowNum, ImGuiTableColumnFlags.NoHeaderLabel)
                 --- draw rows ---
@@ -1139,7 +1149,7 @@ local function DrawChatWindow()
     
 end
 
-function ChatWin.GUI()
+function ChatWin.GUI(openMain)
     if not running then return false end
 
     local windowName = 'My Chat - Main##'..myName..'_'..windowNum
@@ -1154,7 +1164,7 @@ function ChatWin.GUI()
         winFlags = bit32.bor(ImGuiWindowFlags.MenuBar,ImGuiWindowFlags.NoMove, ImGuiWindowFlags.NoScrollbar)
     end
     
-    ChatWin.openGUI,ChatWin.SHOW  = ImGui.Begin(windowName, ChatWin.openGUI, winFlags)
+    openMain,ChatWin.SHOW  = ImGui.Begin(windowName, openMain, winFlags)
     
     if ChatWin.SHOW then
 
@@ -1194,7 +1204,7 @@ function ChatWin.GUI()
 
                     local themeName = tempSettings.LoadTheme
                     ColorCount, StyleCount = DrawTheme(themeName)
-
+                local show
                 PopOut, show = ImGui.Begin(name.."##"..channelID..name, PopOut, ChatWin.PopOutFlags)
                 if show then
 
@@ -1254,7 +1264,7 @@ function ChatWin.GUI()
             end
         end
     end
-    if not ChatWin.openGUI and not ChatWin.SHOW then running = false end
+    if not ChatWin.openGUI and not ChatWin.SHOW and not openMain then running = false end
 end
 
 -------------------------------- Configure Windows and Events GUI ---------------------------
@@ -1438,8 +1448,9 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
         local collapsed, _ = ImGui.CollapsingHeader(hString[eventID])
         -- Check if the header is collapsed
         if collapsed then
+            local contentSizeX = ImGui.GetWindowContentRegionWidth()
             ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
-            ImGui.BeginChild('Events##'..eventID, 0.0,0.0,bit32.bor(ImGuiChildFlags.Border, ImGuiChildFlags.AutoResizeY))
+            ImGui.BeginChild('Events##'..eventID, contentSizeX,0.0,bit32.bor(ImGuiChildFlags.Border, ImGuiChildFlags.AutoResizeY))
             if ImGui.BeginTable("Channel Events##"..editChanID, 4, bit32.bor(ImGuiTableFlags.NoHostExtendX)) then
                 ImGui.TableSetupColumn("ID's##_", ImGuiTableColumnFlags.WidthAlwaysAutoResize, 100)
                 ImGui.TableSetupColumn("Strings", ImGuiTableColumnFlags.WidthStretch, 150)
@@ -1524,7 +1535,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                         if not tempFilterStrings[editChanID][eventID][filterID] then
                             tempFilterStrings[editChanID][eventID][filterID] = filterData.filterString
                         end
-                        tempFilter = tempFilterStrings[editChanID][eventID][filterID]
+                        local tempFilter = tempFilterStrings[editChanID][eventID][filterID]
                         -- Display the filter string input field
                         local tmpKey = string.format("%s_%s", eventID, filterID)
                         tempFilter, _ = ImGui.InputText("Filter String##_"..tmpKey, tempFilter)
@@ -1572,8 +1583,9 @@ local function buildConfig()
             local collapsed, _ = ImGui.CollapsingHeader(channelData.Name)
             -- Check if the header is collapsed
             if collapsed then
+                local contentSizeX = ImGui.GetWindowContentRegionWidth()
                 ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
-                ImGui.BeginChild('Channels##'..channelID, 0.0,0.0,bit32.bor(ImGuiChildFlags.Border, ImGuiChildFlags.AutoResizeY))
+                ImGui.BeginChild('Channels##'..channelID,contentSizeX,0.0,bit32.bor(ImGuiChildFlags.Border, ImGuiChildFlags.AutoResizeY, ImGuiChildFlags.AlwaysAutoResize))
                 -- Begin a table for events within this channel
                 if ImGui.BeginTable("ChannelEvents_" .. channelData.Name, 4, bit32.bor(ImGuiTableFlags.Resizable, ImGuiTableFlags.RowBg, ImGuiTableFlags.Borders, ImGui.GetWindowWidth() - 5)) then
                     -- Set up table columns once
@@ -1685,7 +1697,7 @@ function ChatWin.Config_GUI(open)
             local date = os.date("%m_%d_%Y_%H_%M")
             
             -- print(date)
-            local backup = string.format('%s/MyChat_%s_%s_BAK_%s.lua', mq.configDir, serverName, myName, date)
+            local backup = string.format('%s/MyChat/Backups/%s/%s_BAK_%s.lua', mq.configDir, serverName, myName, date)
             mq.pickle(backup, ChatWin.Settings)
             local newSettings = {}
             local newID = getNextID(tempSettings.Channels)
