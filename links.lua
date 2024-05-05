@@ -3,9 +3,11 @@ local mq = require('mq')
 local PackageMan = require('mq/PackageMan')
 local sqlite3 = PackageMan.Require('lsqlite3')
 local dbname = 'MQ2LinkDB.db'
-dbname = string.format("%s", mq.TLO.MacroQuest.BuildName() == 'Emu' and 'MQ2LinkDB_Emu.db' or 'MQ2LinkDB.db')
-local pathDB = mq.TLO.MacroQuest.Path('resources')() .."/"..dbname 
-local db   -- Open in read-only mode for fetching data
+local liveDb = 'MQ2LinkDB.db'
+local emuDb = 'MQ2LinkDB_Emu.db'
+local Build = mq.TLO.MacroQuest.BuildName()
+local path = mq.TLO.MacroQuest.Path('resources')() .."/"
+local db, pathDB
 local sortedTable = {}
 local msgOut = ''
 local links = {
@@ -33,8 +35,17 @@ local function printHelp()
 	return msgOut
 end
 
+---Check to see if the file we want to work on exists.
+---@param name string -- Full Path to file
+---@return boolean -- returns true if the file exists and false otherwise
+local function File_Exists(name)
+	local f=io.open(name,"r")
+	if f~=nil then io.close(f) return true else return false end
+end
+
 --- SQL Stuff ---
 local function tableHasData(dbCheck, tableName)
+
 	local query = string.format("SELECT name FROM sqlite_master WHERE type='table' AND name='%s';", tableName)
 	for row in dbCheck:nrows(query) do
 		return true -- The table exists if we can fetch at least one row
@@ -74,12 +85,36 @@ local function loadSortedItems()
 end
 
 function links.initDB()
-
 	links.ready = false
+	dbname = liveDb
+	pathDB = path..liveDb
+	if Build == 'Emu' then
+		pathDB = path..emuDb
+		if not File_Exists(pathDB) then -- check for EMU Db
+			pathDB = path..liveDb
+			if File_Exists(pathDB) then	-- check for live db EMU was missing
+				Build = 'Live'			-- change local build var so we don't have to dbl check next cycle
+				msgOut = string.format("\ay[\aw%s\ay]\atYou are using a \arLive server DB\aw on\ay EMU\at You may recieve false links!.",mq.TLO.Time())
+				if links.Console then
+					links.Console:AppendText(msgOut)
+				else print(msgOut) end
+				dbname = liveDb
+			end
+		else
+			dbname = emuDb
+		end
+	end
+
+	if not File_Exists(pathDB) then
+		msgOut = string.format("\ay[\aw%s\ay]\arNO DB's Found Links are Disabled, \atRun MQ2LindDB /link /import and try again.",mq.TLO.Time())
+		links.enabled = false
+		return (links.Console and links.Console:AppendText(msgOut) or print(msgOut))
+	end
+
 	db = sqlite3.open(pathDB, sqlite3.OPEN_READONLY)
 	msgOut = string.format("\ay[\aw%s\ay]\ar Links are Disabled, \atEnable and try again.",mq.TLO.Time())
 	if links.running and not links.enabled then
-		return (links.Console and links.Console:AppendText(msgOut) or print(msgOut))
+		
 	end
 	-- print(db)
 	-- Check if the local table has Data
