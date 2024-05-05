@@ -923,10 +923,10 @@ local function DrawChatWindow()
             ImGui.SetWindowFontScale(1)
             ImGui.EndMenu()
         end
-        ImGui.SetCursorPosX(ImGui.GetWindowContentRegionWidth() - 10)
-        if ImGui.MenuItem('X##Close'..windowNum) then
-            running = false
-        end
+        -- ImGui.SetCursorPosX(ImGui.GetWindowContentRegionWidth() - 10)
+        -- if ImGui.MenuItem('X##Close'..windowNum) then
+        --     running = false
+        -- end
         ImGui.EndMenuBar()
     end
     ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, 4,3)
@@ -1149,8 +1149,8 @@ local function DrawChatWindow()
     
 end
 
-function ChatWin.GUI(openMain)
-    if not running then return false end
+function ChatWin.GUI()
+    if not running then return end
 
     local windowName = 'My Chat - Main##'..myName..'_'..windowNum
     ImGui.SetWindowPos(windowName,ImVec2(20, 20), ImGuiCond.FirstUseEver)
@@ -1178,7 +1178,7 @@ function ChatWin.GUI(openMain)
         -- ChatWin.openGUI = false
         if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) else ImGui.PopStyleVar(1) end
         if ColorCount > 0 then ImGui.PopStyleColor(ColorCount) end
-    
+        
         ImGui.End()
     end
 
@@ -1264,7 +1264,7 @@ function ChatWin.GUI(openMain)
             end
         end
     end
-    if not ChatWin.openGUI and not ChatWin.SHOW and not openMain then running = false end
+    if not openMain then running = false end
 end
 
 -------------------------------- Configure Windows and Events GUI ---------------------------
