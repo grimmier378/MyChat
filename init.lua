@@ -1218,14 +1218,14 @@ function ChatWin.GUI()
     openMain,ChatWin.SHOW  = ImGui.Begin(windowName, openMain, winFlags)
     
     if not ChatWin.SHOW then
-        if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) else ImGui.PopStyleVar(1) end
+        if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) end
         if ColorCount > 0 then ImGui.PopStyleColor(ColorCount) end
         ImGui.End()
     else
 
         DrawChatWindow()
 
-        if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) else ImGui.PopStyleVar(1) end
+        if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) end
         if ColorCount > 0 then ImGui.PopStyleColor(ColorCount) end
         ImGui.End()
     end
@@ -1796,7 +1796,11 @@ function ChatWin.Config_GUI(open)
         tmpRefLink = ImGui.InputInt("Refresh Delay##LinkRefresh",tmpRefLink, 5, 5)
         if tmpRefLink ~= ChatWin.Settings.refreshLinkDB then
             ChatWin.Settings.refreshLinkDB = tmpRefLink
-            doRefresh = tmpRefLink < 5 and false or true
+            if tmpRefLink < 5 then
+                doRefresh = false
+            else
+                doRefresh = true
+            end
         end
         if doRefresh then ImGui.SameLine() ImGui.Text("OFF") end
 
