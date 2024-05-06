@@ -17,7 +17,7 @@ local addChannel = false -- Are we adding a new channel or editing an old one
 local tempSettings, eventNames = {}, {} -- tables for storing event details
 local useTheme, timeStamps, newEvent, newFilter= false, true, false, false
 local zBuffer = 1000 -- the buffer size for the Zoom chat buffer.
-local editChanID, editEventID, lastID, lastChan = 0, 0, 0, 0
+local editChanID, editEventID, lastID, lastChan  = 0, 0, 0, 0
 local tempFilterStrings, tempEventStrings, tempChanColors, tempFiltColors, hString = {}, {}, {}, {}, {} -- Tables to store our strings and color values for editing
 local ActTab, activeID = 'Main', 0 -- info about active tab channels
 local theme = {} -- table to hold the themes file into.
@@ -31,6 +31,7 @@ local zoomMain = false
 local firstPass, forceIndex, doLinks = true, false, false
 local mainLastScrollPos = 0
 local mainBottomPosition = 0
+local doRefresh = false
 local timeA = os.time()
 local mainBuffer = {}
 local importFile = 'MyChat_Server_CharName.lua'
@@ -246,6 +247,8 @@ local function loadSettings()
         ChatWin.Settings.refreshLinkDB = defaults.refreshLinkDB
     end
 
+
+    
     for channelID, channelData in pairs(ChatWin.Settings.Channels) do
         -- setup default Echo command channels.
         if not channelData.Echo then
@@ -842,18 +845,6 @@ local function DrawChatWindow()
                 forceIndex = true
                 ResetEvents()
             end
-            ImGui.Separator()
-            -- if linksOn then 
-            --     ChatWin.Settings.doLinks = doLinks 
-            --     links.enabled = ChatWin.Settings.doLinks 
-            --     local msgOut = string.format("\ay[\aw%s\ay]\at Link Lookups setting:\aw %s \ax",mq.TLO.Time(),tostring(doLinks)) 
-            --     ChatWin.console:AppendText(msgOut) 
-            --     ResetEvents() 
-            -- end 
-
-            if ImGui.MenuItem('Refresh LinksDB##Options_Links'..windowNum) then
-                ReLoadDB()
-            end
             if ImGui.IsItemHovered() then
                 ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
                 ImGui.BeginTooltip()
@@ -866,6 +857,17 @@ local function DrawChatWindow()
                 ImGui.EndTooltip()
                 ImGui.SetWindowFontScale(1)
             end
+            ImGui.Separator()
+            
+            local menName = doRefresh and "Enable Refresh" or "Disable Refresh"
+            if ImGui.MenuItem(menName..'##Options_Refresh_Links'..windowNum) then
+                doRefresh = not doRefresh
+            end
+
+            if ImGui.MenuItem('Refresh LinksDB##Options_Links'..windowNum) then
+                ReLoadDB()
+            end
+
             ImGui.Separator()
             if ImGui.MenuItem('Reset Position##'..windowNum) then
                 resetPosition = true
@@ -1794,8 +1796,9 @@ function ChatWin.Config_GUI(open)
         tmpRefLink = ImGui.InputInt("Refresh Delay##LinkRefresh",tmpRefLink, 5, 5)
         if tmpRefLink ~= ChatWin.Settings.refreshLinkDB then
             ChatWin.Settings.refreshLinkDB = tmpRefLink
+            doRefresh = tmpRefLink < 5 and false or true
         end
-        if tmpRefLink < 5 then ImGui.SameLine() ImGui.Text("OFF") end
+        if doRefresh then ImGui.SameLine() ImGui.Text("OFF") end
 
         ImGui.SeparatorText('Channels and Events Overview')
         buildConfig()
@@ -1932,7 +1935,7 @@ end
 
 local function loop()
     while running do
-        if ChatWin.Settings.refreshLinkDB >= 5 then
+        if ChatWin.Settings.refreshLinkDB >= 5 and doRefresh then
             local timeB = os.time()
             if timeB - timeA >= ChatWin.Settings.refreshLinkDB * 60 then
                 if links ~= nil then
