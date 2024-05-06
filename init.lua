@@ -72,6 +72,8 @@ local MyColorFlags = bit32.bor(
     ImGuiColorEditFlags.NoLabel
 )
 
+
+
 --- Helper Functions ---
 local function ReLoadDB()
     if links ~= nil then
@@ -1103,6 +1105,12 @@ local function DrawChatWindow()
                 local zoom = ChatWin.Consoles[channelID].zoom
                 local scale = ChatWin.Settings.Channels[channelID].Scale
                 local links =  ChatWin.Settings.Channels[channelID].enableLinks
+                local enableMain = ChatWin.Settings.Channels[channelID].MainEnable
+                local PopOut = ChatWin.Settings.Channels[channelID].PopOut
+                local tNameZ = zoom and 'Disable Zoom' or 'Enable Zoom'
+                local tNameP = PopOut and 'Disable PopOut' or 'Enable PopOut'
+                local tNameM = enableMain and 'Disable Main' or 'Enable Main'
+                local tNameL = links and 'Disable Links' or 'Enable Links'
                 local function tabToolTip()
                     ImGui.BeginTooltip()
                     ImGui.Text(ChatWin.Settings.Channels[channelID].Name)
@@ -1110,7 +1118,7 @@ local function DrawChatWindow()
                     ImGui.Text(sizeBuff)
                     ImGui.EndTooltip()
                 end
-                local PopOut = ChatWin.Settings.Channels[channelID].PopOut
+
                 if not PopOut then
                     if ImGui.BeginTabItem(name) then
                         ActTab = name
@@ -1128,18 +1136,28 @@ local function DrawChatWindow()
                                 ChatWin.openEditGUI = true
                                 ChatWin.openConfigGUI = false
                             end
-                            if ImGui.Selectable('Zoom##'..windowNum) then
+
+                            ImGui.Separator()
+                            if ImGui.Selectable(tNameZ..'##'..windowNum) then
                                 zoom = not zoom
                                 ChatWin.Consoles[channelID].zoom = zoom
                             end
-                            if ImGui.Selectable('Popout##'..windowNum) then
+                        if ImGui.Selectable(tNameP..'##'..windowNum) then
                                 PopOut = not PopOut
                                 ChatWin.Settings.Channels[channelID].PopOut = PopOut
                                 tempSettings.Channels[channelID].PopOut = PopOut
                                 writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
                             end
+
+                            if ImGui.Selectable( tNameM..'##'..windowNum) then
+                                enableMain = not enableMain
+                                ChatWin.Settings.Channels[channelID].MainEnable = enableMain
+                                tempSettings.Channels[channelID].MainEnable = enableMain
+                                writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+                            end
+                            -- tempSettings.Channels[editChanID].MainEnable
                             if channelID < 9000 then
-                                if ImGui.Selectable('Enable Links##'..windowNum) then
+                                if ImGui.Selectable(tNameL..'##'..windowNum) then
                                     links = not links
                                     ChatWin.Settings.Channels[channelID].enableLinks = links
                                     tempSettings.Channels[channelID].enableLinks = links

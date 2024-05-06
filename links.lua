@@ -65,14 +65,19 @@ end
 local function loadSortedItems()
 	sortedTable = {}
 	sortedTable = nonLinks
+
 	local fetchQuery = [[
-		SELECT link, SUBSTR(link, 58, LENGTH(link) - 58 - 3) AS name
-		FROM item_links
-		ORDER BY LENGTH(name) DESC, name;
+		SELECT 
+			SUBSTR(link, 1, INSTR(SUBSTR(link, 2), x'12') + 1) AS link, 
+			SUBSTR(link, 58, INSTR(SUBSTR(link, 58), x'12') - 1) AS name
+		FROM 
+			item_links
+		ORDER BY 
+			LENGTH(name) DESC, name;
 	]]
 	for row in db:nrows(fetchQuery) do
 		local name =links.escapeSQL(row.name)
-
+		-- printf("Name: %s", name)
 		sortedTable[name] = links.escapeSQL(row.link)
 	end
 	msgOut = string.format("\ay[\aw%s\ay]\at All Items \agloaded\ax, \ayScanning Chat for Items...",mq.TLO.Time())
@@ -123,6 +128,7 @@ local GoodToGo = false
 
 	if GoodToGo then
 		db = sqlite3.open(pathDB, sqlite3.OPEN_READONLY)
+
 		-- print(db)
 		-- Check if the local table has Data
 		if not tableHasData(db, "item_links")  then
