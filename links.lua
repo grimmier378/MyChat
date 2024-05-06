@@ -60,6 +60,7 @@ end
 function links.escapeSQL(str)
 	if not str then return " " end  -- Return an empty string if the input is nil
 	return str:gsub("Di`zok", "Di`Zok"):gsub("-", ""):gsub("'", ""):gsub("`", ""):gsub("#", "")
+	:gsub("%(", ""):gsub("%)", ""):gsub("%.", "")
 end
 
 local function loadSortedItems()
@@ -78,7 +79,7 @@ local function loadSortedItems()
 	for row in db:nrows(fetchQuery) do
 		local name =links.escapeSQL(row.name)
 		-- printf("Name: %s", name)
-		sortedTable[name] = links.escapeSQL(row.link)
+		sortedTable[name] = row.link
 	end
 	msgOut = string.format("\ay[\aw%s\ay]\at All Items \agloaded\ax, \ayScanning Chat for Items...",mq.TLO.Time())
 	
@@ -168,7 +169,7 @@ function links.collectItemLinks(text)
 		text = text:sub(1, -2)
 	end
 	text = links.escapeSQL(text)  -- Prepare the text for matching
-    
+    -- text = links.escapeLuaPattern(text)
 	for word in text:gmatch("[%w'`%`%:%'%-]+") do
 		table.insert(words, word)
 	end
