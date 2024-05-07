@@ -859,7 +859,7 @@ local function DrawChatWindow()
             end
             ImGui.Separator()
             
-            local menName = doRefresh and "Enable Refresh" or "Disable Refresh"
+            local menName = doRefresh and "Disable Refresh" or "Enable Refresh"
             if ImGui.MenuItem(menName..'##Options_Refresh_Links'..windowNum) then
                 doRefresh = not doRefresh
             end
@@ -1796,13 +1796,15 @@ function ChatWin.Config_GUI(open)
         tmpRefLink = ImGui.InputInt("Refresh Delay##LinkRefresh",tmpRefLink, 5, 5)
         if tmpRefLink ~= ChatWin.Settings.refreshLinkDB then
             ChatWin.Settings.refreshLinkDB = tmpRefLink
-            if tmpRefLink < 5 then
+            if tmpRefLink <= 0 then
                 doRefresh = false
             else
                 doRefresh = true
             end
         end
-        if doRefresh then ImGui.SameLine() ImGui.Text("OFF") end
+        ImGui.SameLine()
+        local txtOnOff = doRefresh and 'ON' or 'OFF'
+        ImGui.Text(txtOnOff)
 
         ImGui.SeparatorText('Channels and Events Overview')
         buildConfig()
@@ -1939,7 +1941,7 @@ end
 
 local function loop()
     while running do
-        if ChatWin.Settings.refreshLinkDB >= 5 and doRefresh then
+        if ChatWin.Settings.refreshLinkDB > 0 and doRefresh then
             local timeB = os.time()
             if timeB - timeA >= ChatWin.Settings.refreshLinkDB * 60 then
                 if links ~= nil then
