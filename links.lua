@@ -19,11 +19,7 @@ local links = {
 	---@type ConsoleWidget
 	Console = nil, -- this catches a console passed to it for writing to.
 }
-local nonLinks = {
-	['Shadow Knight'] 		= 'Shadow Knight',
-	['Scourge Knight'] 		= 'Scourge Knight',
-	['Stone Fist'] 			= 'Stone Fist',
-}
+local nonLinks = require('link_subs')
 
 local function printHelp()
 	local msgOut = string.format("\ay[\aw%s\ay]\at -- LootLink -- \ax", mq.TLO.Time())
@@ -60,19 +56,21 @@ end
 function links.escapeSQL(str)
 	if not str then return " " end  -- Return an empty string if the input is nil
 	return str:gsub("Di`zok", "Di`Zok"):gsub("-", ""):gsub("'", ""):gsub("`", ""):gsub("#", "")
-	:gsub("%(", ""):gsub("%)", ""):gsub("%.", "")
+	:gsub("%(", ""):gsub("%)", ""):gsub("%.", ""):gsub("%]", ""):gsub("%[", "")--:gsub("Pg.", "Pg")
 end
 
 local function loadSortedItems()
 	sortedTable = {}
 	sortedTable = nonLinks
-
+	-- Pull database and ignore the item ID 1048575 as that is the npc say link. which is only set once to the first npc line it sees
 	local fetchQuery = [[
 		SELECT 
 			SUBSTR(link, 1, INSTR(SUBSTR(link, 2), x'12') + 1) AS link, 
 			SUBSTR(link, 58, INSTR(SUBSTR(link, 58), x'12') - 1) AS name
 		FROM 
 			item_links
+		WHERE
+			item_id  != 1048575
 		ORDER BY 
 			LENGTH(name) DESC, name;
 	]]
@@ -157,20 +155,21 @@ end
 
 
 --- Table Stuff ---
-function links.collectItemLinks(text)
+function links.collectItemLinks(line)
 	local linksFound = {}
 	local uniqueLinks = {}
 	local matchedIndices = {}
 	local replacements = {}
 	local words = {}
-
+	local text = line
+	
 	-- Check and strip trailing apostrophe
 	if text:sub(-1) == "'" then
 		text = text:sub(1, -2)
 	end
 	text = links.escapeSQL(text)  -- Prepare the text for matching
     -- text = links.escapeLuaPattern(text)
-	for word in text:gmatch("[%w'`%`%:%'%-]+") do
+	for word in text:gmatch("[%w'`%:%'%-%,]+") do
 		table.insert(words, word)
 	end
 
@@ -197,7 +196,11 @@ function links.collectItemLinks(text)
 	for k, v in pairs(replacements) do
 		text = text:gsub(k,v)
 	end
-	return text
+	if #linksFound > 0 then
+		return text
+	else
+		return line
+	end
 end
 
 function links.bind(...)

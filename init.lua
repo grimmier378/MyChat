@@ -47,6 +47,7 @@ local ChatWin = {
     openGUI = true,
     openConfigGUI = false,
     refreshLinkDB = 10,
+    doRefresh = false,
     SettingsFile = string.format('%s/MyChat_%s_%s.lua', mq.configDir, serverName, myName),
     ThemesFile = string.format('%s/MyThemeZ.lua', mq.configDir, serverName, myName),
     Settings = {
@@ -206,6 +207,7 @@ local function convertEventString(oldFormat)
     return pattern
 end
 
+
 ---Writes settings from the settings table passed to the setting file (full path required)
 -- Uses mq.pickle to serialize the table and write to file
 ---@param file string -- File Name and path
@@ -246,8 +248,10 @@ local function loadSettings()
     if ChatWin.Settings.refreshLinkDB == nil then
         ChatWin.Settings.refreshLinkDB = defaults.refreshLinkDB
     end
-
-
+    doRefresh = ChatWin.Settings.refreshLinkDB >= 5 or false
+    if ChatWin.Settings.doRefresh == nil then
+        ChatWin.Settings.doRefresh = doRefresh
+    end
     
     for channelID, channelData in pairs(ChatWin.Settings.Channels) do
         -- setup default Echo command channels.
@@ -585,6 +589,8 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
     end
 end
 
+---Reads in the line and channelID of the triggered events. Parses the line against the Events and Filters for that channel.
+---@param channelID integer @ The ID number of the Channel the triggered event belongs to
 function ChatWin.EventChatSpam(channelID,line)
     local eventDetails = eventNames
     local conLine = line
@@ -1792,15 +1798,12 @@ function ChatWin.Config_GUI(open)
             tempSettings.Scale = tmpZoom
         end
 
-        local tmpRefLink = ChatWin.Settings.refreshLinkDB or 5
+        local tmpRefLink = (doRefresh and ChatWin.Settings.refreshLinkDB >=5) and ChatWin.Settings.refreshLinkDB or 0
         tmpRefLink = ImGui.InputInt("Refresh Delay##LinkRefresh",tmpRefLink, 5, 5)
         if tmpRefLink ~= ChatWin.Settings.refreshLinkDB then
-            ChatWin.Settings.refreshLinkDB = tmpRefLink
-            if tmpRefLink <= 0 then
-                doRefresh = false
-            else
-                doRefresh = true
-            end
+            -- ChatWin.Settings.refreshLinkDB = tmpRefLink
+            tempSettings.refreshLinkDB = tmpRefLink
+            doRefresh = tmpRefLink >= 5 or false
         end
         ImGui.SameLine()
         local txtOnOff = doRefresh and 'ON' or 'OFF'
