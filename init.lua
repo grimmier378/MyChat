@@ -423,6 +423,31 @@ local function CheckGroup(string, line, type)
         return string
 end
 
+---@param line string @ the string we are parsing
+---@return boolean @ Was the originator an NPC?
+---@return string @ the NPC name if found
+local function CheckNPC(line)
+    local name = ''
+    if string.find(line, "tells you,") then 
+        name = string.sub(line,1,string.find(line, "tells you") -2)
+    elseif string.find(line, "says") then
+        name = string.sub(line,1,string.find(line, "says") -2)
+    elseif string.find(line, "whispers,") then
+        name = string.sub(line,1,string.find(line, "whispers") -2) 
+    elseif string.find(line, "shouts,") then
+        name = string.sub(line,1,string.find(line, "shouts") -2)
+    else return false, name end
+    -- print(check)
+    local check = string.format("npc =%s",name)
+    if mq.TLO.SpawnCount(check)() ~= nil then
+        printf("Count: %s Check: %s",mq.TLO.SpawnCount(check)(),check)
+        if mq.TLO.SpawnCount(check)() ~= 0 then
+            return true, name
+        else return false, name end
+    end
+        return false, name
+end
+
 -- Function to append colored text segments
 local function appendColoredTimestamp(console, timestamp, text, textColor)
 
@@ -452,6 +477,7 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
     -- if spam then print('Called from Spam') end
     local eventDetails = eventNames[eventName]
     if not eventDetails then return false end
+
     if ChatWin.Consoles[channelID] then
         local txtBuffer = ChatWin.Consoles[channelID].txtBuffer -- Text buffer for the channel ID we are working with.
         local colorVec = eventDetails.Filters[0].color or {1,1,1,1} -- Color Code to change line to, default is white
@@ -473,6 +499,17 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
                         fString = string.gsub(fString,'M1', mq.TLO.Group.MainAssist.Name() or 'NO MA')
                     elseif string.find(fString, 'TK1') then
                         fString = string.gsub(fString,'TK1', mq.TLO.Group.MainTank.Name() or 'NO TANK')
+                    elseif string.find(fString, 'P3') then
+                        local npc, pcName = CheckNPC(line)
+                        if not npc then
+                            fString = string.gsub(fString,'P3', pcName or 'None')
+                        end
+                    elseif string.find(fString, 'N3') then
+                        local npc, npcName = CheckNPC(line)
+                        -- print(npcName)
+                        if npc then
+                            fString = string.gsub(fString,'N3', npcName or 'None')
+                        end
                     elseif string.find(fString, 'RL') then
                         fString = string.gsub(fString,'RL', mq.TLO.Raid.Leader.Name() or 'NO RAID')
                     elseif string.find(fString, 'G1') then
@@ -1536,6 +1573,8 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                     ImGui.Text('RL\t = Raid Leader Name')
                     ImGui.Text('H1\t = Group Healer (DRU, CLR, or SHM)')
                     ImGui.Text('G1 - G5\t = Party Members Name in Group Slot 1-5')
+                    ImGui.Text('N3\t = NPC Name')
+                    ImGui.Text('P3\t = PC Name')
                     ImGui.EndTooltip()
                 end
                 ImGui.TableSetColumnIndex(1)
