@@ -150,7 +150,7 @@ local function reindex(table)
     local newTable = {}
     local newIdx = 0
     for k, v in pairs(table) do
-        if k == 0 or k == 9000 then
+        if k == 0 or k == 9000 or k >= 9100 then
             newTable[k] = v
         else
             newIdx = newIdx + 1
@@ -242,7 +242,10 @@ local function loadSettings()
         ChatWin.Settings.Channels[9000] = {}
         ChatWin.Settings.Channels[9000] = defaults['Channels'][9000]
     end
-
+    if ChatWin.Settings.Channels[9100] == nil then
+        ChatWin.Settings.Channels[9100] = {}
+        ChatWin.Settings.Channels[9100] = defaults['Channels'][9100]
+    end
     ChatWin.Settings.Channels[9000].enabled = enableSpam
     
     if ChatWin.Settings.refreshLinkDB == nil then
@@ -440,7 +443,7 @@ local function CheckNPC(line)
     -- print(check)
     local check = string.format("npc =%s",name)
     if mq.TLO.SpawnCount(check)() ~= nil then
-        printf("Count: %s Check: %s",mq.TLO.SpawnCount(check)(),check)
+        -- printf("Count: %s Check: %s",mq.TLO.SpawnCount(check)(),check)
         if mq.TLO.SpawnCount(check)() ~= 0 then
             return true, name
         else return false, name end
