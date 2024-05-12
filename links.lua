@@ -55,8 +55,8 @@ end
 
 function links.escapeSQL(str)
 	if not str then return " " end  -- Return an empty string if the input is nil
-	return str:gsub("Di`zok", "Di`Zok"):gsub("-", ""):gsub("'", ""):gsub("`", ""):gsub("#", "")
-	:gsub("%(", ""):gsub("%)", ""):gsub("%.", ""):gsub("%]", ""):gsub("%[", "")--:gsub("Pg.", "Pg")
+	return str:gsub("-", ""):gsub("'", ""):gsub("`", ""):gsub("#", "")
+	:gsub("%(", ""):gsub("%)", ""):gsub("%]", ""):gsub("%[", ""):gsub("%.", "")--:gsub("Pg.", "Pg"):gsub("Di`zok", "Di`Zok")
 end
 
 local function loadSortedItems()
@@ -66,7 +66,9 @@ local function loadSortedItems()
 	local fetchQuery = [[
 		SELECT 
 			SUBSTR(link, 1, INSTR(SUBSTR(link, 2), x'12') + 1) AS link, 
-			SUBSTR(link, 58, INSTR(SUBSTR(link, 58), x'12') - 1) AS name
+			REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+				SUBSTR(link, 58, INSTR(SUBSTR(link, 58), x'12') - 1), 
+				'.', ''), '`', ''), '''', ''), ',', ''), '(', ''), ')', ''), '#', '') AS name
 		FROM 
 			item_links
 		WHERE
@@ -75,7 +77,7 @@ local function loadSortedItems()
 			LENGTH(name) DESC, name;
 	]]
 	for row in db:nrows(fetchQuery) do
-		local name =links.escapeSQL(row.name)
+		local name =row.name
 		-- printf("Name: %s", name)
 		sortedTable[name] = row.link
 	end
@@ -169,7 +171,7 @@ function links.collectItemLinks(line)
 	end
 	text = links.escapeSQL(text)  -- Prepare the text for matching
     -- text = links.escapeLuaPattern(text)
-	for word in text:gmatch("[%w'`%:%'%-%,]+") do
+	for word in text:gmatch("[%w'`%:%'%-%,%.]+") do
 		table.insert(words, word)
 	end
 
