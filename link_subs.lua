@@ -5,6 +5,7 @@
 		['Shadow Knight'] 								= 'Shadow Knight',
 		['Scourge Knight'] 								= 'Scourge Knight',
 		['Stone Fist'] 									= 'Stone Fist',
+		['DiZok Insignia']								= '00EB5F000000000000000000000000000000000000000000C2C0CEE1Di`zok Insignia',
 		-- NPC SPEAK LINKS --
 		['to give me a hand,']							= 'to give me a [0FFFFF13E6E000000000000000000000000000000000000000000000hand],',
 		['Would you be able to help']					= 'Would you be [0FFFFF13E70000000000000000000000000000000000000000000000able] to help',
