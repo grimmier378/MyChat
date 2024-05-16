@@ -1842,6 +1842,7 @@ function ChatWin.Config_GUI(open)
 
         local tmpRefLink = (doRefresh and ChatWin.Settings.refreshLinkDB >=5) and ChatWin.Settings.refreshLinkDB or 0
         tmpRefLink = ImGui.InputInt("Refresh Delay##LinkRefresh",tmpRefLink, 5, 5)
+        if tmpRefLink < 0 then tmpRefLink = 0 end
         if tmpRefLink ~= ChatWin.Settings.refreshLinkDB then
             -- ChatWin.Settings.refreshLinkDB = tmpRefLink
             tempSettings.refreshLinkDB = tmpRefLink
@@ -1986,6 +1987,7 @@ end
 
 local function loop()
     while running do
+        if mq.TLO.Window('CharacterListWnd').Open() then running = false end
         if ChatWin.Settings.refreshLinkDB > 0 and doRefresh then
             local timeB = os.time()
             if timeB - timeA >= ChatWin.Settings.refreshLinkDB * 60 then
@@ -1998,6 +2000,7 @@ local function loop()
         mq.doevents()
         mq.delay(100)
     end
+    mq.exit()
 end
 
 loadSettings()
