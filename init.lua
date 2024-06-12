@@ -552,7 +552,7 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
                 if string.lower(ChatWin.Settings.Channels[channelID].Name) == 'consider' then
                     local conTarg = mq.TLO.Target
                     if conTarg ~= nil then
-                        conColorStr = string.lower(conTarg.ConColor())
+                        conColorStr = string.lower(conTarg.ConColor() or 'white')
                         colorVec = GetColorVal(conColorStr)
                     end
                 end
