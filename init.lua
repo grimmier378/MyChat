@@ -462,6 +462,7 @@ local function CheckNPC(line)
         name = string.sub(line,1,string.find(line, "bites") -1)
     else return false, name end
     -- print(check)
+    name = name:gsub(" $", "")
     local check = string.format("npc =%s",name)
     if mq.TLO.SpawnCount(check)() ~= nil then
         -- printf("Count: %s Check: %s",mq.TLO.SpawnCount(check)(),check)
@@ -519,6 +520,23 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
                         fString = string.gsub(fString,'M3', myName)
                     elseif string.find(fString, 'PT1') then
                         fString = string.gsub(fString,'PT1', mq.TLO.Me.Pet.DisplayName() or 'NO PET')
+                    elseif string.find(fString, 'PT3') then
+                        local npc, npcName = CheckNPC(line)
+                        local tagged = false
+                        -- print(npcName)
+                            if gSize > 0 then
+                                for g =1 , gSize do
+                                    if mq.TLO.Spawn(string.format("%s",npcName)).Master() == mq.TLO.Group.Member(g).Name() then
+                                        fString = string.gsub(fString,'PT3', npcName)
+                                        print(npcName)
+                                        tagged = true
+                                    end
+                                end
+                            end
+                            if not tagged then
+                                fString = string.gsub(fString,'PT3', mq.TLO.Me.Pet.DisplayName() or 'NO PET')
+                                tagged = true
+                            end
                     elseif string.find(fString, 'M1') then
                         fString = string.gsub(fString,'M1', mq.TLO.Group.MainAssist.Name() or 'NO MA')
                     elseif string.find(fString, 'TK1') then
@@ -550,7 +568,7 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
                         fString = string.gsub(fString,'RL', mq.TLO.Raid.Leader.Name() or 'NO RAID')
                     elseif string.find(fString, 'H1') then
                         fString = CheckGroup(fString, line, 'healer')
-                    elseif string.find(fString,'GP1') then
+                    elseif string.find(fString, 'GP1') then
                         fString = CheckGroup(fString, line, 'group')
                     end
                     
@@ -1595,6 +1613,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                     ImGui.Text('M3\t = Your Name')
                     ImGui.Text('M1\t = Main Assist Name')
                     ImGui.Text('PT1\t = Your Pet Name')
+                    ImGui.Text('PT3\t = Any Members Pet Name')
                     ImGui.Text('GP1\t = Party Members Name')
                     ImGui.Text('TK1\t = Main Tank Name')
                     ImGui.Text('RL\t = Raid Leader Name')
