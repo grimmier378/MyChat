@@ -1168,9 +1168,9 @@ local function DrawChatWindow()
         end
         -- End Main tab
         -- Begin other tabs
-        for tabNum = 1 , #ChatWin.Settings.Channels do
+        -- for tabNum = 1 , #ChatWin.Settings.Channels do
             for channelID, data in pairs(ChatWin.Settings.Channels) do
-                if ChatWin.Settings.Channels[channelID].TabOrder == tabNum then
+                -- if ChatWin.Settings.Channels[channelID].TabOrder == tabNum then
                     if ChatWin.Settings.Channels[channelID].enabled then
                         local name = ChatWin.Settings.Channels[channelID].Name..'##'..windowNum
                         local zoom = ChatWin.Consoles[channelID].zoom
@@ -1260,9 +1260,9 @@ local function DrawChatWindow()
                             end
                         end
                     end
-                end
+                -- end
             end
-        end
+        -- end
         -- End other tabs
         ImGui.EndTabBar()
     end
