@@ -41,12 +41,14 @@ local enableSpam, LinksReady = false, false
 local links = require('links')
 if links ~= nil then links.addOn = true end
 local running = false
+local eChan = '/say'
 
 local ChatWin = {
     SHOW = true,
     openGUI = true,
     openConfigGUI = false,
     refreshLinkDB = 10,
+    mainEcho = '/say',
     doRefresh = false,
     SettingsFile = string.format('%s/MyChat_%s_%s.lua', mq.configDir, serverName, myName),
     ThemesFile = string.format('%s/MyThemeZ.lua', mq.configDir, serverName, myName),
@@ -358,7 +360,10 @@ local function loadSettings()
     if ChatWin.Settings.doLinks == nil then
         ChatWin.Settings.doLinks = true
     end
-
+    if ChatWin.Settings.mainEcho == nil then
+        ChatWin.Settings.mainEcho = '/say'
+    end
+    eChan = ChatWin.Settings.mainEcho
     ChatWin.Settings.doLinks = true
     links.enabled = ChatWin.Settings.doLinks
     forceIndex = false
@@ -528,7 +533,7 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
                                 for g =1 , gSize do
                                     if mq.TLO.Spawn(string.format("%s",npcName)).Master() == mq.TLO.Group.Member(g).Name() then
                                         fString = string.gsub(fString,'PT3', npcName)
-                                        print(npcName)
+                                        -- print(npcName)
                                         tagged = true
                                     end
                                 end
@@ -1894,7 +1899,12 @@ function ChatWin.Config_GUI(open)
         ImGui.SameLine()
         local txtOnOff = doRefresh and 'ON' or 'OFF'
         ImGui.Text(txtOnOff)
-
+        eChan = ImGui.InputText("Main Channel Echo##Echo", eChan, 256)
+        if eChan ~= ChatWin.Settings.mainEcho then
+            ChatWin.Settings.mainEcho = eChan
+            tempSettings.mainEcho = eChan
+            writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+        end
         ImGui.SeparatorText('Channels and Events Overview')
         buildConfig()
         if ColorCountConf > 0 then ImGui.PopStyleColor(ColorCountConf) end
@@ -1949,7 +1959,7 @@ function ChatWin.ExecCommand(text)
         ChatWin.console:AppendText(IM_COL32(128, 128, 128), "> %s", text)
     end
     
-    local eChan = '/say'
+    
     -- todo: implement history
     if string.len(text) > 0 then
         text = ChatWin.StringTrim(text)
