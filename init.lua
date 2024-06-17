@@ -255,7 +255,7 @@ local function loadSettings()
     if ChatWin.Settings.doRefresh == nil then
         ChatWin.Settings.doRefresh = doRefresh
     end
-    
+    local i = 1
     for channelID, channelData in pairs(ChatWin.Settings.Channels) do
         -- setup default Echo command channels.
         if not channelData.Echo then
@@ -283,6 +283,9 @@ local function loadSettings()
             ChatWin.Settings.Scale = 1.0
         end
         
+        if ChatWin.Settings.Channels[channelID].TabOrder == nil then 
+            ChatWin.Settings.Channels[channelID].TabOrder = i
+        end
         if ChatWin.Settings.locked == nil then
             ChatWin.Settings.locked = false
         end
@@ -332,7 +335,7 @@ local function loadSettings()
                 end
             end
         end
-        
+        i = i + 1
     end
 
     useThemeName = ChatWin.Settings.LoadTheme
@@ -439,6 +442,24 @@ local function CheckNPC(line)
         name = string.sub(line,1,string.find(line, "whispers") -2) 
     elseif string.find(line, "shouts,") then
         name = string.sub(line,1,string.find(line, "shouts") -2)
+    elseif string.find(line, "slashes") then
+        name = string.sub(line,1,string.find(line, "slashes") -1) 
+    elseif string.find(line, "pierces") then
+        name = string.sub(line,1,string.find(line, "pierces") -1)
+    elseif string.find(line, "kicks") then
+        name = string.sub(line,1,string.find(line, "kicks") -1) 
+    elseif string.find(line, "crushes") then
+        name = string.sub(line,1,string.find(line, "crushes") -1)
+    elseif string.find(line, "bashes") then
+        name = string.sub(line,1,string.find(line, "bashes") -1) 
+    elseif string.find(line, "hits") then
+        name = string.sub(line,1,string.find(line, "hits") -1)
+    elseif string.find(line, "tries") then
+        name = string.sub(line,1,string.find(line, "tries") -1) 
+    elseif string.find(line, "backstabs") then
+        name = string.sub(line,1,string.find(line, "backstabs") -1)
+    elseif string.find(line, "bites") then
+        name = string.sub(line,1,string.find(line, "bites") -1)
     else return false, name end
     -- print(check)
     local check = string.format("npc =%s",name)
@@ -1147,96 +1168,99 @@ local function DrawChatWindow()
         end
         -- End Main tab
         -- Begin other tabs
-        for channelID, data in pairs(ChatWin.Settings.Channels) do
-            if ChatWin.Settings.Channels[channelID].enabled then
-                local name = ChatWin.Settings.Channels[channelID].Name..'##'..windowNum
-                local zoom = ChatWin.Consoles[channelID].zoom
-                local scale = ChatWin.Settings.Channels[channelID].Scale
-                local links =  ChatWin.Settings.Channels[channelID].enableLinks
-                local enableMain = ChatWin.Settings.Channels[channelID].MainEnable
-                local PopOut = ChatWin.Settings.Channels[channelID].PopOut
-                local tNameZ = zoom and 'Disable Zoom' or 'Enable Zoom'
-                local tNameP = PopOut and 'Disable PopOut' or 'Enable PopOut'
-                local tNameM = enableMain and 'Disable Main' or 'Enable Main'
-                local tNameL = links and 'Disable Links' or 'Enable Links'
-                local function tabToolTip()
-                    ImGui.BeginTooltip()
-                    ImGui.Text(ChatWin.Settings.Channels[channelID].Name)
-                    local sizeBuff = string.format("Buffer Size: %s lines.",tostring(getNextID(ChatWin.Consoles[channelID].txtBuffer)-1))
-                    ImGui.Text(sizeBuff)
-                    ImGui.EndTooltip()
-                end
-
-                if not PopOut then
-                    if ImGui.BeginTabItem(name) then
-                        ActTab = name
-                        activeID = channelID
-                        if ImGui.IsItemHovered() then
-                            tabToolTip()
+        for tabNum = 1 , #ChatWin.Settings.Channels do
+            for channelID, data in pairs(ChatWin.Settings.Channels) do
+                if ChatWin.Settings.Channels[channelID].TabOrder == tabNum then
+                    if ChatWin.Settings.Channels[channelID].enabled then
+                        local name = ChatWin.Settings.Channels[channelID].Name..'##'..windowNum
+                        local zoom = ChatWin.Consoles[channelID].zoom
+                        local scale = ChatWin.Settings.Channels[channelID].Scale
+                        local links =  ChatWin.Settings.Channels[channelID].enableLinks
+                        local enableMain = ChatWin.Settings.Channels[channelID].MainEnable
+                        local PopOut = ChatWin.Settings.Channels[channelID].PopOut
+                        local tNameZ = zoom and 'Disable Zoom' or 'Enable Zoom'
+                        local tNameP = PopOut and 'Disable PopOut' or 'Enable PopOut'
+                        local tNameM = enableMain and 'Disable Main' or 'Enable Main'
+                        local tNameL = links and 'Disable Links' or 'Enable Links'
+                        local function tabToolTip()
+                            ImGui.BeginTooltip()
+                            ImGui.Text(ChatWin.Settings.Channels[channelID].Name)
+                            local sizeBuff = string.format("Buffer Size: %s lines.",tostring(getNextID(ChatWin.Consoles[channelID].txtBuffer)-1))
+                            ImGui.Text(sizeBuff)
+                            ImGui.EndTooltip()
                         end
-                        if ImGui.BeginPopupContextWindow() then
-                            ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
-                            if ImGui.Selectable('Configure##'..windowNum) then
-                                editChanID =  channelID
-                                addChannel = false
-                                fromConf = false
-                                tempSettings = ChatWin.Settings
-                                ChatWin.openEditGUI = true
-                                ChatWin.openConfigGUI = false
-                            end
 
-                            ImGui.Separator()
-                            if ImGui.Selectable(tNameZ..'##'..windowNum) then
-                                zoom = not zoom
-                                ChatWin.Consoles[channelID].zoom = zoom
-                            end
-                        if ImGui.Selectable(tNameP..'##'..windowNum) then
-                                PopOut = not PopOut
-                                ChatWin.Settings.Channels[channelID].PopOut = PopOut
-                                tempSettings.Channels[channelID].PopOut = PopOut
-                                writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
-                            end
+                        if not PopOut then
+                            if ImGui.BeginTabItem(name) then
+                                ActTab = name
+                                activeID = channelID
+                                if ImGui.IsItemHovered() then
+                                    tabToolTip()
+                                end
+                                if ImGui.BeginPopupContextWindow() then
+                                    ImGui.SetWindowFontScale(ChatWin.Settings.Scale)
+                                    if ImGui.Selectable('Configure##'..windowNum) then
+                                        editChanID =  channelID
+                                        addChannel = false
+                                        fromConf = false
+                                        tempSettings = ChatWin.Settings
+                                        ChatWin.openEditGUI = true
+                                        ChatWin.openConfigGUI = false
+                                    end
 
-                            if ImGui.Selectable( tNameM..'##'..windowNum) then
-                                enableMain = not enableMain
-                                ChatWin.Settings.Channels[channelID].MainEnable = enableMain
-                                tempSettings.Channels[channelID].MainEnable = enableMain
-                                writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
-                            end
-                            -- tempSettings.Channels[editChanID].MainEnable
-                            if channelID < 9000 then
-                                if ImGui.Selectable(tNameL..'##'..windowNum) then
-                                    links = not links
-                                    ChatWin.Settings.Channels[channelID].enableLinks = links
-                                    tempSettings.Channels[channelID].enableLinks = links
-                                    -- ChatWin.Consoles[channelID].enableLinks = links
-                                    writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+                                    ImGui.Separator()
+                                    if ImGui.Selectable(tNameZ..'##'..windowNum) then
+                                        zoom = not zoom
+                                        ChatWin.Consoles[channelID].zoom = zoom
+                                    end
+                                if ImGui.Selectable(tNameP..'##'..windowNum) then
+                                        PopOut = not PopOut
+                                        ChatWin.Settings.Channels[channelID].PopOut = PopOut
+                                        tempSettings.Channels[channelID].PopOut = PopOut
+                                        writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+                                    end
+
+                                    if ImGui.Selectable( tNameM..'##'..windowNum) then
+                                        enableMain = not enableMain
+                                        ChatWin.Settings.Channels[channelID].MainEnable = enableMain
+                                        tempSettings.Channels[channelID].MainEnable = enableMain
+                                        writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+                                    end
+                                    -- tempSettings.Channels[editChanID].MainEnable
+                                    if channelID < 9000 then
+                                        if ImGui.Selectable(tNameL..'##'..windowNum) then
+                                            links = not links
+                                            ChatWin.Settings.Channels[channelID].enableLinks = links
+                                            tempSettings.Channels[channelID].enableLinks = links
+                                            -- ChatWin.Consoles[channelID].enableLinks = links
+                                            writeSettings(ChatWin.SettingsFile, ChatWin.Settings)
+                                        end
+                                    else
+                                        if ImGui.Selectable('Spam Off##'..windowNum) then
+                                            enableSpam = false
+                                            ChatWin.Consoles[9000].console = nil
+                                            ResetEvents()
+                                        end
+                                    end
+                                    ImGui.Separator()
+                                    if ImGui.Selectable('Clear##'..windowNum) then
+                                        ChatWin.Consoles[channelID].console:Clear()
+                                        ChatWin.Consoles[channelID].txtBuffer = {}
+                                    end
+                                    ImGui.SetWindowFontScale(1)
+                                    ImGui.EndPopup()
                                 end
-                            else
-                                if ImGui.Selectable('Spam Off##'..windowNum) then
-                                    enableSpam = false
-                                    ChatWin.Consoles[9000].console = nil
-                                    ResetEvents()
-                                end
+                                
+                                DrawConsole(channelID)
+                                
+                                ImGui.EndTabItem()
                             end
-                            ImGui.Separator()
-                            if ImGui.Selectable('Clear##'..windowNum) then
-                                ChatWin.Consoles[channelID].console:Clear()
-                                ChatWin.Consoles[channelID].txtBuffer = {}
+                            if ImGui.IsItemHovered() then
+                                tabToolTip()
                             end
-                            ImGui.SetWindowFontScale(1)
-                            ImGui.EndPopup()
                         end
-                        
-                        DrawConsole(channelID)
-                        
-                        ImGui.EndTabItem()
-                    end
-                    if ImGui.IsItemHovered() then
-                        tabToolTip()
                     end
                 end
-
             end
         end
         -- End other tabs
