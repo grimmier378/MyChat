@@ -548,7 +548,7 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
                         fString = string.gsub(fString,'TK1', mq.TLO.Group.MainTank.Name() or 'NO TANK')
                     elseif string.find(fString, 'P3') then
                         local npc, pcName = CheckNPC(line)
-                        if not npc then
+                        if not npc and not (mq.TLO.Me.Pet.DisplayName() or 'NO PET') then
                             fString = string.gsub(fString,'P3', pcName or 'None')
                         end
                     elseif string.find(fString, 'N3') then
