@@ -1,4 +1,3 @@
----@type Mq
 local mq = require('mq')
 local PackageMan = require('mq/PackageMan')
 local sqlite3 = PackageMan.Require('lsqlite3')
@@ -59,7 +58,7 @@ end
 function links.escapeSQL(str)
 	if not str then return " " end  -- Return an empty string if the input is nil
 	return str:gsub("-", ""):gsub("'", ""):gsub("`", ""):gsub("#", "")
-	:gsub("%(", ""):gsub("%)", ""):gsub("%]", ""):gsub("%[", ""):gsub("%.", "")--:gsub("Pg.", "Pg"):gsub("Di`zok", "Di`Zok")
+	:gsub("%(", ""):gsub("%)", ""):gsub("%]", ""):gsub("%[", ""):gsub("%.", ""):gsub("(%w),(%w)", "%1 , %2"):gsub("(%w), ", "%1 , ")--:gsub("Pg.", "Pg"):gsub("Di`zok", "Di`Zok")
 end
 
 local function loadSortedItems()
@@ -68,27 +67,47 @@ local function loadSortedItems()
 	-- print(Build)
 	-- Pull database and ignore the item ID 1048575 as that is the npc say link. which is only set once to the first npc line it sees
 	local fetchQuery = ''
+	local server = mq.TLO.EverQuest.Server()
 	if Build == 'Emu' then
-		fetchQuery = [[
-			SELECT 
-				SUBSTR(link, 1, INSTR(SUBSTR(link, 2), x'12') + 1) AS link, 
-				REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-					SUBSTR(link, 58, INSTR(SUBSTR(link, 58), x'12') - 1), 
-					'.', ''), '`', ''), '''', ''), ',', ''), '(', ''), ')', ''), '#', '') AS name
-			FROM 
-				item_links
-			WHERE
-				item_id  != 1048575
-			ORDER BY 
-				LENGTH(name) DESC, name;
-		]]
+		print(server)
+		if server == "Project Lazarus" then
+			fetchQuery = [[
+				SELECT 
+					SUBSTR(link, 1, INSTR(SUBSTR(link, 2), x'12') + 1) AS link, 
+					REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+						SUBSTR(link, 58, INSTR(SUBSTR(link, 58), x'12') - 1), 
+						'.', ''), '`', ''), '''', ''), ',', ' ,'), '(', ''), ')', ''), '#', ''), '-', '') AS name
+				FROM 
+					item_links
+				WHERE
+					item_id  != 1048575
+				ORDER BY 
+					LENGTH(name) DESC, name;
+			]]
+		elseif server == "Retribution" then
+			fetchQuery = [[ 
+				SELECT 
+					SUBSTR(link, 1, 20) ||
+					SUBSTR(link, 42, INSTR(SUBSTR(link, 42), x'12') + 1) ||
+					SUBSTR(link, INSTR(SUBSTR(link, 42), x'12') + 42) AS link,
+					REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+					SUBSTR(link, 79, INSTR(SUBSTR(link, 79), x'12') - 1), 
+						'.', ''), '`', ''), '''', ''), ',', ' ,'), '(', ''), ')', ''), '#', ''), '-', '') AS name
+				FROM 
+					item_links
+				WHERE
+					item_id != 1048575
+				ORDER BY 
+					LENGTH(name) DESC, name
+			]]
+		end
 	elseif Build == 'Live' or Build == 'Merged' then
 		fetchQuery = [[
 			SELECT 
 				SUBSTR(link, 1, INSTR(SUBSTR(link, 2), x'12') + 1) AS link, 
-				REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+				REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
 					SUBSTR(link, 93, INSTR(SUBSTR(link, 93), x'12') - 1), 
-					'.', ''), '`', ''), '''', ''), ',', ''), '(', ''), ')', ''), '#', '') AS name
+					'.', ''), '`', ''), '''', ''), ',', ' ,'), '(', ''), ')', ''), '#', ''), '-', '') AS name
 			FROM 
 				item_links
 			WHERE
@@ -103,9 +122,9 @@ local function loadSortedItems()
 				SUBSTR(link, 1, 8) ||
 				SUBSTR(link, 44, INSTR(SUBSTR(link, 44), x'12') + 1) ||
 				SUBSTR(link, INSTR(SUBSTR(link, 44), x'12') + 44) AS link,
-				REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-					SUBSTR(link, 93, INSTR(SUBSTR(link, 93), x'12') - 1), 
-					'.', ''), '`', ''), '''', ''), ',', ''), '(', ''), ')', ''), '#', '') AS name
+				REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+				SUBSTR(link, 93, INSTR(SUBSTR(link, 93), x'12') - 1), 
+					'.', ''), '`', ''), '''', ''), ',', ' ,'), '(', ''), ')', ''), '#', ''), '-', '') AS name
 			FROM 
 				item_links
 			WHERE
@@ -117,7 +136,7 @@ local function loadSortedItems()
 	-- print(fetchQuery)
 	for row in db:nrows(fetchQuery) do
 		local name =row.name
-		-- printf("Name: %s", name)
+		-- printf("Name: %s Link: %s", name, row.link)
 		sortedTable[name] = row.link
 	end
 	msgOut = string.format("\ay[\aw%s\ay]\at All Items \agloaded\ax, \ayScanning Chat for Items...",mq.TLO.Time())
@@ -255,12 +274,12 @@ function links.collectItemLinks(line)
 	end
 	text = links.escapeSQL(text)  -- Prepare the text for matching
     -- text = links.escapeLuaPattern(text)
-	for word in text:gmatch("[%w'`%:%'%-%,%.]+") do
+	for word in text:gmatch("[%w'`%:%'%-,%.]+") do
 		table.insert(words, word)
 	end
 
 	-- print("Debug: Words extracted ->", table.concat(words, ", "))
-	local maxWords = 18
+	local maxWords = 20
 	for numWords = maxWords, 1, -1 do
 		for start = 1, #words - numWords + 1 do
 			if not matchedIndices[start] then
@@ -283,6 +302,7 @@ function links.collectItemLinks(line)
 		text = text:gsub(k,v)
 	end
 	if #linksFound > 0 then
+		text = text:gsub(" , ", ", ")
 		return text
 	else
 		return line

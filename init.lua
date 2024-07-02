@@ -512,15 +512,22 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
         local txtBuffer = ChatWin.Consoles[channelID].txtBuffer -- Text buffer for the channel ID we are working with.
         local colorVec = eventDetails.Filters[0].color or {1,1,1,1} -- Color Code to change line to, default is white
         local fMatch = false
+        local negMatch = false
         local conColorStr = 'white'
         local gSize = mq.TLO.Me.GroupSize() -- size of the group including yourself
         gSize = gSize -1
         if txtBuffer then
             local haveFilters = false
-            for fID, fData in pairs(eventDetails.Filters) do
+            for fID = 1, #eventDetails.Filters do
+                local fData = eventDetails.Filters[fID]
                 if fID > 0 and not fMatch then
                     haveFilters = true
+                    
                     local fString = fData.filterString -- String value we are filtering for
+                    if string.find(fString, 'NO2') then
+                        fString = string.gsub(fString,'NO2','')
+                        negMatch = true
+                    end
                     if string.find(fString, 'M3') then
                         fString = string.gsub(fString,'M3', myName)
                     elseif string.find(fString, 'PT1') then
@@ -548,7 +555,7 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
                         fString = string.gsub(fString,'TK1', mq.TLO.Group.MainTank.Name() or 'NO TANK')
                     elseif string.find(fString, 'P3') then
                         local npc, pcName = CheckNPC(line)
-                        if not npc and not (mq.TLO.Me.Pet.DisplayName() or 'NO PET') then
+                        if not npc and pcName ~= (mq.TLO.Me.Pet.DisplayName() or 'NO PET') then
                             fString = string.gsub(fString,'P3', pcName or 'None')
                         end
                     elseif string.find(fString, 'N3') then
@@ -586,6 +593,8 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
                 if fMatch then break end
                 -- end
             end
+            
+            if fMatch and negMatch then fMatch = false end -- we matched but it was a negative match so leave
             --print(tostring(#eventDetails.Filters))
             if not fMatch and haveFilters then return fMatch end -- we had filters and didn't match so leave
             if not spam then
@@ -1626,6 +1635,7 @@ function ChatWin.AddChannel(editChanID, isNewChannel)
                     ImGui.Text('G1 - G5\t = Party Members Name in Group Slot 1-5')
                     ImGui.Text('N3\t = NPC Name')
                     ImGui.Text('P3\t = PC Name')
+                    ImGui.Text('NO2\t = Ignore the If matched\n Place this in front of a token or word and it if matched it will ignore the line.')
                     ImGui.EndTooltip()
                 end
                 ImGui.TableSetColumnIndex(1)
@@ -1923,7 +1933,7 @@ function ChatWin.Edit_GUI(open)
         local themeName = ChatWin.Settings.LoadTheme
         ColorCountEdit, StyleCountEdit = DrawTheme(themeName)
     end
-    
+    local showEdit
     open, showEdit = ImGui.Begin("Channel Editor", open, bit32.bor(ImGuiWindowFlags.None))
     if not showEdit then
         if ColorCountEdit > 0 then ImGui.PopStyleColor(ColorCountEdit) end
