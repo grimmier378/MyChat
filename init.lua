@@ -151,12 +151,50 @@ end
 local function reindex(table)
     local newTable = {}
     local newIdx = 0
+    local indexCnt = 0
     for k, v in pairs(table) do
+        indexCnt    = indexCnt + 1
         if k == 0 or k == 9000 or k >= 9100 then
             newTable[k] = v
-        else
+        end
+    end
+
+    for i = 1, indexCnt do
+        if table[i] ~= nil then
             newIdx = newIdx + 1
-            newTable[newIdx] = v
+            if newIdx == i then
+                newTable[i] = table[i]
+            else
+                newTable[newIdx] = table[i]
+            end
+        else
+            newTable[i] = nil
+        end
+    end
+    return newTable
+end
+
+local function reindexFilters(table)
+    local newTable = {}
+    local newIdx = 0
+    local indexCnt = 0
+    for k, v in pairs(table) do
+        indexCnt = indexCnt + 1
+        if k == 0 or k == 9000 or k >= 9100 then
+            newTable[k] = v
+        end
+    end
+
+    for i = 1, indexCnt do
+        if table[i] ~= nil then
+            newIdx = newIdx + 1
+            if newIdx == i then
+                newTable[i] = table[i]
+            else
+                newTable[newIdx] = table[i]
+            end
+        else
+            newTable[i] = nil
         end
     end
     return newTable
@@ -177,7 +215,7 @@ local function reIndexSettings(file, table)
                 for eID, eData in pairs(table.Channels[cID].Events) do
                     for k,v in pairs(eData) do
                         if k == "Filters" then
-                            tmpTbl.Channels[cID][id][eID].Filters = reindex(v)
+                            tmpTbl.Channels[cID][id][eID].Filters = reindexFilters(v)
                         end
                     end
                 end
@@ -518,80 +556,80 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
         gSize = gSize -1
         if txtBuffer then
             local haveFilters = false
-            for fID = 1, #eventDetails.Filters do
-                local fData = eventDetails.Filters[fID]
-                if fID > 0 and not fMatch then
-                    haveFilters = true
-                    
-                    local fString = fData.filterString -- String value we are filtering for
-                    if string.find(fString, 'NO2') then
-                        fString = string.gsub(fString,'NO2','')
-                        negMatch = true
-                    end
-                    if string.find(fString, 'M3') then
-                        fString = string.gsub(fString,'M3', myName)
-                    elseif string.find(fString, 'PT1') then
-                        fString = string.gsub(fString,'PT1', mq.TLO.Me.Pet.DisplayName() or 'NO PET')
-                    elseif string.find(fString, 'PT3') then
-                        local npc, npcName = CheckNPC(line)
-                        local tagged = false
-                        -- print(npcName)
-                            if gSize > 0 then
-                                for g =1 , gSize do
-                                    if mq.TLO.Spawn(string.format("%s",npcName)).Master() == mq.TLO.Group.Member(g).Name() then
-                                        fString = string.gsub(fString,'PT3', npcName)
-                                        -- print(npcName)
-                                        tagged = true
+            for fID = 1, #eventDetails.Filters *2 do
+                if eventDetails.Filters[fID] ~= nil then
+                    local fData = eventDetails.Filters[fID]
+                    if fID > 0 and not fMatch then
+                        haveFilters = true
+                        local fString = fData.filterString -- String value we are filtering for
+                        if string.find(fString, 'NO2') then
+                            fString = string.gsub(fString,'NO2','')
+                            negMatch = true
+                        end
+                        if string.find(fString, 'M3') then
+                            fString = string.gsub(fString,'M3', myName)
+                        elseif string.find(fString, 'PT1') then
+                            fString = string.gsub(fString,'PT1', mq.TLO.Me.Pet.DisplayName() or 'NO PET')
+                        elseif string.find(fString, 'PT3') then
+                            local npc, npcName = CheckNPC(line)
+                            local tagged = false
+                            -- print(npcName)
+                                if gSize > 0 then
+                                    for g =1 , gSize do
+                                        if mq.TLO.Spawn(string.format("%s",npcName)).Master() == mq.TLO.Group.Member(g).Name() then
+                                            fString = string.gsub(fString,'PT3', npcName)
+                                            -- print(npcName)
+                                            tagged = true
+                                        end
                                     end
                                 end
+                                if not tagged then
+                                    fString = string.gsub(fString,'PT3', mq.TLO.Me.Pet.DisplayName() or 'NO PET')
+                                    tagged = true
+                                end
+                        elseif string.find(fString, 'M1') then
+                            fString = string.gsub(fString,'M1', mq.TLO.Group.MainAssist.Name() or 'NO MA')
+                        elseif string.find(fString, 'TK1') then
+                            fString = string.gsub(fString,'TK1', mq.TLO.Group.MainTank.Name() or 'NO TANK')
+                        elseif string.find(fString, 'P3') then
+                            local npc, pcName = CheckNPC(line)
+                            if not npc and pcName ~= (mq.TLO.Me.Pet.DisplayName() or 'NO PET') then
+                                fString = string.gsub(fString,'P3', pcName or 'None')
                             end
-                            if not tagged then
-                                fString = string.gsub(fString,'PT3', mq.TLO.Me.Pet.DisplayName() or 'NO PET')
-                                tagged = true
+                        elseif string.find(fString, 'N3') then
+                            local npc, npcName = CheckNPC(line)
+                            -- print(npcName)
+                            if npc then
+                                fString = string.gsub(fString,'N3', npcName or 'None')
                             end
-                    elseif string.find(fString, 'M1') then
-                        fString = string.gsub(fString,'M1', mq.TLO.Group.MainAssist.Name() or 'NO MA')
-                    elseif string.find(fString, 'TK1') then
-                        fString = string.gsub(fString,'TK1', mq.TLO.Group.MainTank.Name() or 'NO TANK')
-                    elseif string.find(fString, 'P3') then
-                        local npc, pcName = CheckNPC(line)
-                        if not npc and pcName ~= (mq.TLO.Me.Pet.DisplayName() or 'NO PET') then
-                            fString = string.gsub(fString,'P3', pcName or 'None')
+                        elseif string.find(fString, 'RL') then
+                            fString = string.gsub(fString,'RL', mq.TLO.Raid.Leader.Name() or 'NO RAID')
+                        elseif string.find(fString, 'G1') then
+                            fString = string.gsub(fString,'G1', mq.TLO.Group.Member(1).Name() or 'NO GROUP')
+                        elseif string.find(fString, 'G2') then
+                            fString = string.gsub(fString,'G2', mq.TLO.Group.Member(2).Name() or 'NO GROUP')
+                        elseif string.find(fString, 'G3') then
+                            fString = string.gsub(fString,'G3', mq.TLO.Group.Member(3).Name() or 'NO GROUP')
+                        elseif string.find(fString, 'G4') then
+                            fString = string.gsub(fString,'G4', mq.TLO.Group.Member(4).Name() or 'NO GROUP')
+                        elseif string.find(fString, 'G5') then
+                            fString = string.gsub(fString,'G5', mq.TLO.Group.Member(5).Name() or 'NO GROUP')
+                        elseif string.find(fString, 'RL') then
+                            fString = string.gsub(fString,'RL', mq.TLO.Raid.Leader.Name() or 'NO RAID')
+                        elseif string.find(fString, 'H1') then
+                            fString = CheckGroup(fString, line, 'healer')
+                        elseif string.find(fString, 'GP1') then
+                            fString = CheckGroup(fString, line, 'group')
                         end
-                    elseif string.find(fString, 'N3') then
-                        local npc, npcName = CheckNPC(line)
-                        -- print(npcName)
-                        if npc then
-                            fString = string.gsub(fString,'N3', npcName or 'None')
+                        
+                        if string.find(line, fString) then
+                            colorVec = fData.color
+                            fMatch = true
                         end
-                    elseif string.find(fString, 'RL') then
-                        fString = string.gsub(fString,'RL', mq.TLO.Raid.Leader.Name() or 'NO RAID')
-                    elseif string.find(fString, 'G1') then
-                        fString = string.gsub(fString,'G1', mq.TLO.Group.Member(1).Name() or 'NO GROUP')
-                    elseif string.find(fString, 'G2') then
-                        fString = string.gsub(fString,'G2', mq.TLO.Group.Member(2).Name() or 'NO GROUP')
-                    elseif string.find(fString, 'G3') then
-                        fString = string.gsub(fString,'G3', mq.TLO.Group.Member(3).Name() or 'NO GROUP')
-                    elseif string.find(fString, 'G4') then
-                        fString = string.gsub(fString,'G4', mq.TLO.Group.Member(4).Name() or 'NO GROUP')
-                    elseif string.find(fString, 'G5') then
-                        fString = string.gsub(fString,'G5', mq.TLO.Group.Member(5).Name() or 'NO GROUP')
-                    elseif string.find(fString, 'RL') then
-                        fString = string.gsub(fString,'RL', mq.TLO.Raid.Leader.Name() or 'NO RAID')
-                    elseif string.find(fString, 'H1') then
-                        fString = CheckGroup(fString, line, 'healer')
-                    elseif string.find(fString, 'GP1') then
-                        fString = CheckGroup(fString, line, 'group')
-                    end
-                    
-                    if string.find(line, fString) then
-                        colorVec = fData.color
-                        fMatch = true
+                        if fMatch then break end
                     end
                     if fMatch then break end
                 end
-                if fMatch then break end
-                -- end
             end
             
             if fMatch and negMatch then fMatch = false end -- we matched but it was a negative match so leave
