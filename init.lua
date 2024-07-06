@@ -34,7 +34,8 @@ local mainBottomPosition = 0
 local doRefresh = false
 local timeA = os.time()
 local mainBuffer = {}
-local importFile = 'MyChat_Server_CharName.lua'
+local importFile = 'Server_Name/CharName.lua'
+local settingsOld = string.format('%s/MyChat_%s_%s.lua', mq.configDir, serverName, myName)
 local cleanImport = false
 local Tokens = {} -- may use this later to hold the tokens and remove a long string of if elseif.
 local enableSpam, LinksReady = false, false
@@ -50,7 +51,7 @@ local ChatWin = {
     refreshLinkDB = 10,
     mainEcho = '/say',
     doRefresh = false,
-    SettingsFile = string.format('%s/MyChat_%s_%s.lua', mq.configDir, serverName, myName),
+    SettingsFile = string.format('%s/MyUI/MyChat/%s/%s.lua', mq.configDir, serverName, myName),
     ThemesFile = string.format('%s/MyThemeZ.lua', mq.configDir, serverName, myName),
     Settings = {
         -- Channels
@@ -258,11 +259,16 @@ end
 
 local function loadSettings()
     if not File_Exists(ChatWin.SettingsFile) then
-        -- ChatWin.Settings = defaults
-        mq.pickle(ChatWin.SettingsFile, defaults)
-        loadSettings()
+        settingsOld = string.format('%s/MyChat_%s_%s.lua', mq.configDir, serverName, myName)
+        if File_Exists(settingsOld) then
+            ChatWin.Settings = dofile(settingsOld)
+            mq.pickle(ChatWin.SettingsFile, ChatWin.Settings)
         else
-        -- ChatWin.Settings = defaults
+            ChatWin.Settings = defaults
+            mq.pickle(ChatWin.SettingsFile, defaults)
+        -- loadSettings()
+        end
+    else
         -- Load settings from the Lua config file
         ChatWin.Settings = dofile(ChatWin.SettingsFile)
         if firstPass then
@@ -1872,7 +1878,7 @@ function ChatWin.Config_GUI(open)
         cleanImport = ImGui.Checkbox('Clean Import##clean', cleanImport)
         
         if ImGui.Button('Import Channels') then
-            local tmp = mq.configDir..'/'..importFile
+            local tmp = mq.configDir..'/MyUI/MyChat/'..importFile
             if not File_Exists(tmp) then
                 mq.cmd("/msgbox 'No File Found!")
                 else
@@ -2067,6 +2073,7 @@ end
 local function init()
     running = true
     mq.imgui.init('MyChatGUI', ChatWin.GUI)
+    
     -- initialize the console
     if ChatWin.console == nil then
         ChatWin.console = ImGui.ConsoleWidget.new("Chat##Console")
