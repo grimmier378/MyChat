@@ -37,9 +37,10 @@ local importFile = 'Server_Name/CharName.lua'
 local settingsOld = string.format('%s/MyChat_%s_%s.lua', mq.configDir, serverName, myName)
 local cleanImport = false
 local Tokens = {} -- may use this later to hold the tokens and remove a long string of if elseif.
-local enableSpam = false
+local enableSpam, resetConsoles = false, false
 local running = false
 local eChan = '/say'
+local build, server
 
 local ChatWin = {
     SHOW = true,
@@ -131,6 +132,15 @@ local function SetUpConsoles(channelID)
         -- ChatWin.Consoles[channelID].enableLinks = ChatWin.Settings[channelID].enableLinks
         ChatWin.Consoles[channelID].console = ImGui.ConsoleWidget.new(channelID.."##Console")
     end
+end
+
+local function ResetConsoles()
+    for channelID, _ in pairs(ChatWin.Consoles) do
+        ChatWin.Consoles[channelID].console = nil
+        SetUpConsoles(channelID)
+    end
+    ChatWin.console = nil
+    ChatWin.console = ImGui.ConsoleWidget.new("MainConsole")
 end
 
 ---Takes in a table and re-numbers the Indicies to be concurrent
@@ -404,12 +414,13 @@ end
 local function BuildEvents()
     eventNames = {}
     for channelID, channelData in pairs(ChatWin.Settings.Channels) do
+        local eventOptions = {keep_links = channelData.enableLinks}
         for eventId, eventDetails in pairs(channelData.Events) do
             if eventDetails.enabled then
                 if eventDetails.eventString then
                     local eventName = string.format("event_%s_%d", channelID, eventId)
                     if channelID ~= 9000 then
-                        mq.event(eventName, eventDetails.eventString, function(line) ChatWin.EventChat(channelID, eventName, line, false) end, { keep_links = channelData.enableLinks })
+                        mq.event(eventName, eventDetails.eventString, function(line) ChatWin.EventChat(channelID, eventName, line, false) end, eventOptions)
                     elseif channelID == 9000 and enableSpam then
                         mq.event(eventName, eventDetails.eventString, function(line) ChatWin.EventChatSpam(channelID, line) end)
                     end
@@ -424,24 +435,34 @@ end
 local function ModifyEvent(chanID)
     local channelEvents = ChatWin.Settings.Channels[chanID].Events
     local linksEnabled = ChatWin.Settings.Channels[chanID].enableLinks
-    for k, v in pairs(channelEvents) do
-        local eName = string.format("event_%s_%d", chanID, k)
+    local eventOptions = {keep_links = linksEnabled}
+    for eID, eData in pairs(channelEvents) do
+        local eName = string.format("event_%s_%d", chanID, eID)
         mq.unevent(eName)
     end
     -- rebuild the channels events
-    for k, v in pairs(channelEvents) do
-        local eName = string.format("event_%s_%d", chanID, k)
-        if v.enabled then
-            if v.eventString then
+    for eID, eData in pairs(channelEvents) do
+        local eName = string.format("event_%s_%d", chanID, eID)
+        if eData.enabled then
+            if eData.eventString then
                 if chanID ~= 9000 then
-                    mq.event(eName, v.eventString, function(line) ChatWin.EventChat(chanID, eName, line, false) end, { keep_links = linksEnabled })
+                    mq.event(eName, eData.eventString, function(line) ChatWin.EventChat(chanID, eName, line, false) end, eventOptions)
                 elseif chanID == 9000 and enableSpam then
-                    mq.event(eName, v.eventString, function(line) ChatWin.EventChatSpam(chanID, line) end)
+                    mq.event(eName, eData.eventString, function(line) ChatWin.EventChatSpam(chanID, line) end)
                 end
-                eventNames[eName] = v
+                eventNames[eName] = eData
             end
         end
     end
+end
+
+local function stripLinks(line)
+    local newLine = line
+    local link = string.match(newLine, "%[.*%]")
+    if link then
+        newLine = string.gsub(newLine, "%[.*%]", "")
+    end
+    return newLine
 end
 
 local function ResetEvents()
@@ -698,6 +719,7 @@ function ChatWin.EventChat(channelID, eventName, line, spam)
                 end
 
                 -- Add the new line to the buffer
+
                 txtBuffer[i] = {
                     color = colorVec,
                     text = line
@@ -834,7 +856,7 @@ local function DrawConsole(channelID)
     local scale = ChatWin.Settings.Channels[channelID].Scale
     local PopOut = ChatWin.Settings.Channels[channelID].PopOut
     if zoom and ChatWin.Consoles[channelID].txtBuffer ~= '' then
-        local footerHeight = 30
+        local footerHeight = 35
         local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
         contentSizeY = contentSizeY - footerHeight
 
@@ -891,7 +913,7 @@ local function DrawConsole(channelID)
         ImGui.EndChild()
 
     else
-        local footerHeight = 30
+        local footerHeight = 35
         local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
         contentSizeY = contentSizeY - footerHeight
         ChatWin.Consoles[channelID].console:Render(ImVec2(contentSizeX,contentSizeY))
@@ -909,11 +931,11 @@ local function DrawConsole(channelID)
     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2)
     ImGui.PushItemWidth(contentSizeX)
     ImGui.PushStyleColor(ImGuiCol.FrameBg, ImVec4(0, 0, 0, 0))
-    ImGui.PushFont(ImGui.ConsoleFont)
+    --ImGui.PushFont(ImGui.ConsoleFont)
     local accept = false
     local cmdBuffer = ChatWin.Settings.Channels[channelID].commandBuffer
     cmdBuffer, accept = ImGui.InputText('##Input##'..name, cmdBuffer, textFlags)
-    ImGui.PopFont()
+    --ImGui.PopFont()
     ImGui.PopStyleColor()
     ImGui.PopItemWidth()
     if ImGui.IsItemHovered() then
@@ -993,7 +1015,9 @@ local function DrawChatWindow()
             end
 
             ImGui.Separator()
-
+            if ImGui.MenuItem('Reset all Consoles##'..windowNum) then
+                resetConsoles = true
+            end
             if ImGui.MenuItem('Clear Main Console##'..windowNum) then
                 ChatWin.console:Clear()
             end
@@ -1098,7 +1122,7 @@ local function DrawChatWindow()
             end
             ActTab = 'Main'
             activeID = 0
-            local footerHeight = 30
+            local footerHeight = 35
             local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
             contentSizeY = contentSizeY - footerHeight
             if ImGui.BeginPopupContextWindow() then
@@ -1125,7 +1149,7 @@ local function DrawChatWindow()
                     -- ImGuiInputTextFlags.CallbackHistory
                 )
                 else
-                local footerHeight = 30
+                local footerHeight = 35
                 local contentSizeX, contentSizeY = ImGui.GetContentRegionAvail()
                 contentSizeY = contentSizeY - footerHeight
 
@@ -1192,10 +1216,10 @@ local function DrawChatWindow()
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2)
             ImGui.PushItemWidth(contentSizeX)
             ImGui.PushStyleColor(ImGuiCol.FrameBg, ImVec4(0, 0, 0, 0))
-            ImGui.PushFont(ImGui.ConsoleFont)
+            --  ImGui.PushFont(ImGui.ConsoleFont)
             local accept = false
             ChatWin.commandBuffer, accept = ImGui.InputText('##Input##'..windowNum, ChatWin.commandBuffer, textFlags)
-            ImGui.PopFont()
+            -- ImGui.PopFont()
             ImGui.PopStyleColor()
             ImGui.PopItemWidth()
             if accept then
@@ -1335,7 +1359,7 @@ function ChatWin.GUI()
     if ChatWin.Settings.locked then
         winFlags = bit32.bor(ImGuiWindowFlags.MenuBar,ImGuiWindowFlags.NoMove, ImGuiWindowFlags.NoScrollbar)
     end
-
+    local openMain
     openMain,ChatWin.SHOW  = ImGui.Begin(windowName, openMain, winFlags)
 
     if not ChatWin.SHOW then
@@ -2051,6 +2075,8 @@ function ChatWin.ChannelExecCommand(text, channelID)
 end
 
 local function init()
+    build = mq.TLO.MacroQuest.BuildName()
+    server = mq.TLO.EverQuest.Server()
     running = true
     loadSettings()
     BuildEvents()
@@ -2068,13 +2094,17 @@ local function init()
         }
 
     end
+    mq.delay(50)
     ChatWin.console:AppendText("\ay[\aw%s\ay]\at Welcome to \agMyChat!",mq.TLO.Time())
-    mq.delay(500)
 end
 
 local function loop()
     while running do
         if mq.TLO.EverQuest.GameState() ~= "INGAME" then running = false end
+        if resetConsoles then
+            ResetConsoles()
+            resetConsoles = false
+        end
         mq.doevents()
         mq.delay(1)
     end
