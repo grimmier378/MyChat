@@ -512,9 +512,9 @@ local function CheckNPC(line)
     else return false, name end
     -- print(check)
     name = name:gsub(" $", "")
-    local check = string.format("npc =%s",name)
+    local check = string.format("npc =\"%s\"",name)
     if mq.TLO.SpawnCount(check)() ~= nil then
-        -- printf("Count: %s Check: %s",mq.TLO.SpawnCount(check)(),check)
+        --printf("Count: %s Check: %s",mq.TLO.SpawnCount(check)(),check)
         if mq.TLO.SpawnCount(check)() ~= 0 then
             return true, name
         else return false, name end
