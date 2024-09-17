@@ -1772,4 +1772,6 @@ return {
 	['LoadTheme'] = 'Default',
 	['Scale'] = 1,
 	['mainEcho'] = '/gu',
+	['keyName'] = 'RightShift',
+	['keyFocus'] = false,
 }
