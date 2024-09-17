@@ -1009,7 +1009,7 @@ local function DrawConsole(channelID)
         ChatWin.Settings.Channels[channelID].commandBuffer = cmdBuffer
         setFocus = true
     end
-    if ChatWin.KeyFocus and not ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows) and ImGui.IsKeyPressed(ImGuiKey[ChatWin.KeyName]) then
+    if ChatWin.KeyFocus and not ImGui.IsItemFocused() and ImGui.IsKeyPressed(ImGuiKey[ChatWin.KeyName]) then
         setFocus = true
     end
     ImGui.SetItemDefaultFocus()
@@ -1304,7 +1304,7 @@ local function DrawChatWindow()
                 setFocus = true
             end
             ImGui.SetItemDefaultFocus()
-            if ChatWin.KeyFocus and not ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows) and ImGui.IsKeyPressed(ImGuiKey[ChatWin.KeyName]) then
+            if ChatWin.KeyFocus and not IsItemFocused and ImGui.IsKeyPressed(ImGuiKey[ChatWin.KeyName]) then
                 setFocus = true
             end
             if setFocus then
