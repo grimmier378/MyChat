@@ -623,7 +623,7 @@ function Module.EventChat(channelID, eventName, line, spam)
     if not eventDetails then return false end
 
     if Module.Consoles[channelID] then
-        local txtBuffer = Module.Consoles[channelID].txtBuffer      -- Text buffer for the channel ID we are working with.
+        local txtBuffer = Module.Consoles[channelID].txtBuffer            -- Text buffer for the channel ID we are working with.
         local colorVec = eventDetails.Filters[0].color or { 1, 1, 1, 1, } -- Color Code to change line to, default is white
         local fMatch = false
         local negMatch = false
@@ -799,9 +799,9 @@ function Module.EventChatSpam(channelID, line)
     if not eventDetails then return end
     if Module.Consoles[channelID] then
         local txtBuffer = Module.Consoles[channelID].txtBuffer -- Text buffer for the channel ID we are working with.
-        local colorVec = { 1, 1, 1, 1, }                 -- Color Code to change line to, default is white
+        local colorVec = { 1, 1, 1, 1, }                       -- Color Code to change line to, default is white
         local fMatch = false
-        local gSize = mq.TLO.Me.GroupSize()              -- size of the group including yourself
+        local gSize = mq.TLO.Me.GroupSize()                    -- size of the group including yourself
         gSize = gSize - 1
         if txtBuffer then
             for cID, cData in pairs(Module.Settings.Channels) do
@@ -1723,7 +1723,7 @@ function Module.AddChannel(editChanID, isNewChannel)
     if ImGui.BeginChild("Details##") then
         ------------------------------ table -------------------------------------
         if channelData[editChanID].Events ~= nil then
-            for eventID, eventDetails in pairs(channelData[editChanID].Events) do
+            for eventID, eventDetails in ipairs(channelData[editChanID].Events) do
                 if Module.hString[eventID] == nil then Module.hString[eventID] = string.format(channelData[editChanID].Name .. ' : ' .. eventDetails.eventString) end
                 if ImGui.CollapsingHeader(Module.hString[eventID]) then
                     local contentSizeX = ImGui.GetWindowContentRegionWidth()
@@ -1810,7 +1810,7 @@ function Module.AddChannel(editChanID, isNewChannel)
                             ImGui.TableSetColumnIndex(3)
                             ImGui.SeparatorText('')
                             --------------- Filters ----------------------
-                            for filterID, filterData in pairs(eventDetails.Filters) do
+                            for filterID, filterData in ipairs(eventDetails.Filters) do
                                 if filterID > 0 then --and filterData.filterString ~= '' then
                                     ImGui.TableNextRow()
                                     ImGui.TableSetColumnIndex(0)
@@ -1870,7 +1870,6 @@ local function buildConfig()
     if ImGui.BeginChild("Channels##") then
         for channelID, channelData in pairs(Module.tempSettings.Channels) do
             if channelID ~= lastID then
-                -- Check if the header is collapsed
                 if ImGui.CollapsingHeader(channelData.Name) then
                     local contentSizeX = ImGui.GetWindowContentRegionWidth()
                     ImGui.SetWindowFontScale(Module.Settings.Scale)
@@ -2056,6 +2055,9 @@ function Module.Config_GUI(open)
             writeSettings(Module.SettingsFile, Module.Settings)
         end
         ImGui.SeparatorText('Channels and Events Overview')
+        table.sort(Module.tempSettings.Channels, function(a, b)
+            return a.Name < b.Name
+        end)
         buildConfig()
     end
     if ColorCountConf > 0 then ImGui.PopStyleColor(ColorCountConf) end
