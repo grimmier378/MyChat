@@ -50,6 +50,11 @@ function LoadTheme.StartTheme(tName, tTable, mouseOver, mouseHovered, mouseOvaer
 	local StyleCounter = 0
 	local ColorCounter = 0
 	local themeID = 0
+	if not tTable then return StyleCounter, ColorCounter, themeID end
+	if type(tTable) ~= 'table' then
+		print("Theme Table is not a table, returning 0 Style and Color counts.")
+		return StyleCounter, ColorCounter, themeID
+	end
 	if tTable.Theme == nil then
 		return StyleCounter, ColorCounter, themeID
 	end
@@ -66,7 +71,7 @@ function LoadTheme.StartTheme(tName, tTable, mouseOver, mouseHovered, mouseOvaer
 						ColorCounter = ColorCounter + 1
 					end
 				else
-					ImGui.PushStyleColor(pID, ImVec4(cData.Color[1], cData.Color[2], cData.Color[3], cData.Color[4]))
+					ImGui.PushStyleColor(ImGuiCol[cData.PropertyName], ImVec4(cData.Color[1], cData.Color[2], cData.Color[3], cData.Color[4]))
 					ColorCounter = ColorCounter + 1
 				end
 			end

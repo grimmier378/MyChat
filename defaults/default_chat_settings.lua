@@ -8,6 +8,7 @@ return {
 			['PopOut'] = false,
 			['locked'] = false,
 			['Scale'] = 1,
+			['MainFontSize'] = 16,
 			['TabOrder'] = 5,
 			['Events'] = {
 				[1] = {
@@ -1772,6 +1773,6 @@ return {
 	['LoadTheme'] = 'Default',
 	['Scale'] = 1,
 	['mainEcho'] = '/gu',
-	['keyName'] = 'RightShift',
+	['keyName'] = 'RightCtrl',
 	['keyFocus'] = false,
 }
